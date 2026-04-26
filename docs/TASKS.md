@@ -18,16 +18,18 @@
 **Objetivo**: repo corriendo localmente y desplegado en Vercel con un "hola mundo" autenticado.
 **Estimación**: ~1 día.
 
-- [ ] 🔴 Inicializar proyecto Next.js 15 con TypeScript + Tailwind
-- [ ] 🔴 Crear repositorio en GitHub y push inicial
+> Estado actual (2026-04-26): base local lista, repo con commits/push en GitHub, Neon real conectado fuera de Vercel. Falta cerrar despliegue y auth real.
+
+- [x] 🔴 Inicializar proyecto Next.js 15 con TypeScript + Tailwind
+- [x] 🔴 Crear repositorio en GitHub y push inicial
 - [ ] 🔴 Linkear proyecto a Vercel (`vercel link`)
-- [ ] 🔴 Provisionar Neon Postgres desde Vercel Marketplace
-- [ ] 🔴 Configurar Drizzle y primer `pnpm drizzle-kit push`
-- [ ] 🔴 Configurar NextAuth con proveedor Google
+- [~] 🔴 Provisionar Neon Postgres desde Vercel Marketplace
+- [x] 🔴 Configurar Drizzle y primer `pnpm drizzle-kit push`
+- [~] 🔴 Configurar NextAuth con proveedor Google
 - [ ] 🔴 Configurar `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `NEXTAUTH_SECRET`, `ADMIN_EMAILS` vía `vercel env`
-- [ ] 🔴 Crear layout base con header + navegación + footer
+- [x] 🔴 Crear layout base con header + navegación + footer
 - [ ] 🔴 Instalar y configurar shadcn/ui (Button, Input, Table, Card, Dialog)
-- [ ] 🟡 Configurar ESLint + Prettier + tsconfig estricto
+- [x] 🟡 Configurar ESLint + Prettier + tsconfig estricto
 - [ ] 🟡 Deploy de preview y production funcionando
 - [ ] 🟢 Crear `vercel.ts` con configuración base
 
@@ -40,13 +42,15 @@
 **Objetivo**: modelo de jugadores cargado y ranking público navegable.
 **Estimación**: ~2-3 días.
 
-- [ ] 🔴 Schema Drizzle: `users`, `players`, `seasons`, `ranking_events`, `audit_log`
-- [ ] 🔴 Seed de temporada 2026 (`seasons`)
+> Estado actual (2026-04-26): schema base aplicado en Neon, temporada 2026 seed creada, 9 jugadores seed cargados y ranking público leyendo desde DB real. Falta administración y carga real vía CSV.
+
+- [x] 🔴 Schema Drizzle: `users`, `players`, `seasons`, `ranking_events`, `audit_log`
+- [x] 🔴 Seed de temporada 2026 (`seasons`)
 - [ ] 🔴 CRUD de jugadores en `/admin/jugadores` (crear, editar, marcar retirado)
 - [ ] 🔴 Import CSV de ranking inicial (nombre, género, puntos iniciales) → crea jugadores + `ranking_events` con `reason='initial_seed'`
-- [ ] 🔴 Vista pública `/` con tabs H / M mostrando ranking
+- [x] 🔴 Vista pública `/` con tabs H / M mostrando ranking
 - [ ] 🔴 Vista `/ranking/[categoria]` con historial de eventos al hacer click en un jugador
-- [ ] 🔴 Cálculo de puntos vigentes = `sum(ranking_events.delta)`
+- [x] 🔴 Cálculo de puntos vigentes = `sum(ranking_events.delta)`
 - [ ] 🔴 Desempate RN-11 (H2H, sets, games, sorteo) implementado
 - [ ] 🟡 Link del jugador al perfil público con sus partidos jugados
 - [ ] 🟡 Auditoría de alta/edición de jugadores
