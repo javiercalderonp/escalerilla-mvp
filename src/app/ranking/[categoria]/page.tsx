@@ -21,7 +21,7 @@ export default async function RankingCategoryPage({ params }: RankingCategoryPag
     notFound();
   }
 
-  const entries = getRanking(categoria);
+  const entries = await getRanking(categoria);
   const categoryLabel = rankingCategoryLabels[categoria];
 
   return (

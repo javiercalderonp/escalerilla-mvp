@@ -21,10 +21,10 @@ const milestones = [
   },
 ];
 
-export default function Home() {
-  const summary = getRankingSummary();
+export default async function Home() {
+  const summary = await getRankingSummary();
   const featuredCategory = "hombres" as const;
-  const featuredEntries = getRanking(featuredCategory);
+  const featuredEntries = await getRanking(featuredCategory);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-12 px-4 py-10 sm:px-6">

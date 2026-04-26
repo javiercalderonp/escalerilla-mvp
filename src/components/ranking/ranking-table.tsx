@@ -35,7 +35,9 @@ export function RankingTable({ category, entries }: RankingTableProps) {
                 ) : null}
               </div>
               <p className="mt-1 text-xs text-slate-500">
-                Forma reciente: {entry.recentForm.join(" · ")}
+                {entry.recentForm.length > 0
+                  ? `Forma reciente: ${entry.recentForm.join(" · ")}`
+                  : "Esperando resultados reales"}
               </p>
             </div>
             <span className="text-sm font-semibold text-slate-950">{entry.points}</span>
