@@ -1,4 +1,5 @@
 import {
+  date,
   index,
   integer,
   jsonb,
@@ -18,6 +19,19 @@ export const playerStatusEnum = pgEnum("player_status", [
   "retirado",
 ]);
 export const seasonStatusEnum = pgEnum("season_status", ["activa", "cerrada"]);
+export const matchTypeEnum = pgEnum("match_type", [
+  "sorteo",
+  "desafio",
+  "campeonato",
+]);
+export const matchStatusEnum = pgEnum("match_status", [
+  "pendiente",
+  "reportado",
+  "confirmado",
+  "wo",
+  "empate",
+]);
+export const matchFormatEnum = pgEnum("match_format", ["mr3", "set_largo"]);
 export const rankingEventReasonEnum = pgEnum("ranking_event_reason", [
   "initial_seed",
   "match_win",
@@ -45,7 +59,9 @@ export const users = pgTable(
     image: text("image"),
     role: userRoleEnum("role").notNull().default("guest"),
     playerId: uuid("player_id"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
   },
   (table) => ({
@@ -64,11 +80,18 @@ export const players = pgTable(
     status: playerStatusEnum("status").notNull().default("activo"),
     initialPoints: integer("initial_points").notNull().default(0),
     notes: text("notes"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
-    genderStatusIdx: index("players_gender_status_idx").on(table.gender, table.status),
+    genderStatusIdx: index("players_gender_status_idx").on(
+      table.gender,
+      table.status,
+    ),
     emailIdx: index("players_email_idx").on(table.email),
   }),
 );
@@ -77,15 +100,85 @@ export const seasons = pgTable("seasons", {
   id: uuid("id").defaultRandom().primaryKey(),
   year: integer("year").notNull().unique(),
   status: seasonStatusEnum("status").notNull().default("activa"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
+
+export const matches = pgTable(
+  "matches",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    weekId: uuid("week_id"),
+    category: genderEnum("category").notNull(),
+    type: matchTypeEnum("type").notNull(),
+    player1Id: uuid("player1_id")
+      .notNull()
+      .references(() => players.id, { onDelete: "restrict" }),
+    player2Id: uuid("player2_id")
+      .notNull()
+      .references(() => players.id, { onDelete: "restrict" }),
+    playedOn: date("played_on"),
+    status: matchStatusEnum("status").notNull().default("pendiente"),
+    format: matchFormatEnum("format"),
+    winnerId: uuid("winner_id").references(() => players.id, {
+      onDelete: "set null",
+    }),
+    woLoserId: uuid("wo_loser_id").references(() => players.id, {
+      onDelete: "set null",
+    }),
+    reportedById: uuid("reported_by_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    confirmedById: uuid("confirmed_by_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    reportedAt: timestamp("reported_at", { withTimezone: true }),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    weekIdx: index("matches_week_idx").on(table.weekId),
+    statusIdx: index("matches_status_idx").on(table.status),
+    player1Idx: index("matches_player1_idx").on(table.player1Id),
+    player2Idx: index("matches_player2_idx").on(table.player2Id),
+    playedOnIdx: index("matches_played_on_idx").on(table.playedOn),
+  }),
+);
+
+export const matchSets = pgTable(
+  "match_sets",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    matchId: uuid("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    setNumber: integer("set_number").notNull(),
+    gamesP1: integer("games_p1").notNull(),
+    gamesP2: integer("games_p2").notNull(),
+    tiebreakP1: integer("tiebreak_p1"),
+    tiebreakP2: integer("tiebreak_p2"),
+  },
+  (table) => ({
+    matchSetUnique: unique("match_sets_match_set_unique").on(
+      table.matchId,
+      table.setNumber,
+    ),
+  }),
+);
 
 export const rankingEvents = pgTable(
   "ranking_events",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    playerId: uuid("player_id").notNull().references(() => players.id, { onDelete: "restrict" }),
-    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+    playerId: uuid("player_id")
+      .notNull()
+      .references(() => players.id, { onDelete: "restrict" }),
+    occurredAt: timestamp("occurred_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     delta: integer("delta").notNull(),
     reason: rankingEventReasonEnum("reason").notNull(),
     refType: text("ref_type"),
@@ -94,7 +187,9 @@ export const rankingEvents = pgTable(
     registeredById: uuid("registered_by_id").references(() => users.id, {
       onDelete: "set null",
     }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     playerIdx: index("ranking_events_player_idx").on(table.playerId),
@@ -110,8 +205,12 @@ export const auditLog = pgTable(
   "audit_log",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
-    actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
+    occurredAt: timestamp("occurred_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    actorId: uuid("actor_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
     action: text("action").notNull(),
     entityType: text("entity_type").notNull(),
     entityId: uuid("entity_id"),
@@ -119,8 +218,10 @@ export const auditLog = pgTable(
   },
   (table) => ({
     actorIdx: index("audit_log_actor_idx").on(table.actorId),
-    entityIdx: index("audit_log_entity_idx").on(table.entityType, table.entityId),
+    entityIdx: index("audit_log_entity_idx").on(
+      table.entityType,
+      table.entityId,
+    ),
     occurredAtIdx: index("audit_log_occurred_at_idx").on(table.occurredAt),
   }),
 );
-

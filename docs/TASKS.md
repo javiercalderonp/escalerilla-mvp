@@ -42,18 +42,18 @@
 **Objetivo**: modelo de jugadores cargado y ranking público navegable.
 **Estimación**: ~2-3 días.
 
-> Estado actual (2026-04-26): schema base aplicado en Neon, temporada 2026 seed creada, 9 jugadores seed cargados y ranking público leyendo desde DB real. Falta administración y carga real vía CSV.
+> Estado actual (2026-04-27): admin de jugadores operativo, import CSV inicial listo, historial por jugador visible en ranking, motor de desempate RN-11 integrado y schema/migración mínima de `matches` + `match_sets` preparada. Falta aplicar migración en DB real y completar datos de partidos/resultados para explotar el desempate completo.
 
 - [x] 🔴 Schema Drizzle: `users`, `players`, `seasons`, `ranking_events`, `audit_log`
 - [x] 🔴 Seed de temporada 2026 (`seasons`)
-- [ ] 🔴 CRUD de jugadores en `/admin/jugadores` (crear, editar, marcar retirado)
-- [ ] 🔴 Import CSV de ranking inicial (nombre, género, puntos iniciales) → crea jugadores + `ranking_events` con `reason='initial_seed'`
+- [x] 🔴 CRUD de jugadores en `/admin/jugadores` (crear, editar, marcar retirado)
+- [x] 🔴 Import CSV de ranking inicial (nombre, género, puntos iniciales) → crea jugadores + `ranking_events` con `reason='initial_seed'`
 - [x] 🔴 Vista pública `/` con tabs H / M mostrando ranking
-- [ ] 🔴 Vista `/ranking/[categoria]` con historial de eventos al hacer click en un jugador
+- [x] 🔴 Vista `/ranking/[categoria]` con historial de eventos al hacer click en un jugador
 - [x] 🔴 Cálculo de puntos vigentes = `sum(ranking_events.delta)`
-- [ ] 🔴 Desempate RN-11 (H2H, sets, games, sorteo) implementado
+- [~] 🔴 Desempate RN-11 (H2H, sets, games, sorteo) implementado
 - [ ] 🟡 Link del jugador al perfil público con sus partidos jugados
-- [ ] 🟡 Auditoría de alta/edición de jugadores
+- [x] 🟡 Auditoría de alta/edición de jugadores
 - [ ] 🟢 Export CSV del ranking actual
 
 **Criterio de aceptación**: cargo el CSV con 30 jugadores, veo el ranking ordenado correcto, los empates se resuelven bien.

@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 
 import { RankingTable } from "@/components/ranking/ranking-table";
 import {
+  formatDelta,
+  formatRankingReason,
+  getPlayerRankingDetail,
   getRanking,
   isRankingCategory,
   rankingCategoryLabels,
@@ -12,17 +15,36 @@ type RankingCategoryPageProps = {
   params: Promise<{
     categoria: string;
   }>;
+  searchParams?: Promise<{
+    player?: string;
+  }>;
 };
 
-export default async function RankingCategoryPage({ params }: RankingCategoryPageProps) {
+function formatDate(value: Date) {
+  return new Intl.DateTimeFormat("es-CL", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+export default async function RankingCategoryPage({
+  params,
+  searchParams,
+}: RankingCategoryPageProps) {
   const { categoria } = await params;
 
   if (!isRankingCategory(categoria)) {
     notFound();
   }
 
+  const query = searchParams ? await searchParams : undefined;
   const entries = await getRanking(categoria);
   const categoryLabel = rankingCategoryLabels[categoria];
+  const selectedPlayerId = query?.player;
+  const playerDetail = selectedPlayerId
+    ? await getPlayerRankingDetail(categoria, selectedPlayerId)
+    : null;
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6">
@@ -34,9 +56,9 @@ export default async function RankingCategoryPage({ params }: RankingCategoryPag
           Ranking público por categoría
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-          Este slice ya deja visible el ranking para {categoryLabel.toLowerCase()} y está armado
-          para conectar luego el cálculo real desde <code>ranking_events</code>, desempates RN-11
-          e historial por jugador.
+          Ranking real por categoría con detalle de puntos por jugador. El
+          siguiente salto aquí será sumar desempates RN-11 y luego el historial
+          de partidos.
         </p>
         <div className="mt-6 flex flex-wrap gap-3 text-sm">
           <Link
@@ -63,6 +85,85 @@ export default async function RankingCategoryPage({ params }: RankingCategoryPag
       </div>
 
       <RankingTable category={categoria} entries={entries} />
+
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        {playerDetail ? (
+          <div className="space-y-6">
+            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-sm font-medium text-emerald-700">
+                  Detalle del jugador
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold text-slate-950">
+                  {playerDetail.player.fullName}
+                </h2>
+                <p className="mt-2 text-sm text-slate-600">
+                  Posición #{playerDetail.player.position} ·{" "}
+                  {playerDetail.player.points} pts · Semana{" "}
+                  {formatDelta(playerDetail.player.weeklyDelta)}
+                </p>
+              </div>
+              <Link
+                href={`/ranking/${categoria}`}
+                className="text-sm font-medium text-emerald-700 transition hover:text-emerald-800"
+              >
+                Limpiar selección
+              </Link>
+            </div>
+
+            {playerDetail.events.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center text-sm text-slate-500">
+                Todavía no registra movimientos de puntos esta temporada.
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-2xl border border-slate-200">
+                <div className="grid grid-cols-[120px_120px_1fr] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
+                  <span>Fecha</span>
+                  <span>Delta</span>
+                  <span>Motivo</span>
+                </div>
+                <div className="divide-y divide-slate-100">
+                  {playerDetail.events.map((event) => (
+                    <div
+                      key={event.id}
+                      className="grid grid-cols-[120px_120px_1fr] gap-3 px-4 py-4 sm:px-6"
+                    >
+                      <span className="text-sm text-slate-600">
+                        {formatDate(event.occurredAt)}
+                      </span>
+                      <span
+                        className={`text-sm font-semibold ${
+                          event.delta > 0
+                            ? "text-emerald-700"
+                            : event.delta < 0
+                              ? "text-rose-700"
+                              : "text-slate-500"
+                        }`}
+                      >
+                        {formatDelta(event.delta)}
+                      </span>
+                      <div>
+                        <p className="text-sm font-medium text-slate-950">
+                          {formatRankingReason(event.reason)}
+                        </p>
+                        {event.note ? (
+                          <p className="mt-1 text-xs text-slate-500">
+                            {event.note}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center text-sm text-slate-500">
+            Haz click en un jugador del ranking para ver su historial de puntos.
+          </div>
+        )}
+      </section>
     </div>
   );
 }
