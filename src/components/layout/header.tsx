@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { Trophy } from "lucide-react";
 
-export function Header() {
+import { auth } from "@/lib/auth";
+
+export async function Header() {
+  const session = await auth();
+
   return (
     <header className="border-b border-black/5 bg-white/90 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
@@ -19,9 +23,18 @@ export function Header() {
           <Link href="/fixture" className="transition hover:text-slate-950">
             Fixture
           </Link>
-          <Link href="/login" className="transition hover:text-slate-950">
-            Ingresar
-          </Link>
+          {session?.user ? (
+            <div className="flex items-center gap-3">
+              <span className="text-slate-500">{session.user.name ?? session.user.email}</span>
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                {session.user.role}
+              </span>
+            </div>
+          ) : (
+            <Link href="/login" className="transition hover:text-slate-950">
+              Ingresar
+            </Link>
+          )}
         </nav>
       </div>
     </header>

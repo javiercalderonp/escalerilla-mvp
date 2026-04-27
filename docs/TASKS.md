@@ -18,15 +18,15 @@
 **Objetivo**: repo corriendo localmente y desplegado en Vercel con un "hola mundo" autenticado.
 **Estimación**: ~1 día.
 
-> Estado actual (2026-04-26): base local lista, repo con commits/push en GitHub, Neon real conectado fuera de Vercel. Falta cerrar despliegue y auth real.
+> Estado actual (2026-04-26): base local lista, repo con commits/push en GitHub, Neon real conectado y login Google enlazado en entorno local. Falta cerrar Vercel/env productivo y validar deploy autenticado.
 
 - [x] 🔴 Inicializar proyecto Next.js 15 con TypeScript + Tailwind
 - [x] 🔴 Crear repositorio en GitHub y push inicial
 - [ ] 🔴 Linkear proyecto a Vercel (`vercel link`)
 - [~] 🔴 Provisionar Neon Postgres desde Vercel Marketplace
 - [x] 🔴 Configurar Drizzle y primer `pnpm drizzle-kit push`
-- [~] 🔴 Configurar NextAuth con proveedor Google
-- [ ] 🔴 Configurar `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `NEXTAUTH_SECRET`, `ADMIN_EMAILS` vía `vercel env`
+- [x] 🔴 Configurar NextAuth con proveedor Google
+- [~] 🔴 Configurar `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `NEXTAUTH_SECRET`, `ADMIN_EMAILS` vía `vercel env`
 - [x] 🔴 Crear layout base con header + navegación + footer
 - [ ] 🔴 Instalar y configurar shadcn/ui (Button, Input, Table, Card, Dialog)
 - [x] 🟡 Configurar ESLint + Prettier + tsconfig estricto

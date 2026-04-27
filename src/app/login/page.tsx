@@ -1,3 +1,5 @@
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
+
 export default function LoginPage() {
   return (
     <div className="mx-auto flex w-full max-w-md flex-1 items-center px-4 py-10 sm:px-6">
@@ -7,12 +9,14 @@ export default function LoginPage() {
           Inicia sesión para continuar
         </h1>
         <p className="mt-3 text-sm leading-6 text-slate-600">
-          El acceso del MVP usará Google Sign-In. En esta etapa ya quedó preparado el
-          esqueleto de autenticación y faltan las credenciales del entorno para activarlo.
+          Entra con tu cuenta Google para ver el ranking, fixture y las herramientas del club.
         </p>
-        <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
-          Cuando estén disponibles AUTH_GOOGLE_ID y AUTH_GOOGLE_SECRET, este flujo quedará
-          conectado a Auth.js.
+        <div className="mt-6">
+          <GoogleSignInButton />
+        </div>
+        <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+          El flujo ya está conectado a Google Auth. Si el deploy aún no tiene variables cargadas en
+          Vercel, el siguiente paso es completar ese entorno para habilitar producción.
         </div>
       </div>
     </div>
