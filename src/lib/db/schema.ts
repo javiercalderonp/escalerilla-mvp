@@ -275,6 +275,32 @@ export const rankingEvents = pgTable(
   }),
 );
 
+export const freezes = pgTable(
+  "freezes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    playerId: uuid("player_id")
+      .notNull()
+      .references(() => players.id, { onDelete: "restrict" }),
+    seasonId: uuid("season_id")
+      .notNull()
+      .references(() => seasons.id, { onDelete: "restrict" }),
+    startsOn: date("starts_on").notNull(),
+    endsOn: date("ends_on"),
+    reason: text("reason").notNull(),
+    createdById: uuid("created_by_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    playerIdx: index("freezes_player_idx").on(table.playerId),
+    seasonIdx: index("freezes_season_idx").on(table.seasonId),
+  }),
+);
+
 export const auditLog = pgTable(
   "audit_log",
   {
