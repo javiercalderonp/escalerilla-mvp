@@ -19,6 +19,8 @@ type AdminMatchesPageProps = {
   searchParams?: Promise<{
     status?: string;
     categoria?: string;
+    q?: string;
+    vista?: string;
   }>;
 };
 
@@ -159,6 +161,8 @@ async function getSummary() {
       total: 0,
       pending: 0,
       confirmed: 0,
+      draws: 0,
+      walkovers: 0,
       women: 0,
     };
   }
@@ -172,6 +176,14 @@ async function getSummary() {
     .select({ value: count() })
     .from(matches)
     .where(eq(matches.status, "confirmado"));
+  const [drawRow] = await db
+    .select({ value: count() })
+    .from(matches)
+    .where(eq(matches.status, "empate"));
+  const [walkoverRow] = await db
+    .select({ value: count() })
+    .from(matches)
+    .where(eq(matches.status, "wo"));
   const [womenRow] = await db
     .select({ value: count() })
     .from(matches)
@@ -181,6 +193,8 @@ async function getSummary() {
     total: totalRow?.value ?? 0,
     pending: pendingRow?.value ?? 0,
     confirmed: confirmedRow?.value ?? 0,
+    draws: drawRow?.value ?? 0,
+    walkovers: walkoverRow?.value ?? 0,
     women: womenRow?.value ?? 0,
   };
 }
@@ -203,7 +217,12 @@ async function getPlayerOptions() {
   return rows as PlayerOption[];
 }
 
-async function getMatches(filters: { status: string; category: string }) {
+async function getMatches(filters: {
+  status: string;
+  category: string;
+  query: string;
+  view: string;
+}) {
   if (!db) {
     return [] as MatchRow[];
   }
@@ -246,13 +265,38 @@ async function getMatches(filters: { status: string; category: string }) {
       sql`${matches.winnerId} = players_winner.id`,
     )
     .orderBy(
+      sql`case when ${matches.status} in ('pendiente', 'reportado') then 0 else 1 end`,
       desc(matches.confirmedAt),
       desc(matches.createdAt),
       asc(p1.fullName),
     );
 
   const rows = whereClause ? await query.where(whereClause) : await query;
-  return rows as MatchRow[];
+  const normalizedQuery = filters.query.trim().toLowerCase();
+  const filteredRows = normalizedQuery
+    ? (rows as MatchRow[]).filter((row) => {
+        const haystack =
+          `${row.player1Name} ${row.player2Name} ${row.winnerName ?? ""}`.toLowerCase();
+        return haystack.includes(normalizedQuery);
+      })
+    : (rows as MatchRow[]);
+
+  if (filters.view === "por_resolver") {
+    return filteredRows.filter(
+      (row) => row.status === "pendiente" || row.status === "reportado",
+    );
+  }
+
+  if (filters.view === "resueltos") {
+    return filteredRows.filter(
+      (row) =>
+        row.status === "confirmado" ||
+        row.status === "empate" ||
+        row.status === "wo",
+    );
+  }
+
+  return filteredRows;
 }
 
 export default async function AdminMatchesPage({
@@ -279,10 +323,16 @@ export default async function AdminMatchesPage({
   )
     ? (query?.categoria ?? "todas")
     : "todas";
+  const view = ["todos", "por_resolver", "resueltos"].includes(
+    query?.vista ?? "todos",
+  )
+    ? (query?.vista ?? "todos")
+    : "todos";
+  const searchQuery = query?.q?.trim() ?? "";
 
   const [summary, rows, playerOptions] = await Promise.all([
     getSummary(),
-    getMatches({ status, category }),
+    getMatches({ status, category, query: searchQuery, view }),
     getPlayerOptions(),
   ]);
 
@@ -311,7 +361,7 @@ export default async function AdminMatchesPage({
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-5">
         <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">Total partidos</p>
           <p className="mt-2 text-3xl font-semibold text-slate-950">
@@ -331,9 +381,15 @@ export default async function AdminMatchesPage({
           </p>
         </article>
         <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-slate-500">Partidos mujeres</p>
+          <p className="text-sm text-slate-500">Empates</p>
           <p className="mt-2 text-3xl font-semibold text-slate-950">
-            {summary.women}
+            {summary.draws}
+          </p>
+        </article>
+        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">W.O.</p>
+          <p className="mt-2 text-3xl font-semibold text-slate-950">
+            {summary.walkovers}
           </p>
         </article>
       </section>
@@ -399,18 +455,68 @@ export default async function AdminMatchesPage({
         </article>
 
         <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-4">
             <div>
               <h2 className="text-lg font-semibold text-slate-950">Listado</h2>
               <p className="mt-1 text-sm text-slate-600">
                 Filtros base para navegar y resolver partidos.
               </p>
             </div>
+
+            <form className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[1.3fr_0.8fr_0.9fr_auto]">
+              <input type="hidden" name="status" value={status} />
+              <input type="hidden" name="categoria" value={category} />
+              <input type="hidden" name="vista" value={view} />
+              <label className="space-y-2 text-sm text-slate-700">
+                <span className="font-medium">Buscar jugador</span>
+                <input
+                  name="q"
+                  defaultValue={searchQuery}
+                  placeholder="Ej: Pedro o Juan"
+                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-emerald-500"
+                />
+              </label>
+              <div className="flex items-end gap-2 md:col-span-3 md:justify-end">
+                <button
+                  type="submit"
+                  className="rounded-full bg-slate-950 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800"
+                >
+                  Aplicar
+                </button>
+                <Link
+                  href="/admin/partidos"
+                  className="rounded-full border border-slate-300 px-5 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-400"
+                >
+                  Limpiar
+                </Link>
+              </div>
+            </form>
+
+            <div className="flex flex-wrap gap-2 text-sm">
+              {[
+                ["todos", "Todos"],
+                ["por_resolver", "Por resolver"],
+                ["resueltos", "Resueltos"],
+              ].map(([option, label]) => (
+                <Link
+                  key={option}
+                  href={`/admin/partidos?status=${status}&categoria=${category}&vista=${option}&q=${encodeURIComponent(searchQuery)}`}
+                  className={`rounded-full px-3 py-1.5 font-medium transition ${
+                    view === option
+                      ? "bg-amber-500 text-white"
+                      : "border border-slate-300 text-slate-700 hover:border-slate-400"
+                  }`}
+                >
+                  {label}
+                </Link>
+              ))}
+            </div>
+
             <div className="flex flex-wrap gap-2 text-sm">
               {statusOptions.map((option) => (
                 <Link
                   key={option}
-                  href={`/admin/partidos?status=${option}&categoria=${category}`}
+                  href={`/admin/partidos?status=${option}&categoria=${category}&vista=${view}&q=${encodeURIComponent(searchQuery)}`}
                   className={`rounded-full px-3 py-1.5 font-medium transition ${
                     status === option
                       ? "bg-slate-950 text-white"
@@ -421,25 +527,42 @@ export default async function AdminMatchesPage({
                 </Link>
               ))}
             </div>
-          </div>
 
-          <div className="mt-4 flex flex-wrap gap-2 text-sm">
-            {categoryOptions.map((option) => (
-              <Link
-                key={option}
-                href={`/admin/partidos?status=${status}&categoria=${option}`}
-                className={`rounded-full px-3 py-1.5 font-medium transition ${
-                  category === option
-                    ? "bg-emerald-600 text-white"
-                    : "border border-slate-300 text-slate-700 hover:border-slate-400"
-                }`}
-              >
-                {option}
-              </Link>
-            ))}
+            <div className="flex flex-wrap gap-2 text-sm">
+              {categoryOptions.map((option) => (
+                <Link
+                  key={option}
+                  href={`/admin/partidos?status=${status}&categoria=${option}&vista=${view}&q=${encodeURIComponent(searchQuery)}`}
+                  className={`rounded-full px-3 py-1.5 font-medium transition ${
+                    category === option
+                      ? "bg-emerald-600 text-white"
+                      : "border border-slate-300 text-slate-700 hover:border-slate-400"
+                  }`}
+                >
+                  {option}
+                </Link>
+              ))}
+            </div>
           </div>
 
           <div className="mt-6 space-y-4">
+            <p className="text-sm text-slate-500">
+              Mostrando{" "}
+              <span className="font-semibold text-slate-900">
+                {rows.length}
+              </span>{" "}
+              partidos
+              {searchQuery ? (
+                <>
+                  {" "}
+                  para{" "}
+                  <span className="font-semibold text-slate-900">
+                    “{searchQuery}”
+                  </span>
+                </>
+              ) : null}
+              .
+            </p>
             {rows.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center text-sm text-slate-500">
                 No hay partidos para este filtro.
