@@ -3,6 +3,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import {
+  correctDrawAction,
+  correctResultAction,
+  correctWalkoverAction,
   createMatchAction,
   registerDrawAction,
   registerResultAction,
@@ -81,65 +84,70 @@ function formatDate(value: string | Date | null) {
   }).format(new Date(value));
 }
 
+function SetFields({
+  setNumber,
+  showTiebreakHint = true,
+}: {
+  setNumber: 1 | 2 | 3;
+  showTiebreakHint?: boolean;
+}) {
+  return (
+    <div className="space-y-2 rounded-2xl border border-slate-200 bg-white p-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-medium text-slate-900">Set {setNumber}</p>
+        {showTiebreakHint ? (
+          <span className="text-[11px] text-slate-500">TB opcional</span>
+        ) : null}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <input
+          name={`set${setNumber}p1`}
+          type="number"
+          min={0}
+          className="rounded-xl border border-slate-300 px-3 py-2"
+          placeholder="P1"
+        />
+        <input
+          name={`set${setNumber}p2`}
+          type="number"
+          min={0}
+          className="rounded-xl border border-slate-300 px-3 py-2"
+          placeholder="P2"
+        />
+      </div>
+      {setNumber !== 3 ? (
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            name={`set${setNumber}tbp1`}
+            type="number"
+            min={0}
+            className="rounded-xl border border-slate-300 px-3 py-2"
+            placeholder="TB P1"
+          />
+          <input
+            name={`set${setNumber}tbp2`}
+            type="number"
+            min={0}
+            className="rounded-xl border border-slate-300 px-3 py-2"
+            placeholder="TB P2"
+          />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function ResultSetsFields() {
   return (
-    <div className="grid gap-3 md:grid-cols-3">
-      <div className="space-y-2 rounded-2xl border border-slate-200 bg-white p-3">
-        <p className="text-sm font-medium text-slate-900">Set 1</p>
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            name="set1p1"
-            type="number"
-            min={0}
-            className="rounded-xl border border-slate-300 px-3 py-2"
-            placeholder="P1"
-          />
-          <input
-            name="set1p2"
-            type="number"
-            min={0}
-            className="rounded-xl border border-slate-300 px-3 py-2"
-            placeholder="P2"
-          />
-        </div>
+    <div className="space-y-3">
+      <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 px-4 py-3 text-xs text-slate-600">
+        RN-02: usa TB solo para 7-6 o 9-8. El 3er set en MR3 se interpreta como
+        super tie-break.
       </div>
-      <div className="space-y-2 rounded-2xl border border-slate-200 bg-white p-3">
-        <p className="text-sm font-medium text-slate-900">Set 2</p>
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            name="set2p1"
-            type="number"
-            min={0}
-            className="rounded-xl border border-slate-300 px-3 py-2"
-            placeholder="P1"
-          />
-          <input
-            name="set2p2"
-            type="number"
-            min={0}
-            className="rounded-xl border border-slate-300 px-3 py-2"
-            placeholder="P2"
-          />
-        </div>
-      </div>
-      <div className="space-y-2 rounded-2xl border border-slate-200 bg-white p-3">
-        <p className="text-sm font-medium text-slate-900">Set 3</p>
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            name="set3p1"
-            type="number"
-            min={0}
-            className="rounded-xl border border-slate-300 px-3 py-2"
-            placeholder="P1"
-          />
-          <input
-            name="set3p2"
-            type="number"
-            min={0}
-            className="rounded-xl border border-slate-300 px-3 py-2"
-            placeholder="P2"
-          />
-        </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        <SetFields setNumber={1} />
+        <SetFields setNumber={2} />
+        <SetFields setNumber={3} showTiebreakHint={false} />
       </div>
     </div>
   );
@@ -525,48 +533,14 @@ export default async function AdminMatchesPage({
                             />
                           </label>
 
-                          <div className="grid gap-3 md:grid-cols-2">
-                            <div className="space-y-2 rounded-2xl border border-slate-200 bg-white p-3">
-                              <p className="text-sm font-medium text-slate-900">
-                                Set 1
-                              </p>
-                              <div className="grid grid-cols-2 gap-2">
-                                <input
-                                  name="set1p1"
-                                  type="number"
-                                  min={0}
-                                  className="rounded-xl border border-slate-300 px-3 py-2"
-                                  placeholder="P1"
-                                />
-                                <input
-                                  name="set1p2"
-                                  type="number"
-                                  min={0}
-                                  className="rounded-xl border border-slate-300 px-3 py-2"
-                                  placeholder="P2"
-                                />
-                              </div>
+                          <div className="space-y-3">
+                            <div className="rounded-2xl border border-dashed border-blue-300 bg-white/70 px-4 py-3 text-xs text-slate-600">
+                              Para empate MR3, carga un 1-1 válido. Si hubo 7-6,
+                              informa TB.
                             </div>
-                            <div className="space-y-2 rounded-2xl border border-slate-200 bg-white p-3">
-                              <p className="text-sm font-medium text-slate-900">
-                                Set 2
-                              </p>
-                              <div className="grid grid-cols-2 gap-2">
-                                <input
-                                  name="set2p1"
-                                  type="number"
-                                  min={0}
-                                  className="rounded-xl border border-slate-300 px-3 py-2"
-                                  placeholder="P1"
-                                />
-                                <input
-                                  name="set2p2"
-                                  type="number"
-                                  min={0}
-                                  className="rounded-xl border border-slate-300 px-3 py-2"
-                                  placeholder="P2"
-                                />
-                              </div>
+                            <div className="grid gap-3 md:grid-cols-2">
+                              <SetFields setNumber={1} />
+                              <SetFields setNumber={2} />
                             </div>
                           </div>
 
@@ -627,6 +601,143 @@ export default async function AdminMatchesPage({
                             className="rounded-full bg-rose-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-rose-700"
                           >
                             Marcar W.O.
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {row.status === "confirmado" ||
+                  row.status === "empate" ||
+                  row.status === "wo" ? (
+                    <div className="mt-4 space-y-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-900">
+                          Corregir resultado
+                        </h3>
+                        <p className="mt-1 text-xs text-slate-600">
+                          Esto agrega eventos compensatorios y luego registra el
+                          nuevo resultado oficial.
+                        </p>
+                      </div>
+
+                      <form action={correctResultAction} className="space-y-4">
+                        <input type="hidden" name="matchId" value={row.id} />
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <label className="space-y-2 text-sm text-slate-700">
+                            <span className="font-medium">Formato</span>
+                            <select
+                              name="format"
+                              defaultValue={row.format ?? "mr3"}
+                              className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-amber-500"
+                            >
+                              <option value="mr3">MR3</option>
+                              <option value="set_largo">Set largo</option>
+                            </select>
+                          </label>
+                          <label className="space-y-2 text-sm text-slate-700">
+                            <span className="font-medium">Fecha jugada</span>
+                            <input
+                              name="playedOn"
+                              type="date"
+                              className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-amber-500"
+                            />
+                          </label>
+                        </div>
+
+                        <ResultSetsFields />
+
+                        <button
+                          type="submit"
+                          className="rounded-full bg-amber-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-amber-700"
+                        >
+                          Corregir como resultado normal
+                        </button>
+                      </form>
+
+                      <div className="grid gap-4 lg:grid-cols-2">
+                        <form
+                          action={correctDrawAction}
+                          className="space-y-4 rounded-2xl border border-blue-200 bg-white p-4"
+                        >
+                          <input type="hidden" name="matchId" value={row.id} />
+                          <input type="hidden" name="format" value="mr3" />
+
+                          <div>
+                            <h4 className="text-sm font-semibold text-slate-900">
+                              Corregir a empate
+                            </h4>
+                          </div>
+
+                          <label className="space-y-2 text-sm text-slate-700">
+                            <span className="font-medium">Fecha jugada</span>
+                            <input
+                              name="playedOn"
+                              type="date"
+                              className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
+                            />
+                          </label>
+
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <SetFields setNumber={1} />
+                            <SetFields setNumber={2} />
+                          </div>
+
+                          <button
+                            type="submit"
+                            className="rounded-full bg-blue-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-blue-700"
+                          >
+                            Corregir a empate
+                          </button>
+                        </form>
+
+                        <form
+                          action={correctWalkoverAction}
+                          className="space-y-4 rounded-2xl border border-rose-200 bg-white p-4"
+                        >
+                          <input type="hidden" name="matchId" value={row.id} />
+
+                          <div>
+                            <h4 className="text-sm font-semibold text-slate-900">
+                              Corregir a W.O.
+                            </h4>
+                          </div>
+
+                          <label className="space-y-2 text-sm text-slate-700">
+                            <span className="font-medium">
+                              Ganador por W.O.
+                            </span>
+                            <select
+                              name="winnerId"
+                              defaultValue={row.player1Id}
+                              className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-rose-500"
+                            >
+                              <option value={row.player1Id}>
+                                {row.player1Name}
+                              </option>
+                              <option value={row.player2Id}>
+                                {row.player2Name}
+                              </option>
+                            </select>
+                          </label>
+
+                          <label className="space-y-2 text-sm text-slate-700">
+                            <span className="font-medium">
+                              Fecha registrada
+                            </span>
+                            <input
+                              name="playedOn"
+                              type="date"
+                              className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-rose-500"
+                            />
+                          </label>
+
+                          <button
+                            type="submit"
+                            className="rounded-full bg-rose-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-rose-700"
+                          >
+                            Corregir a W.O.
                           </button>
                         </form>
                       </div>

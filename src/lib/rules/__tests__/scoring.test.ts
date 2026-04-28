@@ -14,6 +14,24 @@ describe("isValidSet", () => {
     ).toEqual({ valid: true });
   });
 
+  it("acepta 7-6 con tie-break", () => {
+    expect(
+      isValidSet(
+        { gamesP1: 7, gamesP2: 6, tiebreakP1: 7, tiebreakP2: 3 },
+        { format: "mr3", setNumber: 1 },
+      ),
+    ).toEqual({ valid: true });
+  });
+
+  it("rechaza 7-6 sin tie-break", () => {
+    expect(
+      isValidSet({ gamesP1: 7, gamesP2: 6 }, { format: "mr3", setNumber: 1 }),
+    ).toEqual({
+      valid: false,
+      reason: "El 7-6 requiere tie-break informado",
+    });
+  });
+
   it("rechaza 10-9 en super tie-break", () => {
     expect(
       isValidSet({ gamesP1: 10, gamesP2: 9 }, { format: "mr3", setNumber: 3 }),
@@ -48,6 +66,15 @@ describe("isValidMatchScore", () => {
     ).toEqual({ valid: true, winnerIndex: 1 });
   });
 
+  it("rechaza empate en set largo MVP", () => {
+    expect(
+      isValidMatchScore([{ gamesP1: 9, gamesP2: 7 }], "set_largo", true),
+    ).toEqual({
+      valid: false,
+      reason: "Empate en set largo no soportado en MVP",
+    });
+  });
+
   it("acepta empate MR3 1-1", () => {
     expect(
       isValidMatchScore(
@@ -74,6 +101,22 @@ describe("isValidMatchScore", () => {
     ).toEqual({
       valid: false,
       reason: "Falta desempatar el partido o marcar empate",
+    });
+  });
+
+  it("rechaza MR3 con set incompleto resuelto como 6-5", () => {
+    expect(
+      isValidMatchScore(
+        [
+          { gamesP1: 6, gamesP2: 5 },
+          { gamesP1: 6, gamesP2: 3 },
+        ],
+        "mr3",
+        false,
+      ),
+    ).toEqual({
+      valid: false,
+      reason: "Set corto inválido",
     });
   });
 });
