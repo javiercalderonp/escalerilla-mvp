@@ -86,22 +86,24 @@
 **Objetivo**: propuesta automática de cruces + edición manual + publicación + mensaje para WhatsApp.
 **Estimación**: ~2-3 días.
 
+> Estado actual (2026-04-28): completo. Algoritmo greedy operativo, editor interactivo con regeneración por categoría, publicación transaccional, vista pública con resaltado de partidos propios.
+
 - [x] 🔴 Schema Drizzle: `matches`, `match_sets`
-- [ ] 🔴 Algoritmo `lib/fixture/propose.ts`:
-  - [ ] 🔴 Filtrar jugadores disponibles activos
-  - [ ] 🔴 Respetar `max_matches` declarado (RN-04, RN-05)
-  - [ ] 🔴 Bloquear repetición de rival en 30 días (RN-03)
-  - [ ] 🔴 Minimizar diferencia de ranking
-- [ ] 🔴 Vista `/admin/semanas/[id]/fixture`:
-  - [ ] 🔴 Botón "Generar propuesta" (por categoría)
-  - [ ] 🔴 Edición: mover jugadores, eliminar match, agregar match manual
-  - [ ] 🔴 Validación en vivo al editar (detecta violaciones de RN-03)
-- [ ] 🔴 Acción admin: publicar fixture (crea filas en `matches` con `type='sorteo'`, `status='pendiente'`)
-- [ ] 🔴 Vista pública `/fixture` con fixture vigente
-- [ ] 🔴 `lib/fixture/message.ts` → string formateado para WhatsApp
-- [ ] 🔴 Botón "Copiar mensaje" que copia al clipboard
-- [ ] 🟡 Highlight de mis partidos en `/fixture` si estoy logueado
-- [ ] 🟡 Auditoría de publicación
+- [x] 🔴 Algoritmo `lib/fixture/propose.ts`:
+  - [x] 🔴 Filtrar jugadores disponibles activos
+  - [x] 🔴 Respetar `max_matches` declarado (RN-04, RN-05)
+  - [x] 🔴 Bloquear repetición de rival en 30 días (RN-03)
+  - [x] 🔴 Minimizar diferencia de ranking
+- [x] 🔴 Vista `/admin/semanas/[id]/fixture`:
+  - [x] 🔴 Botón "Generar propuesta" (por categoría)
+  - [x] 🔴 Edición: mover jugadores, eliminar match, agregar match manual
+  - [x] 🔴 Validación en vivo al editar (detecta violaciones de RN-03)
+- [x] 🔴 Acción admin: publicar fixture (crea filas en `matches` con `type='sorteo'`, `status='pendiente'`)
+- [x] 🔴 Vista pública `/fixture` con fixture vigente
+- [x] 🔴 `lib/fixture/message.ts` → string formateado para WhatsApp
+- [x] 🔴 Botón "Copiar mensaje" que copia al clipboard
+- [x] 🟡 Highlight de mis partidos en `/fixture` si estoy logueado
+- [x] 🟡 Auditoría de publicación
 
 **Criterio de aceptación**: con 20 disponibles en H, el admin genera propuesta en <5s, hace 2-3 ajustes, publica, y copia un mensaje limpio para WhatsApp.
 
