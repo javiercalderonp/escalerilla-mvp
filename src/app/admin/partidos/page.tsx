@@ -13,7 +13,7 @@ import {
 } from "@/app/admin/partidos/actions";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { matches, players } from "@/lib/db/schema";
+import { matches, players, weeks } from "@/lib/db/schema";
 
 type AdminMatchesPageProps = {
   searchParams?: Promise<{
@@ -21,6 +21,7 @@ type AdminMatchesPageProps = {
     categoria?: string;
     q?: string;
     vista?: string;
+    semana?: string;
   }>;
 };
 
@@ -31,6 +32,9 @@ type MatchRow = {
   format: "mr3" | "set_largo" | null;
   playedOn: string | null;
   confirmedAt: Date | null;
+  weekId: string | null;
+  weekStartsOn: string | null;
+  weekEndsOn: string | null;
   player1Id: string;
   player2Id: string;
   player1Name: string;
@@ -42,6 +46,13 @@ type PlayerOption = {
   id: string;
   fullName: string;
   gender: "M" | "F";
+};
+
+type WeekOption = {
+  id: string;
+  startsOn: string;
+  endsOn: string;
+  status: "borrador" | "abierta" | "cerrada";
 };
 
 const statusOptions = [
@@ -84,6 +95,11 @@ function formatDate(value: string | Date | null) {
     month: "short",
     year: "numeric",
   }).format(new Date(value));
+}
+
+function formatWeekLabel(start: string | null, end: string | null) {
+  if (!start || !end) return "Sin semana";
+  return `${formatDate(start)} – ${formatDate(end)}`;
 }
 
 function SetFields({
@@ -217,11 +233,30 @@ async function getPlayerOptions() {
   return rows as PlayerOption[];
 }
 
+async function getWeekOptions() {
+  if (!db) {
+    return [] as WeekOption[];
+  }
+
+  const rows = await db
+    .select({
+      id: weeks.id,
+      startsOn: weeks.startsOn,
+      endsOn: weeks.endsOn,
+      status: weeks.status,
+    })
+    .from(weeks)
+    .orderBy(desc(weeks.startsOn));
+
+  return rows as WeekOption[];
+}
+
 async function getMatches(filters: {
   status: string;
   category: string;
   query: string;
   view: string;
+  weekId: string;
 }) {
   if (!db) {
     return [] as MatchRow[];
@@ -238,6 +273,10 @@ async function getMatches(filters: {
     conditions.push(eq(matches.category, filters.category as "M" | "F"));
   }
 
+  if (filters.weekId !== "todas") {
+    conditions.push(eq(matches.weekId, filters.weekId));
+  }
+
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
   const query = db
@@ -248,6 +287,9 @@ async function getMatches(filters: {
       format: matches.format,
       playedOn: matches.playedOn,
       confirmedAt: matches.confirmedAt,
+      weekId: matches.weekId,
+      weekStartsOn: weeks.startsOn,
+      weekEndsOn: weeks.endsOn,
       player1Id: matches.player1Id,
       player2Id: matches.player2Id,
       player1Name: p1.fullName,
@@ -255,6 +297,7 @@ async function getMatches(filters: {
       winnerName: sql<string | null>`players_winner.full_name`,
     })
     .from(matches)
+    .leftJoin(weeks, eq(matches.weekId, weeks.id))
     .innerJoin(p1, eq(matches.player1Id, p1.id))
     .innerJoin(
       sql`players as players_p2`,
@@ -328,12 +371,20 @@ export default async function AdminMatchesPage({
   )
     ? (query?.vista ?? "todos")
     : "todos";
+  const selectedWeekId = query?.semana?.trim() || "todas";
   const searchQuery = query?.q?.trim() ?? "";
 
-  const [summary, rows, playerOptions] = await Promise.all([
+  const [summary, rows, playerOptions, weekOptions] = await Promise.all([
     getSummary(),
-    getMatches({ status, category, query: searchQuery, view }),
+    getMatches({
+      status,
+      category,
+      query: searchQuery,
+      view,
+      weekId: selectedWeekId,
+    }),
     getPlayerOptions(),
+    getWeekOptions(),
   ]);
 
   return (
@@ -463,7 +514,7 @@ export default async function AdminMatchesPage({
               </p>
             </div>
 
-            <form className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[1.3fr_0.8fr_0.9fr_auto]">
+            <form className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[1.1fr_1fr_0.9fr_auto]">
               <input type="hidden" name="status" value={status} />
               <input type="hidden" name="categoria" value={category} />
               <input type="hidden" name="vista" value={view} />
@@ -475,6 +526,22 @@ export default async function AdminMatchesPage({
                   placeholder="Ej: Pedro o Juan"
                   className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-emerald-500"
                 />
+              </label>
+              <label className="space-y-2 text-sm text-slate-700">
+                <span className="font-medium">Semana</span>
+                <select
+                  name="semana"
+                  defaultValue={selectedWeekId}
+                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-emerald-500"
+                >
+                  <option value="todas">Todas las semanas</option>
+                  {weekOptions.map((week) => (
+                    <option key={week.id} value={week.id}>
+                      {formatWeekLabel(week.startsOn, week.endsOn)} ·{" "}
+                      {week.status}
+                    </option>
+                  ))}
+                </select>
               </label>
               <div className="flex items-end gap-2 md:col-span-3 md:justify-end">
                 <button
@@ -500,7 +567,7 @@ export default async function AdminMatchesPage({
               ].map(([option, label]) => (
                 <Link
                   key={option}
-                  href={`/admin/partidos?status=${status}&categoria=${category}&vista=${option}&q=${encodeURIComponent(searchQuery)}`}
+                  href={`/admin/partidos?status=${status}&categoria=${category}&vista=${option}&q=${encodeURIComponent(searchQuery)}&semana=${encodeURIComponent(selectedWeekId)}`}
                   className={`rounded-full px-3 py-1.5 font-medium transition ${
                     view === option
                       ? "bg-amber-500 text-white"
@@ -516,7 +583,7 @@ export default async function AdminMatchesPage({
               {statusOptions.map((option) => (
                 <Link
                   key={option}
-                  href={`/admin/partidos?status=${option}&categoria=${category}&vista=${view}&q=${encodeURIComponent(searchQuery)}`}
+                  href={`/admin/partidos?status=${option}&categoria=${category}&vista=${view}&q=${encodeURIComponent(searchQuery)}&semana=${encodeURIComponent(selectedWeekId)}`}
                   className={`rounded-full px-3 py-1.5 font-medium transition ${
                     status === option
                       ? "bg-slate-950 text-white"
@@ -532,7 +599,7 @@ export default async function AdminMatchesPage({
               {categoryOptions.map((option) => (
                 <Link
                   key={option}
-                  href={`/admin/partidos?status=${status}&categoria=${option}&vista=${view}&q=${encodeURIComponent(searchQuery)}`}
+                  href={`/admin/partidos?status=${status}&categoria=${option}&vista=${view}&q=${encodeURIComponent(searchQuery)}&semana=${encodeURIComponent(selectedWeekId)}`}
                   className={`rounded-full px-3 py-1.5 font-medium transition ${
                     category === option
                       ? "bg-emerald-600 text-white"
@@ -561,6 +628,12 @@ export default async function AdminMatchesPage({
                   </span>
                 </>
               ) : null}
+              {selectedWeekId !== "todas" ? (
+                <>
+                  {searchQuery ? " " : " "}
+                  en la semana seleccionada
+                </>
+              ) : null}
               .
             </p>
             {rows.length === 0 ? (
@@ -582,6 +655,10 @@ export default async function AdminMatchesPage({
                           {row.format ?? "sin formato"}
                         </span>
                       </div>
+                      <p className="text-xs text-slate-500">
+                        Semana:{" "}
+                        {formatWeekLabel(row.weekStartsOn, row.weekEndsOn)}
+                      </p>
                       <p className="text-sm font-medium text-slate-950">
                         {row.player1Name} vs {row.player2Name}
                       </p>

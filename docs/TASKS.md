@@ -114,17 +114,17 @@
 **Objetivo**: el admin registra resultados y el ranking se actualiza solo.
 **Estimación**: ~3 días.
 
-- [~] 🔴 `lib/rules/scoring.ts` que dado `matches` + `match_sets` devuelve los deltas de cada jugador según RN-01 y RN-02
+- [x] 🔴 `lib/rules/scoring.ts` que dado `matches` + `match_sets` devuelve los deltas de cada jugador según RN-01 y RN-02
 - [x] 🔴 Validaciones de scores tenis (6-0..6-4, 7-5, 7-6, super tie-break)
-- [~] 🔴 Vista `/admin/partidos` con partidos pendientes / jugados / WO
-- [~] 🔴 Form de registro de resultado con formato (mr3 / set_largo) y sets dinámicos
+- [x] 🔴 Vista `/admin/partidos` con partidos pendientes / jugados / WO
+- [x] 🔴 Form de registro de resultado con formato (mr3 / set_largo) y sets dinámicos
 - [x] 🔴 Soporte de empate (status=`empate`) con puntos correctos
 - [x] 🔴 Soporte de W.O. (status=`wo`, `wo_loser_id`)
 - [x] 🔴 Insert transaccional: `match_sets` + 2 `ranking_events` + `audit_log`
 - [x] 🔴 Edición de resultado → anular eventos anteriores con nuevo evento compensatorio + nuevo resultado (nunca borrar)
-- [ ] 🔴 Contadores en `/mi-perfil`: partidos esta semana / mes, desafíos aceptados mes
-- [ ] 🟡 Historial visible de mis partidos con links a detalle
-- [ ] 🟡 Admin puede filtrar partidos por semana / categoría / estado
+- [x] 🔴 Contadores en `/mi-perfil`: partidos esta semana / mes, desafíos aceptados mes
+- [x] 🟡 Historial visible de mis partidos con links a detalle
+- [x] 🟡 Admin puede filtrar partidos por semana / categoría / estado
 
 **Criterio de aceptación**: registro un 6-4 / 3-6 / 10-7 → el ganador suma 60, el perdedor suma 30, el ranking se reordena correctamente.
 
