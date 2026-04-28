@@ -135,18 +135,20 @@
 **Objetivo**: cerrar las reglas del reglamento que quedan.
 **Estimación**: ~2 días.
 
-- [ ] 🔴 Schema Drizzle: `freezes`
-- [ ] 🔴 Vista `/admin/congelaciones`: registrar freeze (validar máx 3/semestre RN-09)
-- [ ] 🔴 Vista `/mi-perfil` muestra mi "zona desafiable" (±5 en mi categoría) con estado "puedo desafiar" / "jugamos hace X días"
-- [ ] 🔴 `/admin/desafios`: registrar partido tipo desafío (valida RN-06 y RN-03, permite overrides con justificación)
-- [ ] 🔴 Cron semanal `/api/cron/inactividad` protegido por `CRON_SECRET`:
-  - [ ] 🔴 -40 pts a quien no jugó el último mes (RN-10)
-  - [ ] 🔴 -25% a quien no juega 3 meses, idempotente
-  - [ ] 🔴 -50% a quien no juega 6 meses, idempotente
-  - [ ] 🔴 -100% a quien no juega 1 año, idempotente
-  - [ ] 🔴 Exención para lesionados justificados (RN-10)
-- [ ] 🔴 Configurar cron en `vercel.ts`
-- [ ] 🟡 Contador de desafíos aceptados en el mes en `/mi-perfil`
+> Estado actual (2026-04-28): completo. Schema `freezes` en Neon, admin congelaciones con validación RN-09 (máx 3/semestre), admin desafíos con validación RN-06/RN-03 y override, `/mi-perfil` con zona desafiable y partidos recientes, cron `/api/cron/inactividad` con idempotencia completa y exención por freeze, configurado en `vercel.json` (lunes 6am UTC).
+
+- [x] 🔴 Schema Drizzle: `freezes`
+- [x] 🔴 Vista `/admin/congelaciones`: registrar freeze (validar máx 3/semestre RN-09)
+- [x] 🔴 Vista `/mi-perfil` muestra mi "zona desafiable" (±5 en mi categoría) con estado "puedo desafiar" / "jugamos hace X días"
+- [x] 🔴 `/admin/desafios`: registrar partido tipo desafío (valida RN-06 y RN-03, permite overrides con justificación)
+- [x] 🔴 Cron semanal `/api/cron/inactividad` protegido por `CRON_SECRET`:
+  - [x] 🔴 -40 pts a quien no jugó el último mes (RN-10)
+  - [x] 🔴 -25% a quien no juega 3 meses, idempotente
+  - [x] 🔴 -50% a quien no juega 6 meses, idempotente
+  - [x] 🔴 -100% a quien no juega 1 año, idempotente
+  - [x] 🔴 Exención para lesionados justificados (RN-10)
+- [x] 🔴 Configurar cron en `vercel.json` (lunes 6am UTC)
+- [x] 🟡 Contador de desafíos aceptados en el mes en `/mi-perfil`
 - [ ] 🟡 Job manual "recalcular inactividad ahora" en admin
 
 **Criterio de aceptación**: creo un freeze para un jugador, deja de aparecer en la próxima propuesta; avanzamos el tiempo y el jugador sin partidos pierde -40 al fin de mes.

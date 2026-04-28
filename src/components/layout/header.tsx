@@ -28,9 +28,19 @@ export async function Header() {
               Disponibilidad
             </Link>
           )}
+          {session?.user && (
+            <Link href="/mi-perfil" className="transition hover:text-slate-950">
+              Mi perfil
+            </Link>
+          )}
           {session?.user?.role === "admin" && (
             <Link href="/admin/semanas" className="transition hover:text-slate-950">
               Semanas
+            </Link>
+          )}
+          {session?.user?.role === "admin" && (
+            <Link href="/admin/partidos" className="transition hover:text-slate-950">
+              Partidos
             </Link>
           )}
           {session?.user ? (
