@@ -42,7 +42,7 @@
 **Objetivo**: modelo de jugadores cargado y ranking público navegable.
 **Estimación**: ~2-3 días.
 
-> Estado actual (2026-04-27): admin de jugadores operativo, import CSV inicial listo, historial por jugador visible en ranking, motor de desempate RN-11 integrado y schema/migración mínima de `matches` + `match_sets` preparada. Falta aplicar migración en DB real y completar datos de partidos/resultados para explotar el desempate completo.
+> Estado actual (2026-04-27): admin de jugadores operativo, import CSV inicial listo, historial por jugador visible en ranking, migración de `matches` + `match_sets` aplicada en DB real y 60 partidos históricos confirmados cargados manualmente en la base. El ranking ya tiene datos suficientes para empezar a validar desempates reales. Falta convertir esta carga manual en flujo de producto para registrar resultados desde la app.
 
 - [x] 🔴 Schema Drizzle: `users`, `players`, `seasons`, `ranking_events`, `audit_log`
 - [x] 🔴 Seed de temporada 2026 (`seasons`)
@@ -51,7 +51,7 @@
 - [x] 🔴 Vista pública `/` con tabs H / M mostrando ranking
 - [x] 🔴 Vista `/ranking/[categoria]` con historial de eventos al hacer click en un jugador
 - [x] 🔴 Cálculo de puntos vigentes = `sum(ranking_events.delta)`
-- [~] 🔴 Desempate RN-11 (H2H, sets, games, sorteo) implementado
+- [x] 🔴 Desempate RN-11 (H2H, sets, games, sorteo) implementado
 - [ ] 🟡 Link del jugador al perfil público con sus partidos jugados
 - [x] 🟡 Auditoría de alta/edición de jugadores
 - [ ] 🟢 Export CSV del ranking actual
@@ -84,7 +84,7 @@
 **Objetivo**: propuesta automática de cruces + edición manual + publicación + mensaje para WhatsApp.
 **Estimación**: ~2-3 días.
 
-- [ ] 🔴 Schema Drizzle: `matches`, `match_sets`
+- [x] 🔴 Schema Drizzle: `matches`, `match_sets`
 - [ ] 🔴 Algoritmo `lib/fixture/propose.ts`:
   - [ ] 🔴 Filtrar jugadores disponibles activos
   - [ ] 🔴 Respetar `max_matches` declarado (RN-04, RN-05)
@@ -110,13 +110,13 @@
 **Objetivo**: el admin registra resultados y el ranking se actualiza solo.
 **Estimación**: ~3 días.
 
-- [ ] 🔴 `lib/rules/scoring.ts` que dado `matches` + `match_sets` devuelve los deltas de cada jugador según RN-01 y RN-02
-- [ ] 🔴 Validaciones de scores tenis (6-0..6-4, 7-5, 7-6, super tie-break)
-- [ ] 🔴 Vista `/admin/partidos` con partidos pendientes / jugados / WO
-- [ ] 🔴 Form de registro de resultado con formato (mr3 / set_largo) y sets dinámicos
-- [ ] 🔴 Soporte de empate (status=`empate`) con puntos correctos
-- [ ] 🔴 Soporte de W.O. (status=`wo`, `wo_loser_id`)
-- [ ] 🔴 Insert transaccional: `match_sets` + 2 `ranking_events` + `audit_log`
+- [~] 🔴 `lib/rules/scoring.ts` que dado `matches` + `match_sets` devuelve los deltas de cada jugador según RN-01 y RN-02
+- [~] 🔴 Validaciones de scores tenis (6-0..6-4, 7-5, 7-6, super tie-break)
+- [~] 🔴 Vista `/admin/partidos` con partidos pendientes / jugados / WO
+- [~] 🔴 Form de registro de resultado con formato (mr3 / set_largo) y sets dinámicos
+- [x] 🔴 Soporte de empate (status=`empate`) con puntos correctos
+- [x] 🔴 Soporte de W.O. (status=`wo`, `wo_loser_id`)
+- [x] 🔴 Insert transaccional: `match_sets` + 2 `ranking_events` + `audit_log`
 - [ ] 🔴 Edición de resultado → anular eventos anteriores con nuevo evento compensatorio + nuevo resultado (nunca borrar)
 - [ ] 🔴 Contadores en `/mi-perfil`: partidos esta semana / mes, desafíos aceptados mes
 - [ ] 🟡 Historial visible de mis partidos con links a detalle
