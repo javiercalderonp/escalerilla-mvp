@@ -18,17 +18,17 @@
 **Objetivo**: repo corriendo localmente y desplegado en Vercel con un "hola mundo" autenticado.
 **Estimación**: ~1 día.
 
-> Estado actual (2026-04-26): base local lista, repo con commits/push en GitHub, Neon real conectado y login Google enlazado en entorno local. Falta cerrar Vercel/env productivo y validar deploy autenticado.
+> Estado actual (2026-04-27): login Google verificado en local. shadcn/ui instalado. Deploy en Vercel pendiente de configurar env vars en plataforma.
 
 - [x] 🔴 Inicializar proyecto Next.js 15 con TypeScript + Tailwind
 - [x] 🔴 Crear repositorio en GitHub y push inicial
 - [ ] 🔴 Linkear proyecto a Vercel (`vercel link`)
-- [~] 🔴 Provisionar Neon Postgres desde Vercel Marketplace
+- [x] 🔴 Provisionar Neon Postgres (Neon conectado y funcionando)
 - [x] 🔴 Configurar Drizzle y primer `pnpm drizzle-kit push`
 - [x] 🔴 Configurar NextAuth con proveedor Google
-- [~] 🔴 Configurar `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `NEXTAUTH_SECRET`, `ADMIN_EMAILS` vía `vercel env`
+- [ ] 🔴 Configurar env vars en Vercel (`vercel env add`) y validar deploy autenticado en producción
 - [x] 🔴 Crear layout base con header + navegación + footer
-- [ ] 🔴 Instalar y configurar shadcn/ui (Button, Input, Table, Card, Dialog)
+- [x] 🔴 Instalar y configurar shadcn/ui (Button, Input, Table, Card, Dialog)
 - [x] 🟡 Configurar ESLint + Prettier + tsconfig estricto
 - [ ] 🟡 Deploy de preview y production funcionando
 - [ ] 🟢 Crear `vercel.ts` con configuración base
@@ -42,7 +42,7 @@
 **Objetivo**: modelo de jugadores cargado y ranking público navegable.
 **Estimación**: ~2-3 días.
 
-> Estado actual (2026-04-27): admin de jugadores operativo, import CSV inicial listo, historial por jugador visible en ranking, migración de `matches` + `match_sets` aplicada en DB real y 60 partidos históricos confirmados cargados manualmente en la base. El ranking ya tiene datos suficientes para empezar a validar desempates reales. Falta convertir esta carga manual en flujo de producto para registrar resultados desde la app.
+> Estado actual (2026-04-28): admin de jugadores operativo, import CSV inicial listo, historial por jugador visible en ranking, migración de `matches` + `match_sets` aplicada en DB real y 60 partidos históricos confirmados cargados manualmente en la base. El ranking ya tiene datos suficientes para empezar a validar desempates reales. Falta convertir esta carga manual en flujo de producto para registrar resultados desde la app.
 
 - [x] 🔴 Schema Drizzle: `users`, `players`, `seasons`, `ranking_events`, `audit_log`
 - [x] 🔴 Seed de temporada 2026 (`seasons`)
@@ -65,15 +65,17 @@
 **Objetivo**: los jugadores declaran disponibilidad, el admin la ve consolidada.
 **Estimación**: ~1-2 días.
 
-- [ ] 🔴 Schema Drizzle: `weeks`, `availability`
-- [ ] 🔴 Vista `/admin/semanas` con lista de semanas y estados
-- [ ] 🔴 Acción admin: abrir disponibilidad para la próxima semana
-- [ ] 🔴 Formulario `/disponibilidad` para el jugador (días LUN-DOM + cupo 0/1/2/3)
-- [ ] 🔴 Upsert (`unique(player_id, week_id)`) — el jugador puede cambiar hasta que cierre la ventana
-- [ ] 🔴 Vista admin `/admin/semanas/[id]` con tabla consolidada H y M
-- [ ] 🔴 Acción admin: cerrar disponibilidad
-- [ ] 🟡 Recordatorio en WhatsApp → botón "copiar mensaje recordatorio" en admin
-- [ ] 🟡 Contador visible "X de Y jugadores ya declararon"
+> Estado actual (2026-04-28): completo. Schema `weeks` + `availability` en Neon, flujo admin y formulario de jugador operativos.
+
+- [x] 🔴 Schema Drizzle: `weeks`, `availability`
+- [x] 🔴 Vista `/admin/semanas` con lista de semanas y estados
+- [x] 🔴 Acción admin: abrir disponibilidad para la próxima semana
+- [x] 🔴 Formulario `/disponibilidad` para el jugador (días LUN-DOM + cupo 0/1/2/3)
+- [x] 🔴 Upsert (`unique(player_id, week_id)`) — el jugador puede cambiar hasta que cierre la ventana
+- [x] 🔴 Vista admin `/admin/semanas/[id]` con tabla consolidada H y M
+- [x] 🔴 Acción admin: cerrar disponibilidad
+- [x] 🟡 Recordatorio en WhatsApp → botón "copiar mensaje recordatorio" en admin
+- [x] 🟡 Contador visible "X de Y jugadores ya declararon"
 
 **Criterio de aceptación**: abro una semana, 5 jugadores declaran desde sus teléfonos, veo la tabla consolidada con sus respuestas.
 

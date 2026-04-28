@@ -1,4 +1,5 @@
 import {
+  boolean,
   date,
   index,
   integer,
@@ -19,6 +20,11 @@ export const playerStatusEnum = pgEnum("player_status", [
   "retirado",
 ]);
 export const seasonStatusEnum = pgEnum("season_status", ["activa", "cerrada"]);
+export const weekStatusEnum = pgEnum("week_status", [
+  "borrador",
+  "abierta",
+  "cerrada",
+]);
 export const matchTypeEnum = pgEnum("match_type", [
   "sorteo",
   "desafio",
@@ -105,11 +111,44 @@ export const seasons = pgTable("seasons", {
     .defaultNow(),
 });
 
+export const weeks = pgTable(
+  "weeks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    seasonId: uuid("season_id")
+      .notNull()
+      .references(() => seasons.id, { onDelete: "restrict" }),
+    startsOn: date("starts_on").notNull(),
+    endsOn: date("ends_on").notNull(),
+    status: weekStatusEnum("status").notNull().default("borrador"),
+    availabilityOpensAt: timestamp("availability_opens_at", {
+      withTimezone: true,
+    }),
+    availabilityClosesAt: timestamp("availability_closes_at", {
+      withTimezone: true,
+    }),
+    createdById: uuid("created_by_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    seasonIdx: index("weeks_season_idx").on(table.seasonId),
+    startsOnIdx: index("weeks_starts_on_idx").on(table.startsOn),
+    statusIdx: index("weeks_status_idx").on(table.status),
+  }),
+);
+
 export const matches = pgTable(
   "matches",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    weekId: uuid("week_id"),
+    weekId: uuid("week_id").references(() => weeks.id, { onDelete: "set null" }),
     category: genderEnum("category").notNull(),
     type: matchTypeEnum("type").notNull(),
     player1Id: uuid("player1_id")
@@ -166,6 +205,41 @@ export const matchSets = pgTable(
       table.matchId,
       table.setNumber,
     ),
+  }),
+);
+
+export const availability = pgTable(
+  "availability",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    weekId: uuid("week_id")
+      .notNull()
+      .references(() => weeks.id, { onDelete: "cascade" }),
+    playerId: uuid("player_id")
+      .notNull()
+      .references(() => players.id, { onDelete: "cascade" }),
+    monday: boolean("monday").notNull().default(false),
+    tuesday: boolean("tuesday").notNull().default(false),
+    wednesday: boolean("wednesday").notNull().default(false),
+    thursday: boolean("thursday").notNull().default(false),
+    friday: boolean("friday").notNull().default(false),
+    saturday: boolean("saturday").notNull().default(false),
+    sunday: boolean("sunday").notNull().default(false),
+    maxMatches: integer("max_matches").notNull().default(1),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    weekPlayerUnique: unique("availability_week_player_unique").on(
+      table.weekId,
+      table.playerId,
+    ),
+    weekIdx: index("availability_week_idx").on(table.weekId),
+    playerIdx: index("availability_player_idx").on(table.playerId),
   }),
 );
 

@@ -23,6 +23,16 @@ export async function Header() {
           <Link href="/fixture" className="transition hover:text-slate-950">
             Fixture
           </Link>
+          {session?.user && (
+            <Link href="/disponibilidad" className="transition hover:text-slate-950">
+              Disponibilidad
+            </Link>
+          )}
+          {session?.user?.role === "admin" && (
+            <Link href="/admin/semanas" className="transition hover:text-slate-950">
+              Semanas
+            </Link>
+          )}
           {session?.user ? (
             <div className="flex items-center gap-3">
               <span className="text-slate-500">{session.user.name ?? session.user.email}</span>
