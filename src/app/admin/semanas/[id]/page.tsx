@@ -1,4 +1,5 @@
 import { and, count, eq } from "drizzle-orm";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { CopyButton } from "@/components/ui/copy-button";
@@ -120,32 +121,36 @@ export default async function AdminSemanaDetailPage({
           </span>
         </div>
 
-        {week.status !== "cerrada" && (
-          <div className="mt-4 flex gap-2">
-            {week.status === "borrador" && (
-              <form action={openAvailabilityAction}>
-                <input type="hidden" name="weekId" value={week.id} />
-                <button
-                  type="submit"
-                  className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
-                >
-                  Abrir disponibilidad
-                </button>
-              </form>
-            )}
-            {week.status === "abierta" && (
-              <form action={closeAvailabilityAction}>
-                <input type="hidden" name="weekId" value={week.id} />
-                <button
-                  type="submit"
-                  className="rounded-full bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
-                >
-                  Cerrar disponibilidad
-                </button>
-              </form>
-            )}
-          </div>
-        )}
+        <div className="mt-4 flex flex-wrap gap-2">
+          {week.status === "borrador" && (
+            <form action={openAvailabilityAction}>
+              <input type="hidden" name="weekId" value={week.id} />
+              <button
+                type="submit"
+                className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
+              >
+                Abrir disponibilidad
+              </button>
+            </form>
+          )}
+          {week.status === "abierta" && (
+            <form action={closeAvailabilityAction}>
+              <input type="hidden" name="weekId" value={week.id} />
+              <button
+                type="submit"
+                className="rounded-full bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+              >
+                Cerrar disponibilidad
+              </button>
+            </form>
+          )}
+          <Link
+            href={`/admin/semanas/${week.id}/fixture`}
+            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:text-slate-950"
+          >
+            Gestionar fixture →
+          </Link>
+        </div>
       </section>
 
       {week.status === "abierta" && (
