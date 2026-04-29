@@ -84,10 +84,19 @@ function formatScore(
     .join(" · ")
 }
 
-function getAge(birthDate: string | null) {
-  if (!birthDate) return null
+function toIsoDate(value: string | Date | null | undefined) {
+  if (!value) return null
+  if (typeof value === "string") {
+    return value.includes("T") ? value.slice(0, 10) : value
+  }
+  return value.toISOString().slice(0, 10)
+}
+
+function getAge(birthDate: string | Date | null) {
+  const normalizedBirthDate = toIsoDate(birthDate)
+  if (!normalizedBirthDate) return null
   const today = new Date()
-  const birth = new Date(`${birthDate}T00:00:00`)
+  const birth = new Date(`${normalizedBirthDate}T00:00:00`)
   let age = today.getFullYear() - birth.getFullYear()
   const monthDiff = today.getMonth() - birth.getMonth()
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
@@ -222,7 +231,7 @@ export async function getPlayerCardData(
       opponentId: match.opponentId,
       score: formatScore(match.status, sets),
       result,
-      playedOn: match.playedOn ?? "",
+      playedOn: toIsoDate(match.playedOn) ?? "",
     }
   })
 
@@ -251,8 +260,8 @@ export async function getPlayerCardData(
       dominantHand: player.dominantHand,
       backhand: player.backhand,
       yearsPlaying: player.yearsPlaying,
-      joinedLadderOn: player.joinedLadderOn,
-      birthDate: canSeeBirth ? player.birthDate : null,
+      joinedLadderOn: toIsoDate(player.joinedLadderOn),
+      birthDate: canSeeBirth ? toIsoDate(player.birthDate) : null,
       age: canSeeBirth ? getAge(player.birthDate) : null,
       phone: canSeePhone ? player.phone : null,
       rut: canSeeRut ? player.rut : null,

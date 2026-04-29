@@ -9,9 +9,17 @@ import { Tabs, TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs"
 import { whatsappUrl } from "@/lib/validation/phone"
 import type { PlayerCardData } from "@/lib/players/get-player-card-data"
 
-function formatDate(value: string | null) {
+function formatDate(value: string | Date | null) {
   if (!value) return null
-  const [year, month, day] = value.split("-")
+
+  const normalized =
+    typeof value === "string"
+      ? value.includes("T")
+        ? value.slice(0, 10)
+        : value
+      : value.toISOString().slice(0, 10)
+
+  const [year, month, day] = normalized.split("-")
   return `${day}/${month}/${year}`
 }
 
