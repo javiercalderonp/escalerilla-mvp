@@ -2,9 +2,29 @@ import { Trophy } from "lucide-react";
 import Link from "next/link";
 
 import { auth } from "@/lib/auth";
+import { MobileNav } from "./mobile-nav";
 
 export async function Header() {
   const session = await auth();
+  const isAdmin = session?.user?.role === "admin";
+
+  const navItems = [
+    { href: "/ranking/hombres", label: "Ranking" },
+    { href: "/fixture", label: "Fixture" },
+    ...(session?.user
+      ? [
+          { href: "/mi-perfil", label: "Mi perfil" },
+          { href: "/disponibilidad", label: "Disponibilidad" },
+        ]
+      : [{ href: "/login", label: "Ingresar" }]),
+    ...(isAdmin
+      ? [
+          { href: "/admin/semanas", label: "Semanas" },
+          { href: "/admin/partidos", label: "Partidos" },
+          { href: "/admin/campeonatos", label: "Campeonatos" },
+        ]
+      : []),
+  ];
 
   return (
     <header className="border-b border-black/5 bg-white/90 backdrop-blur">
@@ -19,40 +39,18 @@ export async function Header() {
           Escalerilla La Dehesa
         </Link>
 
+        {/* Desktop nav */}
         <nav className="hidden items-center gap-6 text-sm text-slate-600 md:flex">
-          <Link
-            href="/ranking/hombres"
-            className="transition hover:text-slate-950"
-          >
-            Ranking
-          </Link>
-          <Link href="/fixture" className="transition hover:text-slate-950">
-            Fixture
-          </Link>
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="transition hover:text-slate-950"
+            >
+              {item.label}
+            </Link>
+          ))}
           {session?.user && (
-            <>
-              <Link href="/mi-perfil" className="transition hover:text-slate-950">
-                Mi perfil
-              </Link>
-              <Link href="/disponibilidad" className="transition hover:text-slate-950">
-                Disponibilidad
-              </Link>
-            </>
-          )}
-          {session?.user?.role === "admin" && (
-            <>
-              <Link href="/admin/semanas" className="transition hover:text-slate-950">
-                Semanas
-              </Link>
-              <Link href="/admin/partidos" className="transition hover:text-slate-950">
-                Partidos
-              </Link>
-              <Link href="/admin/campeonatos" className="transition hover:text-slate-950">
-                Campeonatos
-              </Link>
-            </>
-          )}
-          {session?.user ? (
             <div className="flex items-center gap-3">
               <span className="text-slate-500">
                 {session.user.name ?? session.user.email}
@@ -61,12 +59,11 @@ export async function Header() {
                 {session.user.role}
               </span>
             </div>
-          ) : (
-            <Link href="/login" className="transition hover:text-slate-950">
-              Ingresar
-            </Link>
           )}
         </nav>
+
+        {/* Mobile nav */}
+        <MobileNav items={navItems} />
       </div>
     </header>
   );

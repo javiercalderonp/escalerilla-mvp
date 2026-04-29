@@ -3,44 +3,44 @@ import Link from "next/link";
 import { RankingTable } from "@/components/ranking/ranking-table";
 import { getRanking, getRankingSummary } from "@/lib/ranking";
 
-const milestones = [
+const steps = [
   {
-    title: "Ranking base",
+    step: "01",
+    title: "Declarás disponibilidad",
     description:
-      "Importar seed inicial, calcular puntos vigentes desde ranking_events y publicar ranking H/M.",
+      "Cada semana marcás los días que podés jugar y cuántos partidos querés. El admin abre y cierra la ventana.",
   },
   {
-    title: "Disponibilidad semanal",
+    step: "02",
+    title: "El admin publica el fixture",
     description:
-      "Abrir semanas, declarar días disponibles y consolidar respuestas para el organizador.",
+      "El sistema propone cruces minimizando la diferencia de ranking y respetando el límite de 30 días entre rivales.",
   },
   {
-    title: "Fixture asistido",
+    step: "03",
+    title: "Jugás y el ranking se actualiza",
     description:
-      "Proponer cruces respetando 30 días, cupos y cercanía de ranking antes de publicar.",
+      "Reportan el resultado, el ganador suma 60 pts y el perdedor suma entre 10 y 30 según el formato. Todo queda auditado.",
   },
 ];
 
 export default async function Home() {
   const summary = await getRankingSummary();
-  const featuredCategory = "hombres" as const;
-  const featuredEntries = await getRanking(featuredCategory);
+  const featuredEntries = await getRanking("hombres");
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-12 px-4 py-10 sm:px-6">
+      {/* Hero */}
       <section className="grid gap-8 rounded-3xl bg-white p-8 shadow-sm ring-1 ring-black/5 lg:grid-cols-[1.3fr_0.7fr]">
         <div className="space-y-6">
-          <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
-            MVP interno en construcción
-          </span>
           <div className="space-y-3">
             <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
               Escalerilla de Tenis Club La Dehesa
             </h1>
             <p className="max-w-2xl text-lg leading-8 text-slate-600">
-              Web app interna para ordenar el ranking, levantar disponibilidad semanal,
-              proponer fixture y registrar resultados sin romper la coordinación social por
-              WhatsApp.
+              Ranking, fixture semanal y registro de resultados para los socios
+              del club. Declaré disponibilidad, jugá tus cruces y seguí tu
+              posición en tiempo real.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -60,59 +60,81 @@ export default async function Home() {
         </div>
 
         <div className="rounded-2xl bg-slate-950 p-6 text-slate-50">
-          <p className="text-sm font-medium text-emerald-300">Estado actual</p>
-          <div className="mt-4 space-y-4 text-sm leading-6 text-slate-300">
-            <p>Base del proyecto inicializada en Next.js 16 + TypeScript + Tailwind.</p>
-            <p>Stack objetivo: Auth Google, Neon Postgres, Drizzle y reglas de ranking auditables.</p>
-            <p>Primer slice visible: ranking público por categoría con base lista para conectar DB.</p>
-          </div>
-          <div className="mt-6 space-y-3 rounded-2xl bg-white/5 p-4">
+          <p className="text-sm font-medium text-emerald-300">Ranking live</p>
+          <div className="mt-4 space-y-4 rounded-2xl bg-white/5 p-4">
             {summary.categories.map((category) => (
-              <div key={category.category} className="flex items-center justify-between gap-4 text-sm">
+              <div
+                key={category.category}
+                className="flex items-center justify-between gap-4 text-sm"
+              >
                 <div>
                   <p className="font-medium text-white">{category.label}</p>
-                  <p className="text-slate-400">Líder: {category.leader.fullName}</p>
+                  <p className="text-slate-400">
+                    Líder: {category.leader?.fullName ?? "—"}
+                  </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-emerald-300">{category.leader.points} pts</p>
+                  <p className="font-semibold text-emerald-300">
+                    {category.leader?.points ?? 0} pts
+                  </p>
                   <p className="text-slate-400">{category.players} jugadores</p>
                 </div>
               </div>
             ))}
-            <p className="pt-1 text-xs text-slate-400">{summary.updatedLabel}</p>
           </div>
+          <p className="mt-3 text-xs text-slate-400">{summary.updatedLabel}</p>
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-3">
-        {milestones.map((milestone) => (
-          <article
-            key={milestone.title}
-            className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
-          >
-            <p className="text-sm font-medium text-emerald-700">En foco</p>
-            <h2 className="mt-3 text-xl font-semibold text-slate-950">{milestone.title}</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-600">{milestone.description}</p>
-          </article>
-        ))}
+      {/* Cómo funciona */}
+      <section>
+        <div className="mb-6">
+          <p className="text-sm font-medium text-emerald-700">
+            ¿Cómo funciona?
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
+            El ciclo semanal de la escalerilla
+          </h2>
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          {steps.map((s) => (
+            <article
+              key={s.step}
+              className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+            >
+              <span className="text-xs font-semibold text-emerald-600">
+                Paso {s.step}
+              </span>
+              <h3 className="mt-3 text-lg font-semibold text-slate-950">
+                {s.title}
+              </h3>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                {s.description}
+              </p>
+            </article>
+          ))}
+        </div>
       </section>
 
+      {/* Ranking preview */}
       <section className="space-y-5">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <p className="text-sm font-medium text-emerald-700">Slice visible</p>
+            <p className="text-sm font-medium text-emerald-700">
+              Ranking hombres
+            </p>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
-              Ranking público inicial
+              Posiciones actuales
             </h2>
           </div>
           <Link
             href="/ranking/hombres"
             className="text-sm font-medium text-emerald-700 transition hover:text-emerald-800"
           >
-            Ir al detalle →
+            Ver completo →
           </Link>
         </div>
-        <RankingTable category={featuredCategory} entries={featuredEntries} />
+        <RankingTable category="hombres" entries={featuredEntries} />
       </section>
     </div>
   );

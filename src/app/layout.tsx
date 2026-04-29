@@ -18,7 +18,15 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Escalerilla La Dehesa",
-  description: "MVP interno para gestionar ranking, fixture y resultados de la escalerilla.",
+  description:
+    "Ranking, fixture semanal y resultados de la escalerilla de tenis del Club La Dehesa.",
+  openGraph: {
+    title: "Escalerilla La Dehesa",
+    description:
+      "Seguí el ranking, declaré disponibilidad y consultá el fixture semanal.",
+    type: "website",
+    locale: "es_CL",
+  },
 };
 
 export default function RootLayout({
