@@ -33,7 +33,7 @@ export function RankingTable({ category, entries }: RankingTableProps) {
         {entries.map((entry) => (
           <Link
             key={entry.id}
-            href={`/ranking/${category}/jugador/${entry.id}`}
+            href={`/ranking/${category}?player=${entry.id}`}
             className="grid grid-cols-[56px_1fr_92px_92px] gap-3 px-4 py-4 transition hover:bg-slate-50 sm:px-6"
           >
             <span className="text-sm font-semibold text-slate-500">

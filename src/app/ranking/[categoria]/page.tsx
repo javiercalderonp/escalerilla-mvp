@@ -4,8 +4,7 @@ import { notFound } from "next/navigation";
 import { RankingTable } from "@/components/ranking/ranking-table";
 import {
   formatDelta,
-  formatRankingReason,
-  getPlayerRankingDetail,
+  getPublicPlayerProfile,
   getRanking,
   isRankingCategory,
   rankingCategoryLabels,
@@ -20,12 +19,59 @@ type RankingCategoryPageProps = {
   }>;
 };
 
-function formatDate(value: Date) {
-  return new Intl.DateTimeFormat("es-CL", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(value));
+function formatDate(value: string | null) {
+  if (!value) return "Sin fecha";
+  const [year, month, day] = value.split("-");
+  return `${day}/${month}/${year}`;
+}
+
+function formatMatchTypeLabel(type: "sorteo" | "desafio" | "campeonato") {
+  if (type === "desafio") return "Desafío";
+  if (type === "campeonato") return "Campeonato";
+  return "Sorteo";
+}
+
+function formatScore(
+  match: NonNullable<Awaited<ReturnType<typeof getPublicPlayerProfile>>>["recentMatches"][number],
+) {
+  if (match.status === "wo") {
+    return "W.O.";
+  }
+
+  if (match.sets.length === 0) {
+    return match.status === "empate" ? "Empate" : "Resultado confirmado";
+  }
+
+  return match.sets
+    .map((set) => {
+      const base = `${set.gamesP1}-${set.gamesP2}`;
+      if (set.tiebreakP1 != null && set.tiebreakP2 != null) {
+        return `${base} (${set.tiebreakP1}-${set.tiebreakP2})`;
+      }
+      return base;
+    })
+    .join(" · ");
+}
+
+function getOutcomeLabel(
+  match: NonNullable<Awaited<ReturnType<typeof getPublicPlayerProfile>>>["recentMatches"][number],
+  playerId: string,
+) {
+  if (match.status === "empate") {
+    return { label: "Empatado", tone: "text-blue-700 bg-blue-50" };
+  }
+
+  if (match.winnerId === playerId) {
+    return {
+      label: match.status === "wo" ? "Ganado por W.O." : "Ganado",
+      tone: "text-emerald-700 bg-emerald-50",
+    };
+  }
+
+  return {
+    label: match.status === "wo" ? "Perdido por W.O." : "Perdido",
+    tone: "text-rose-700 bg-rose-50",
+  };
 }
 
 export default async function RankingCategoryPage({
@@ -42,8 +88,8 @@ export default async function RankingCategoryPage({
   const entries = await getRanking(categoria);
   const categoryLabel = rankingCategoryLabels[categoria];
   const selectedPlayerId = query?.player;
-  const playerDetail = selectedPlayerId
-    ? await getPlayerRankingDetail(categoria, selectedPlayerId)
+  const selectedPlayerProfile = selectedPlayerId
+    ? await getPublicPlayerProfile(categoria, selectedPlayerId)
     : null;
 
   return (
@@ -84,89 +130,92 @@ export default async function RankingCategoryPage({
       </div>
 
       <RankingTable category={categoria} entries={entries} />
+      {selectedPlayerProfile ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+          <Link
+            href={`/ranking/${categoria}`}
+            aria-label="Cerrar perfil público"
+            className="absolute inset-0 bg-slate-950/45 backdrop-blur-[2px]"
+          />
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        {entries.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center text-sm text-slate-500">
-            Aún no hay jugadores cargados en esta categoría.
-          </div>
-        ) : playerDetail ? (
-          <div className="space-y-6">
-            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <section className="relative z-10 flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/5">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5 sm:px-8">
               <div>
                 <p className="text-sm font-medium text-emerald-700">
-                  Detalle del jugador
+                  Perfil público
                 </p>
                 <h2 className="mt-2 text-2xl font-semibold text-slate-950">
-                  {playerDetail.player.fullName}
+                  {selectedPlayerProfile.player.fullName}
                 </h2>
                 <p className="mt-2 text-sm text-slate-600">
-                  Posición #{playerDetail.player.position} ·{" "}
-                  {playerDetail.player.points} pts · Semana{" "}
-                  {formatDelta(playerDetail.player.weeklyDelta)}
+                  Posición #{selectedPlayerProfile.player.position} · {selectedPlayerProfile.player.points} pts · Semana {formatDelta(selectedPlayerProfile.player.weeklyDelta)}
                 </p>
               </div>
+
               <Link
                 href={`/ranking/${categoria}`}
-                className="text-sm font-medium text-emerald-700 transition hover:text-emerald-800"
+                className="inline-flex rounded-full border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-slate-400"
               >
-                Limpiar selección
+                Cerrar
               </Link>
             </div>
 
-            {playerDetail.events.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center text-sm text-slate-500">
-                Todavía no registra movimientos de puntos esta temporada.
+            <div className="overflow-y-auto px-6 py-6 sm:px-8">
+              <div>
+                <p className="text-sm font-medium text-emerald-700">
+                  Últimos partidos registrados
+                </p>
               </div>
-            ) : (
-              <div className="overflow-hidden rounded-2xl border border-slate-200">
-                <div className="grid grid-cols-[120px_120px_1fr] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
-                  <span>Fecha</span>
-                  <span>Delta</span>
-                  <span>Motivo</span>
+
+              {selectedPlayerProfile.recentMatches.length === 0 ? (
+                <div className="mt-6 rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center text-sm text-slate-500">
+                  Este jugador todavía no registra partidos confirmados.
                 </div>
-                <div className="divide-y divide-slate-100">
-                  {playerDetail.events.map((event) => (
-                    <div
-                      key={event.id}
-                      className="grid grid-cols-[120px_120px_1fr] gap-3 px-4 py-4 sm:px-6"
-                    >
-                      <span className="text-sm text-slate-600">
-                        {formatDate(event.occurredAt)}
-                      </span>
-                      <span
-                        className={`text-sm font-semibold ${
-                          event.delta > 0
-                            ? "text-emerald-700"
-                            : event.delta < 0
-                              ? "text-rose-700"
-                              : "text-slate-500"
-                        }`}
+              ) : (
+                <div className="mt-6 space-y-3">
+                  {selectedPlayerProfile.recentMatches.map((match) => {
+                    const isPlayer1 =
+                      match.player1Id === selectedPlayerProfile.player.id;
+                    const opponentName = isPlayer1
+                      ? match.player2Name
+                      : match.player1Name;
+                    const outcome = getOutcomeLabel(
+                      match,
+                      selectedPlayerProfile.player.id,
+                    );
+
+                    return (
+                      <article
+                        key={match.id}
+                        className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4"
                       >
-                        {formatDelta(event.delta)}
-                      </span>
-                      <div>
-                        <p className="text-sm font-medium text-slate-950">
-                          {formatRankingReason(event.reason)}
-                        </p>
-                        {event.note ? (
-                          <p className="mt-1 text-xs text-slate-500">
-                            {event.note}
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-                  ))}
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                          <div>
+                            <p className="text-sm text-slate-500">
+                              {formatDate(match.playedOn)} · {formatMatchTypeLabel(match.type)}
+                            </p>
+                            <h3 className="mt-1 text-base font-semibold text-slate-950">
+                              vs {opponentName}
+                            </h3>
+                            <p className="mt-2 text-sm text-slate-600">
+                              {formatScore(match)}
+                            </p>
+                          </div>
+                          <span
+                            className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${outcome.tone}`}
+                          >
+                            {outcome.label}
+                          </span>
+                        </div>
+                      </article>
+                    );
+                  })}
                 </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center text-sm text-slate-500">
-            Puedes abrir el perfil público de un jugador desde la tabla de ranking.
-          </div>
-        )}
-      </section>
+              )}
+            </div>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }

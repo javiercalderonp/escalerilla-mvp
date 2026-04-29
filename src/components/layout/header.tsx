@@ -45,11 +45,6 @@ export async function Header() {
               </Link>
             </>
           )}
-          {session?.user && (
-            <Link href="/mi-perfil" className="transition hover:text-slate-950">
-              Mi perfil
-            </Link>
-          )}
           {session?.user?.role === "admin" && (
             <Link
               href="/admin/semanas"
