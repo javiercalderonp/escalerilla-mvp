@@ -18,7 +18,7 @@
 **Objetivo**: repo corriendo localmente y desplegado en Vercel con un "hola mundo" autenticado.
 **Estimación**: ~1 día.
 
-> Estado actual (2026-04-27): login Google verificado en local. shadcn/ui instalado. Deploy en Vercel pendiente de configurar env vars en plataforma.
+> Estado actual (2026-04-28): app completa corriendo en local. Deploy en Vercel pendiente (linkear proyecto y configurar env vars).
 
 - [x] 🔴 Inicializar proyecto Next.js 15 con TypeScript + Tailwind
 - [x] 🔴 Crear repositorio en GitHub y push inicial
@@ -114,6 +114,8 @@
 **Objetivo**: el admin registra resultados y el ranking se actualiza solo.
 **Estimación**: ~3 días.
 
+> Estado actual (2026-04-28): completo. Registro de resultados mr3 y set largo, W.O., empates, correcciones. Filtros en `/admin/partidos`. Historial de partidos con detalle en `/mi-perfil/partidos/[id]`.
+
 - [x] 🔴 `lib/rules/scoring.ts` que dado `matches` + `match_sets` devuelve los deltas de cada jugador según RN-01 y RN-02
 - [x] 🔴 Validaciones de scores tenis (6-0..6-4, 7-5, 7-6, super tie-break)
 - [x] 🔴 Vista `/admin/partidos` con partidos pendientes / jugados / WO
@@ -160,13 +162,15 @@
 **Objetivo**: registrar podios y partidos de campeonatos para aplicar los bonus del reglamento.
 **Estimación**: ~1 día.
 
-- [ ] 🔴 Schema Drizzle: `championships`, `championship_placements`
-- [ ] 🔴 Vista `/admin/campeonatos`: crear campeonato (regular / clausura), registrar podio
-- [ ] 🔴 Al registrar podio, insertar `ranking_events` con bonus según RN-12
-- [ ] 🔴 Registrar partidos individuales del campeonato con `type='campeonato'` (no aplican límites RN-04)
-- [ ] 🟡 Vista pública del podio en `/ranking/[categoria]` como "hitos de la temporada"
+> Estado actual (2026-04-28): completo. Schema `championships` + `championship_placements` + enum `championship_type` en Neon (pendiente `drizzle-kit push`). `/admin/campeonatos` con formulario de podio (campeón +150, finalista +75, 3.er lugar +40). Hitos de la temporada visibles en `/ranking/[categoria]`.
 
-**Criterio de aceptación**: registro "Copa Verano campeón Pedro, finalista Juan" y Pedro suma +150, Juan suma +75.
+- [x] 🔴 Schema Drizzle: `championships`, `championship_placements`
+- [x] 🔴 Vista `/admin/campeonatos`: crear campeonato (regular / clausura / especial), registrar podio
+- [x] 🔴 Al registrar podio, insertar `ranking_events` con bonus según RN-12
+- [x] 🔴 Registrar partidos individuales del campeonato con `type='campeonato'` desde Admin › Partidos (no aplican límites RN-04)
+- [x] 🟡 Vista pública del podio en `/ranking/[categoria]` como "hitos de la temporada"
+
+**Criterio de aceptación**: registro "Copa Verano campeón Pedro, finalista Juan" y Pedro suma +150, Juan suma +75. ✅
 
 ---
 
@@ -175,15 +179,17 @@
 **Objetivo**: dejar la app lista para ser usada por los socios del club.
 **Estimación**: ~1-2 días.
 
-- [ ] 🔴 Revisión mobile de todas las pantallas
-- [ ] 🔴 Copy de onboarding en `/login` y en la primera visita
-- [ ] 🔴 Mensaje "¿Cómo funciona?" para jugadores nuevos
-- [ ] 🔴 Guía para el admin (documento separado en `docs/ADMIN_GUIDE.md` si aplica)
-- [ ] 🟡 Manejo de errores amable (páginas 404 / 500 en español)
-- [ ] 🟡 Tests Vitest de reglas críticas (scoring, desempates, elegibilidad desafío)
+> Estado actual (2026-04-28): completo. Mobile nav con hamburger, error pages en español, copy de onboarding actualizado, home con "¿Cómo funciona?", OpenGraph configurado, 26 tests Vitest en verde (scoring + tiebreak RN-11 + elegibilidad desafío RN-06/RN-03).
+
+- [x] 🔴 Revisión mobile de todas las pantallas (hamburger nav para móvil)
+- [x] 🔴 Copy de onboarding en `/login` y en la primera visita
+- [x] 🔴 Mensaje "¿Cómo funciona?" en home para jugadores nuevos
+- [ ] 🔴 Guía para el admin (`docs/ADMIN_GUIDE.md`)
+- [x] 🟡 Manejo de errores amable (páginas 404 / 500 en español)
+- [x] 🟡 Tests Vitest de reglas críticas (scoring, desempates RN-11, elegibilidad desafío RN-06/RN-03) — 26 tests
 - [ ] 🟡 Test Playwright del happy path completo
 - [ ] 🟢 Dominio custom del club (si lo hay)
-- [ ] 🟢 Favicon + OpenGraph image
+- [x] 🟢 OpenGraph metadata configurada
 
 ---
 
