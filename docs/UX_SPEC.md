@@ -35,17 +35,20 @@
 
 ## 2. Paleta y tipografía (lineamientos)
 
-- **Tipografía**: `system-ui, -apple-system, sans-serif` en el CSS base de Tailwind.
-- **Acento primario**: verde cancha (`emerald-600` de Tailwind).
-- **Acento secundario**: amarillo pelota (`yellow-400`).
-- **Neutro**: `slate-*`.
-- **Estados**:
-  - Éxito: `emerald-600`.
-  - Advertencia: `amber-500`.
-  - Error: `rose-600`.
-  - Info: `sky-600`.
-- **Radii**: `rounded-lg` (8px) por defecto, `rounded-full` para avatares y badges.
-- **Dark mode**: **NO en MVP**.
+> **Actualizado en M8 — ADR-027.** Reemplaza la paleta `emerald/yellow/slate` original por tokens semánticos ATP-inspired.
+
+- **Tipografía UI**: Geist Sans (cargado en root layout).
+- **Tipografía display**: Geist Sans con `tracking-tight` para nombres en `PlayerCardModal`.
+- **Tipografía monoespaciada**: Geist Mono para scores/marcadores (look "scoreboard").
+- **Numerales tabulares**: todo número en tablas usa `font-variant-numeric: tabular-nums` (clase `tabular-nums` definida en `globals.css`).
+- **Tokens semánticos** (definidos en `src/app/globals.css`, expuestos al theme Tailwind via `@theme inline`):
+  - `--court` (azul cancha profundo) — primario, links activos, header, botones primarios.
+  - `--grass` (verde césped) — éxito, victorias, deltas positivos, badges activo.
+  - `--clay` (terracota) — advertencias suaves, desafíos pendientes.
+  - `--gold` / `--silver` / `--bronze` — top-3 ranking, podios campeonato.
+  - `--destructive` (mantenido) — derrotas, errores, eliminar.
+- **Radii**: `--radius: 0.625rem` (≈10px) por defecto, `rounded-full` para avatares y badges pill.
+- **Dark mode**: tokens definidos en `.dark` pero **NO auditado en M8** — postergado a M9.
 
 ---
 
@@ -92,14 +95,18 @@ En móvil, la nav colapsa a hamburguesa con los mismos ítems.
 └────────────────────────────────────────────┘
 ```
 
-- Click en fila → navega a `/ranking/[categoria]/[playerId]` (historial del jugador).
+- Click en fila → abre `PlayerCardModal` (overlay) con tabs Info y Rendimiento. Deep-link `?player=<id>`. **Actualizado en M8 — ADR-028.** La ruta `/ranking/[categoria]/[playerId]` queda deprecada.
+- Top-3 con borde-l 3px (`gold` / `silver` / `bronze`).
+- Δ semana con flecha (`▲` verde grass / `▼` rojo destructive / `—`).
 - Empty state si no hay jugadores: "Aún no hay jugadores cargados. Habla con el organizador."
 
 ### 4.2 `/fixture` — Fixture de la semana
 
+> **Actualizado en M8.** Header con `WeekStepper` para navegar entre semanas pasadas/futuras (excluye `disponibilidad_*`). Deep-link `?week=<id>`.
+
 ```
 ┌────────────────────────────────────────────┐
-│ Fixture · Semana 17 (20 – 26 abr)          │
+│ [ ‹ ]  Semana 17 · 20-26 abr  [Esta]  [ › ]│  ← WeekStepper
 │ Estado: PUBLICADO                          │
 │                                            │
 │ SINGLES HOMBRES                            │
@@ -313,6 +320,130 @@ En móvil, la nav colapsa a hamburguesa con los mismos ítems.
 │                                            │
 └────────────────────────────────────────────┘
 ```
+
+### 4.10 `PlayerCardModal` — Tarjeta del jugador (M8)
+
+> Introducido en M8 (ADR-028). Se abre desde la tabla de ranking, fixture, historial. Deep-link `?player=<id>`.
+
+**Mobile (sheet desde abajo, max-h 90vh)**:
+
+```
+                                  (backdrop blur)
+┌────────────────────────────────────────────┐
+│                                            │
+│                                            │
+│   ┌──────────────────────────────────┐     │
+│   │ [JP]  Juan Pérez            [✕]  │     │
+│   │       #4 · Hombres · ⛳Avanzado  │     │
+│   ├──────────────────────────────────┤     │
+│   │ [ Info ] [ Rendimiento ]         │     │
+│   ├──────────────────────────────────┤     │
+│   │  📅 Edad           32 años        │     │
+│   │  ✋ Mano           Diestro        │     │
+│   │  🎾 Revés          Dos manos      │     │
+│   │  ⏱  Años jugando  12              │     │
+│   │  🏆 En la escalerilla desde 2024  │     │
+│   │                                   │     │
+│   │  [ 💬 WhatsApp ]                  │     │
+│   └──────────────────────────────────┘     │
+└────────────────────────────────────────────┘
+```
+
+**Desktop (dialog centrado, max-w-md)**: misma estructura, esquinas todas redondeadas, posición centrada.
+
+**Tab Rendimiento**:
+
+```
+┌──────────────────────────────────┐
+│ Jugados   Ganados   % Win        │
+│   18        12       67%         │
+│ ──────────────────────────────── │
+│ Racha:  ●  ●  ○  ●  ●            │  ← StreakDots (verde W / rojo L)
+│ ──────────────────────────────── │
+│ Últimos 5 partidos:              │
+│   vs Pedro García   6-4 6-3   W  │
+│   vs Diego Rojas    4-6 6-7   L  │
+│   ...                            │
+└──────────────────────────────────┘
+```
+
+**Reglas de visibility** (ver `DATA_MODEL.md §3.1`):
+- Botón WhatsApp solo si `phone` visible para el viewer.
+- RUT visible solo a admin (con `<InfoRow icon={IdCard} label="RUT" value={rut} />`).
+- Edad mostrada si `birthDate` visible (no se muestra fecha exacta en M8).
+
+**Interacción**:
+- Esc cierra; click en backdrop cierra; click en `[✕]` cierra.
+- Cierre limpia el query param vía `router.replace(pathname)`.
+- Refresh con `?player=<id>` re-abre el modal (deep-link).
+
+### 4.11 `/onboarding` — Wizard 2 pasos bloqueante (M8)
+
+> Introducido en M8. Bloquea el acceso a pantallas no-admin hasta que el set obligatorio esté completo (ver `DATA_MODEL.md §4`).
+
+**Paso 1 — Identidad**:
+
+```
+┌────────────────────────────────────────────┐
+│   🎾 Escalerilla La Dehesa                 │
+│                                            │
+│   ●━━━━━━━━━━━━━━━━━━━━━━━━━○ Paso 1 de 2  │
+│                                            │
+│   Cuéntanos quién eres                     │
+│                                            │
+│   Nombre                                   │
+│   [_____________________________]          │
+│   Apellido                                 │
+│   [_____________________________]          │
+│   Categoría                                │
+│   [ Hombres ] [ Mujeres ]                  │
+│   Fecha de nacimiento                      │
+│   [____/____/________]                     │
+│   Teléfono                                 │
+│   [+56 9 ____ ____]                        │
+│   RUT                                      │
+│   [__.___.___-_]                           │
+│                                            │
+│              [ Siguiente → ]               │
+└────────────────────────────────────────────┘
+```
+
+**Paso 2 — Tenis**:
+
+```
+┌────────────────────────────────────────────┐
+│   ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━●  │
+│                                            │
+│   Tu juego                                 │
+│                                            │
+│   Nivel                                    │
+│   ┌─────────────┐ ┌─────────────┐          │
+│   │ Principiante│ │ Int. bajo   │          │
+│   └─────────────┘ └─────────────┘          │
+│   ┌─────────────┐ ┌─────────────┐          │
+│   │ Int. alto   │ │ Avanzado ✓  │          │
+│   └─────────────┘ └─────────────┘          │
+│                                            │
+│   Mano dominante                           │
+│   [ Diestro ✓ ] [ Zurdo ]                  │
+│                                            │
+│   Revés                                    │
+│   [ Una mano ] [ Dos manos ✓ ]             │
+│                                            │
+│   Años jugando                             │
+│   [ 12 ]                                   │
+│                                            │
+│   [ ← Volver ]      [ Guardar ]            │
+└────────────────────────────────────────────┘
+```
+
+**Validaciones inline**:
+- RUT inválido (módulo 11 falla) → `"RUT inválido"` debajo del campo, no avanza.
+- Phone fuera de E.164 móvil CL → `"Teléfono móvil chileno inválido (+569XXXXXXXX)"`.
+- Fecha nacimiento fuera de [14, 90] años → `"Edad debe estar entre 14 y 90"`.
+- RUT duplicado al submitear (catch unique violation) → `"Este RUT ya está registrado. Habla con el organizador."`.
+
+**Resultado**: crea `Player`, asocia a `User`, `users.role='player'`, redirige a `/ranking/M`.
 
 ---
 

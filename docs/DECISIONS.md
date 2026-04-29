@@ -614,6 +614,72 @@ El enum `match_status` incluye `reportado`. Un partido en este estado tiene `mat
 
 ---
 
+## ADR-027 — Paleta visual ATP-inspired (M8)
+
+**Fecha**: 2026-04-28
+**Estado**: Accepted
+
+### Contexto
+
+La paleta del MVP era genérica de Tailwind: primario `emerald-600` (verde cancha), secundario `yellow-400` (pelota), neutro `slate-*`. Cumplió su función en M0-M7 pero no transmite identidad de torneo. El brief de M8 pide una estética profesional inspirada en ATP Tour.
+
+### Decisión
+
+Introducir una paleta de tokens semánticos en `src/app/globals.css` y exponerlos en Tailwind via `@theme inline`:
+
+- `--court` (azul cancha profundo) — primario.
+- `--grass` (verde césped) — éxito, victorias, deltas positivos.
+- `--clay` (terracota) — advertencias suaves.
+- `--gold` / `--silver` / `--bronze` — top-3 ranking, podios.
+
+Reemplazar usos hardcoded de `emerald-*`, `yellow-*` y `slate-*` en pantallas tocadas por M8 (ranking, fixture, header, onboarding, player card). Pantallas no tocadas por M8 (`/admin/*`, `/disponibilidad`) quedan parcialmente con paleta vieja hasta limpieza incremental en M9.
+
+### Consecuencias
+
+- Cambio visual notorio para usuarios actuales; favorecemos identidad propia del producto.
+- Dark mode definido en tokens pero no auditado en M8 (postergado a M9).
+- `UX_SPEC.md §2` reescrito como parte de M8 para reflejar la nueva paleta.
+- ADR de origen del cambio: este. Lineamientos previos de paleta quedan superseded.
+
+### Supersedes
+
+- `UX_SPEC.md §2` — versión M0-M7 con `emerald/yellow/slate`.
+
+---
+
+## ADR-028 — PlayerCardModal reemplaza página de historial dedicada (M8)
+
+**Fecha**: 2026-04-28
+**Estado**: Accepted
+
+### Contexto
+
+El flujo M0-M7 era: click en fila del ranking → navegar a `/ranking/[categoria]/[playerId]` (full page con historial de eventos). Este patrón rompe contexto, especialmente en mobile (375px), y carga lento por ser SSR. El brief de M8 pide un "modal/popup tipo player card" con info rica del jugador.
+
+### Decisión
+
+Implementar `PlayerCardModal` (`src/components/players/player-card-modal.tsx`) como overlay accesible vía deep-link `?player=<id>`:
+
+- En mobile: bottom sheet que sube hasta 90vh.
+- En desktop: dialog centrado max-w-md.
+- Tabs Info y Rendimiento.
+- Esc / backdrop / botón X cierran y limpian el query param.
+- El componente cliente lee `?player=<id>` y dispara la server action `getPlayerCardDataAction(id)` que aplica reglas de visibility (ver `DATA_MODEL.md §3.1`).
+
+La ruta `/ranking/[categoria]/[playerId]` queda **deprecada**: no se enlaza desde la tabla, pero se mantiene server-side por compatibilidad con links externos.
+
+### Consecuencias
+
+- UX más fluida en mobile; preserva contexto del ranking (sin navegación).
+- El historial completo (lista larga de eventos) ya no tiene página dedicada — vive abreviado en el modal (últimos 5 partidos) y se expande en M9 con tab "Evolución" + página `/historial` global filtrable.
+- Refresh con `?player=<id>` reabre el modal (deep-link estable).
+
+### Supersedes
+
+- `UX_SPEC.md §4.1` — interacción "Click en fila → navega a `/ranking/[categoria]/[playerId]`" reemplazada en M8.
+
+---
+
 ## Pendientes de decisión
 
 Items que todavía no tienen ADR porque requieren input del Comité / Organizador o son prematuros:

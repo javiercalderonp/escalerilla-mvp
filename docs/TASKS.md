@@ -193,6 +193,30 @@
 
 ---
 
+## Milestone 8 — Perfil enriquecido, identidad ATP y navegación temporal
+
+**Objetivo**: que la app deje de sentirse "MVP funcional" y se convierta en una experiencia tipo mini-ATP. Perfiles ricos accesibles desde modal, onboarding bloqueante con datos personales y deportivos, navegación entre semanas pasadas/futuras del fixture, paleta visual de torneo.
+**Estimación**: ~5-7 días.
+
+> **Detalle ejecutable** completo en [`docs/M8_REDESIGN.md`](./M8_REDESIGN.md). Este resumen solo entrega el alcance.
+
+- [ ] 🔴 Schema extendido de `players` (firstName, lastName, birthDate, phone, rut, level, dominantHand, backhand, yearsPlaying, joinedLadderOn, visibility) + enums + migración aditiva
+- [ ] 🔴 Validación RUT (módulo 11) y teléfono CL (E.164) con tests
+- [ ] 🔴 Design system ATP-inspired: tokens court/grass/clay/gold + componentes (Avatar, Badge, Tabs, Skeleton, EmptyState, WeekStepper, StreakDots)
+- [ ] 🔴 Onboarding bloqueante de 2 pasos (identidad + tenis) con guard `requireCompleteProfile`
+- [ ] 🔴 PlayerCardModal con tabs Info + Rendimiento, deep-link `?player=<id>`
+- [ ] 🔴 Ranking refactor: tabular-nums, top-3 destacado, click → modal
+- [ ] 🔴 Fixture con WeekStepper para navegar semanas (excluye `disponibilidad_*`)
+- [ ] 🟡 Admin /jugadores: edición de `level`
+- [ ] 🟡 Header con paleta court
+- [ ] 🔴 Build, lint, tests verdes y verificación manual mobile 375px
+
+**Criterio de aceptación**: un jugador nuevo entra con Google, completa onboarding obligatorio, ve el ranking con paleta ATP, hace click en cualquier jugador y abre un modal con su info y rendimiento, navega entre semanas pasadas del fixture.
+
+**Decisiones referenciadas**: ADR-027 (paleta), ADR-028 (modal vs página).
+
+---
+
 ## Backlog transversal (no bloquea milestones)
 
 - [ ] 🟢 Dashboard admin con métricas: jugadores activos, partidos de la semana, % participación
@@ -221,5 +245,6 @@
 6. M5 (desafíos, congelaciones, inactividad) — reglas complejas que se pueden agregar sin bloquear el uso.
 7. M6 (campeonatos) — solo relevante cuando se juegue uno.
 8. M7 (pulido) — antes de abrir a los socios.
+9. M8 (rediseño + perfil enriquecido) — primer milestone post-MVP, eleva la experiencia a estilo torneo profesional.
 
 Se puede arrancar el uso real tras M4 con algunas cosas manualmente gestionadas en el admin.

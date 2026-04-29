@@ -117,6 +117,36 @@ export const dayOfWeekEnum = pgEnum('day_of_week', [
   'LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB', 'DOM',
 ]);
 
+// ── Perfil enriquecido (M8) ───────────────────────────────
+export const playerLevelEnum = pgEnum('player_level', [
+  'principiante',
+  'intermedio_bajo',
+  'intermedio_alto',
+  'avanzado',
+]);
+
+export const dominantHandEnum = pgEnum('dominant_hand', ['diestro', 'zurdo']);
+
+export const backhandEnum = pgEnum('backhand', ['una_mano', 'dos_manos']);
+
+export const playFrequencyEnum = pgEnum('play_frequency', [
+  '1-2_semana',
+  '3-4_semana',
+  '5+_semana',
+]);
+
+export type PlayerVisibility = {
+  phone: 'public' | 'players' | 'private';
+  rut: 'admin' | 'private';
+  birthDate: 'public' | 'players' | 'private';
+};
+
+export const DEFAULT_VISIBILITY: PlayerVisibility = {
+  phone: 'players',
+  rut: 'admin',
+  birthDate: 'private',
+};
+
 // ────────────────────────────────────────────────────────────
 // TABLES
 // ────────────────────────────────────────────────────────────
@@ -147,11 +177,27 @@ export const players = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     fullName: text('full_name').notNull(),
+    // M8: nombre y apellido por separado (backfill desde fullName)
+    firstName: text('first_name').notNull(),
+    lastName: text('last_name').notNull(),
     email: text('email').unique(),
     gender: genderEnum('gender').notNull(),
     status: playerStatusEnum('status').notNull().default('activo'),
     initialPoints: integer('initial_points').notNull().default(0),
     notes: text('notes'),
+    // M8: perfil personal (PII) — obligatorios en validación, nullable en DB
+    birthDate: date('birth_date'),
+    phone: text('phone'),
+    rut: text('rut').unique(),
+    joinedLadderOn: date('joined_ladder_on').notNull(),
+    // M8: perfil deportivo — obligatorios en validación, nullable en DB
+    level: playerLevelEnum('level'),
+    dominantHand: dominantHandEnum('dominant_hand'),
+    backhand: backhandEnum('backhand'),
+    yearsPlaying: integer('years_playing'),
+    playFrequency: playFrequencyEnum('play_frequency'), // M9
+    // M8: control de visibilidad de PII (jsonb) — default DEFAULT_VISIBILITY
+    visibility: jsonb('visibility').$type<PlayerVisibility>().notNull().default(DEFAULT_VISIBILITY),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -162,6 +208,7 @@ export const players = pgTable(
   (t) => ({
     genderStatusIdx: index('players_gender_status_idx').on(t.gender, t.status),
     emailIdx: index('players_email_idx').on(t.email),
+    levelIdx: index('players_level_idx').on(t.level),
   }),
 );
 
@@ -505,7 +552,38 @@ export type Placement =
   | 'finalista'
   | 'semifinalista'
   | 'cuartofinalista';
+
+// M8 — perfil enriquecido
+export type PlayerLevel =
+  | 'principiante'
+  | 'intermedio_bajo'
+  | 'intermedio_alto'
+  | 'avanzado';
+export type DominantHand = 'diestro' | 'zurdo';
+export type Backhand = 'una_mano' | 'dos_manos';
+export type PlayFrequency = '1-2_semana' | '3-4_semana' | '5+_semana';
 ```
+
+---
+
+## 3.1 Visibility de campos PII (M8)
+
+Los campos personales (`phone`, `rut`, `birth_date`) en `players` se controlan con la columna `visibility` (jsonb) — un objeto `PlayerVisibility` con tres claves.
+
+| Campo | Default | Niveles permitidos | Justificación |
+|---|---|---|---|
+| `phone` | `'players'` | `'public' \| 'players' \| 'private'` | El club coordina por WhatsApp; otros jugadores logueados deben poder contactar. |
+| `rut` | `'admin'` | `'admin' \| 'private'` | Identificador legal sensible; solo admin lo necesita para gestión interna. |
+| `birthDate` | `'private'` | `'public' \| 'players' \| 'private'` | La edad puede mostrarse derivada (no la fecha exacta) si el jugador lo permite en M9. |
+
+**Reglas de lectura** (aplicadas en `src/lib/players/get-player-card-data.ts`):
+
+- `'public'` → cualquier visitante (incluye guest no logueado).
+- `'players'` → cualquier `viewerRole !== 'guest'`.
+- `'private'` → solo el dueño del perfil y `viewerRole === 'admin'`.
+- `'admin'` (solo aplica a `rut`) → solo `viewerRole === 'admin'`.
+
+**Default de la columna**: `DEFAULT_VISIBILITY` constante TS, `{phone:'players', rut:'admin', birthDate:'private'}`. El backfill de M8 setea esto para los jugadores existentes; el onboarding no expone toggles en M8 (queda para M9).
 
 ---
 
@@ -525,6 +603,11 @@ Estos son invariantes críticos que se **validan en server actions** antes de pe
 | No más de 3 `freezes` por jugador por `(seasonId, semester)` | RN-09 | contar antes de insertar |
 | No más de un `availability` por `(playerId, weekId)` | — | `unique constraint` |
 | No más de un `match` tipo `sorteo` entre mismo par en 30 días | RN-03 | contar antes de insertar |
+| `players.rut` válido (formato + módulo 11) | M8 | `lib/validation/rut.ts::isValidRut` antes de insertar |
+| `players.phone` formato `+569XXXXXXXX` (E.164 móvil CL) | M8 | `lib/validation/phone.ts::phoneSchema` |
+| `players.birthDate` ⇒ edad ∈ [14, 90] | M8 | `onboardingStep1Schema.birthDate` |
+| `players.yearsPlaying` ∈ [0, 80] | M8 | `onboardingStep2Schema.yearsPlaying` |
+| Set obligatorio M8 (firstName, lastName, birthDate, phone, rut, level, dominantHand, backhand, yearsPlaying, joinedLadderOn) presente para acceder a pantallas no-admin | M8 | `lib/players/profile-completeness.ts` + `requireCompleteProfile()` redirige a `/onboarding` |
 
 ---
 
