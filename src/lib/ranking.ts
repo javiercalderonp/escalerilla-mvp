@@ -31,6 +31,31 @@ export type PlayerRankingDetail = {
   events: PlayerHistoryEvent[];
 };
 
+export type PublicPlayerMatch = {
+  id: string;
+  playedOn: string | null;
+  status: "confirmado" | "wo" | "empate";
+  type: "sorteo" | "desafio" | "campeonato";
+  format: "mr3" | "set_largo" | null;
+  winnerId: string | null;
+  player1Id: string;
+  player2Id: string;
+  player1Name: string;
+  player2Name: string;
+  sets: Array<{
+    setNumber: number;
+    gamesP1: number;
+    gamesP2: number;
+    tiebreakP1: number | null;
+    tiebreakP2: number | null;
+  }>;
+};
+
+export type PublicPlayerProfile = {
+  player: RankingEntry;
+  recentMatches: PublicPlayerMatch[];
+};
+
 type RankingRow = {
   id: string;
   fullName: string;
@@ -50,116 +75,12 @@ type MatchRow = {
 
 type MatchSetRow = {
   matchId: string;
+  setNumber: number;
   gamesP1: number;
   gamesP2: number;
+  tiebreakP1: number | null;
+  tiebreakP2: number | null;
 };
-
-const fallbackRankingData: Record<RankingCategory, RankingEntry[]> = {
-  hombres: [
-    {
-      id: "h-1",
-      position: 1,
-      fullName: "Juan Pérez",
-      points: 420,
-      weeklyDelta: 60,
-      status: "activo",
-      category: "hombres",
-      recentForm: [],
-    },
-    {
-      id: "h-2",
-      position: 2,
-      fullName: "Pedro García",
-      points: 380,
-      weeklyDelta: 0,
-      status: "activo",
-      category: "hombres",
-      recentForm: [],
-    },
-    {
-      id: "h-3",
-      position: 3,
-      fullName: "Diego Rojas",
-      points: 350,
-      weeklyDelta: -20,
-      status: "activo",
-      category: "hombres",
-      recentForm: [],
-    },
-    {
-      id: "h-4",
-      position: 4,
-      fullName: "Mateo López",
-      points: 300,
-      weeklyDelta: 30,
-      status: "activo",
-      category: "hombres",
-      recentForm: [],
-    },
-    {
-      id: "h-5",
-      position: 5,
-      fullName: "Sergio Muñoz",
-      points: 250,
-      weeklyDelta: 0,
-      status: "congelado",
-      category: "hombres",
-      recentForm: [],
-    },
-  ],
-  mujeres: [
-    {
-      id: "m-1",
-      position: 1,
-      fullName: "Ana Silva",
-      points: 410,
-      weeklyDelta: 30,
-      status: "activo",
-      category: "mujeres",
-      recentForm: [],
-    },
-    {
-      id: "m-2",
-      position: 2,
-      fullName: "María Torres",
-      points: 385,
-      weeklyDelta: 0,
-      status: "activo",
-      category: "mujeres",
-      recentForm: [],
-    },
-    {
-      id: "m-3",
-      position: 3,
-      fullName: "Josefa Ríos",
-      points: 340,
-      weeklyDelta: 60,
-      status: "activo",
-      category: "mujeres",
-      recentForm: [],
-    },
-    {
-      id: "m-4",
-      position: 4,
-      fullName: "Catalina Reyes",
-      points: 315,
-      weeklyDelta: -20,
-      status: "activo",
-      category: "mujeres",
-      recentForm: [],
-    },
-  ],
-};
-
-const fallbackEvents: PlayerHistoryEvent[] = [
-  {
-    id: "fallback-seed",
-    occurredAt: new Date("2026-01-05T12:00:00.000Z"),
-    delta: 320,
-    reason: "initial_seed",
-    note: "Seed inicial de ejemplo",
-  },
-];
 
 export const rankingCategoryLabels: Record<RankingCategory, string> = {
   hombres: "Hombres",
@@ -263,8 +184,11 @@ async function getTieBreakDeps() {
         const sets = await dbClient
           .select({
             matchId: matchSets.matchId,
+            setNumber: matchSets.setNumber,
             gamesP1: matchSets.gamesP1,
             gamesP2: matchSets.gamesP2,
+            tiebreakP1: matchSets.tiebreakP1,
+            tiebreakP2: matchSets.tiebreakP2,
           })
           .from(matchSets)
           .where(
@@ -307,8 +231,11 @@ async function getTieBreakDeps() {
         const sets = await dbClient
           .select({
             matchId: matchSets.matchId,
+            setNumber: matchSets.setNumber,
             gamesP1: matchSets.gamesP1,
             gamesP2: matchSets.gamesP2,
+            tiebreakP1: matchSets.tiebreakP1,
+            tiebreakP2: matchSets.tiebreakP2,
           })
           .from(matchSets)
           .where(
@@ -438,7 +365,7 @@ export async function getRanking(
   category: RankingCategory,
 ): Promise<RankingEntry[]> {
   const fromDb = await fetchRankingFromDb(category);
-  return fromDb && fromDb.length > 0 ? fromDb : fallbackRankingData[category];
+  return fromDb ?? [];
 }
 
 export async function getPlayerRankingDetail(
@@ -455,7 +382,7 @@ export async function getPlayerRankingDetail(
   if (!db) {
     return {
       player,
-      events: fallbackEvents,
+      events: [],
     };
   }
 
@@ -484,6 +411,95 @@ export async function getPlayerRankingDetail(
   };
 }
 
+export async function getPublicPlayerProfile(
+  category: RankingCategory,
+  playerId: string,
+): Promise<PublicPlayerProfile | null> {
+  const ranking = await getRanking(category);
+  const player = ranking.find((entry) => entry.id === playerId);
+
+  if (!player) {
+    return null;
+  }
+
+  if (!db) {
+    return {
+      player,
+      recentMatches: [],
+    };
+  }
+
+  const recentMatches = (await db
+    .select({
+      id: matches.id,
+      playedOn: matches.playedOn,
+      status: matches.status,
+      type: matches.type,
+      format: matches.format,
+      winnerId: matches.winnerId,
+      player1Id: matches.player1Id,
+      player2Id: matches.player2Id,
+      player1Name: players.fullName,
+      player2Name: sql<string>`players_p2.full_name`,
+    })
+    .from(matches)
+    .innerJoin(players, eq(matches.player1Id, players.id))
+    .innerJoin(
+      sql`players as players_p2`,
+      sql`${matches.player2Id} = players_p2.id`,
+    )
+    .where(
+      and(
+        or(eq(matches.player1Id, playerId), eq(matches.player2Id, playerId)),
+        sql`${matches.status} in ('confirmado', 'empate', 'wo')`,
+        eq(players.gender, category === "hombres" ? "M" : "F"),
+      ),
+    )
+    .orderBy(
+      desc(matches.playedOn),
+      desc(matches.confirmedAt),
+      desc(matches.createdAt),
+    )
+    .limit(10)) as Omit<PublicPlayerMatch, "sets">[];
+
+  const matchIds = recentMatches.map((match) => match.id);
+  const setRows = matchIds.length
+    ? ((await db
+        .select({
+          matchId: matchSets.matchId,
+          setNumber: matchSets.setNumber,
+          gamesP1: matchSets.gamesP1,
+          gamesP2: matchSets.gamesP2,
+          tiebreakP1: matchSets.tiebreakP1,
+          tiebreakP2: matchSets.tiebreakP2,
+        })
+        .from(matchSets)
+        .where(
+          sql`${matchSets.matchId} in (${sql.join(
+            matchIds.map((id) => sql`${id}`),
+            sql`, `,
+          )})`,
+        )) as MatchSetRow[])
+    : [];
+
+  const setsByMatch = new Map<string, MatchSetRow[]>();
+  for (const set of setRows) {
+    const existing = setsByMatch.get(set.matchId) ?? [];
+    existing.push(set);
+    setsByMatch.set(set.matchId, existing);
+  }
+
+  return {
+    player,
+    recentMatches: recentMatches.map((match) => ({
+      ...match,
+      sets: (setsByMatch.get(match.id) ?? []).sort(
+        (a, b) => a.setNumber - b.setNumber,
+      ),
+    })),
+  };
+}
+
 export async function getRankingSummary() {
   const categories = await Promise.all(
     (["hombres", "mujeres"] as RankingCategory[]).map(async (category) => {
@@ -498,7 +514,9 @@ export async function getRankingSummary() {
   );
 
   return {
-    updatedLabel: "Actualizado desde base real",
+    updatedLabel: db
+      ? "Actualizado desde base real"
+      : "Base de datos no configurada",
     categories,
   };
 }
