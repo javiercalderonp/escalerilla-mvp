@@ -103,9 +103,8 @@ export default async function RankingCategoryPage({
           Ranking público por categoría
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-          Ranking real por categoría con detalle de puntos por jugador. El
-          siguiente salto aquí será sumar desempates RN-11 y luego el historial
-          de partidos.
+          Ranking real por categoría con acceso al perfil público de cada
+          jugador y su detalle de puntos.
         </p>
         <div className="mt-6 flex flex-wrap gap-3 text-sm">
           <Link
@@ -134,7 +133,11 @@ export default async function RankingCategoryPage({
       <RankingTable category={categoria} entries={entries} />
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        {playerDetail ? (
+        {entries.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center text-sm text-slate-500">
+            Aún no hay jugadores cargados en esta categoría.
+          </div>
+        ) : playerDetail ? (
           <div className="space-y-6">
             <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div>
@@ -207,7 +210,7 @@ export default async function RankingCategoryPage({
           </div>
         ) : (
           <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center text-sm text-slate-500">
-            Haz click en un jugador del ranking para ver su historial de puntos.
+            Puedes abrir el perfil público de un jugador desde la tabla de ranking.
           </div>
         )}
       </section>
