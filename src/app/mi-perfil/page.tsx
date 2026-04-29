@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { matches, matchSets, players } from "@/lib/db/schema";
+import { requireCompleteProfile } from "@/lib/auth/require-complete-profile";
 import {
   getRanking,
   type RankingCategory,
@@ -133,6 +134,8 @@ export default async function MiPerfilPage() {
   if (!session?.user) {
     redirect("/login");
   }
+
+  await requireCompleteProfile();
 
   if (!db) {
     return (

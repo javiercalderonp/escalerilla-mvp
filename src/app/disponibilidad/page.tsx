@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { availability, players, weeks } from "@/lib/db/schema";
+import { requireCompleteProfile } from "@/lib/auth/require-complete-profile";
 import { upsertAvailabilityAction } from "./actions";
 
 const DAYS = [
@@ -24,6 +25,8 @@ function formatDate(dateStr: string) {
 export default async function DisponibilidadPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
+
+  await requireCompleteProfile();
 
   if (!db) {
     return (

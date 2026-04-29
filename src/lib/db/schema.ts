@@ -35,6 +35,19 @@ export const championshipTypeEnum = pgEnum("championship_type", [
   "clausura",
   "especial",
 ]);
+export const playerLevelEnum = pgEnum("player_level", [
+  "principiante",
+  "intermedio_bajo",
+  "intermedio_alto",
+  "avanzado",
+]);
+export const dominantHandEnum = pgEnum("dominant_hand", ["diestro", "zurdo"]);
+export const backhandEnum = pgEnum("backhand", ["una_mano", "dos_manos"]);
+export const playFrequencyEnum = pgEnum("play_frequency", [
+  "1-2_semana",
+  "3-4_semana",
+  "5+_semana",
+]);
 export const matchStatusEnum = pgEnum("match_status", [
   "pendiente",
   "reportado",
@@ -81,14 +94,38 @@ export const users = pgTable(
   }),
 );
 
+export type PlayerVisibility = {
+  phone: "public" | "players" | "private";
+  rut: "admin" | "private";
+  birthDate: "public" | "players" | "private";
+};
+
+export const DEFAULT_VISIBILITY: PlayerVisibility = {
+  phone: "players",
+  rut: "admin",
+  birthDate: "private",
+};
+
 export const players = pgTable(
   "players",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     fullName: text("full_name").notNull(),
+    firstName: text("first_name"),
+    lastName: text("last_name"),
     email: text("email").unique(),
     gender: genderEnum("gender").notNull(),
     status: playerStatusEnum("status").notNull().default("activo"),
+    birthDate: date("birth_date"),
+    phone: text("phone"),
+    rut: text("rut").unique(),
+    joinedLadderOn: date("joined_ladder_on"),
+    level: playerLevelEnum("level"),
+    dominantHand: dominantHandEnum("dominant_hand"),
+    backhand: backhandEnum("backhand"),
+    yearsPlaying: integer("years_playing"),
+    playFrequency: playFrequencyEnum("play_frequency"),
+    visibility: jsonb("visibility").$type<PlayerVisibility>(),
     initialPoints: integer("initial_points").notNull().default(0),
     notes: text("notes"),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -104,6 +141,7 @@ export const players = pgTable(
       table.status,
     ),
     emailIdx: index("players_email_idx").on(table.email),
+    levelIdx: index("players_level_idx").on(table.level),
   }),
 );
 
