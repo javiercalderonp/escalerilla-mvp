@@ -27,42 +27,40 @@ export async function Header() {
   ];
 
   return (
-    <header className="border-b border-black/5 bg-white/90 backdrop-blur">
+    <header className="border-b border-border/80 bg-card/95 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
         <Link
           href="/"
-          className="flex items-center gap-2 font-semibold text-slate-900"
+          className="flex items-center gap-3 font-semibold text-foreground"
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-white">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-court text-court-foreground shadow-sm">
             <Trophy className="h-4 w-4" />
           </span>
-          Escalerilla La Dehesa
+          <span className="tracking-tight">Escalerilla La Dehesa</span>
         </Link>
 
-        {/* Desktop nav */}
-        <nav className="hidden items-center gap-6 text-sm text-slate-600 md:flex">
+        <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="transition hover:text-slate-950"
+              className="transition hover:text-foreground"
             >
               {item.label}
             </Link>
           ))}
           {session?.user && (
             <div className="flex items-center gap-3">
-              <span className="text-slate-500">
+              <span className="max-w-48 truncate text-muted-foreground">
                 {session.user.name ?? session.user.email}
               </span>
-              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+              <span className="rounded-full bg-court/10 px-3 py-1 text-xs font-medium text-court">
                 {session.user.role}
               </span>
             </div>
           )}
         </nav>
 
-        {/* Mobile nav */}
         <MobileNav items={navItems} />
       </div>
     </header>

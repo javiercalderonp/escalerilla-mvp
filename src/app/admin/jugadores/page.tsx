@@ -9,6 +9,7 @@ import {
 } from "@/app/admin/jugadores/actions";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { Badge } from "@/components/ui/badge";
 import { players } from "@/lib/db/schema";
 
 async function getPlayers() {
@@ -23,19 +24,21 @@ async function getPlayers() {
 }
 
 function statusBadge(status: "activo" | "congelado" | "retirado") {
-  const styles = {
-    activo: "bg-emerald-100 text-emerald-800",
-    congelado: "bg-amber-100 text-amber-800",
-    retirado: "bg-slate-200 text-slate-700",
+  const variants = {
+    activo: "success",
+    congelado: "warning",
+    retirado: "muted",
   } as const;
 
-  return (
-    <span
-      className={`rounded-full px-2.5 py-1 text-xs font-medium ${styles[status]}`}
-    >
-      {status}
-    </span>
-  );
+  return <Badge variant={variants[status]}>{status}</Badge>;
+}
+
+function levelBadge(level: string | null) {
+  if (!level) {
+    return <span className="text-sm text-slate-400">—</span>;
+  }
+
+  return <Badge variant="court">{level.replaceAll("_", " ")}</Badge>;
 }
 
 const csvExample = `full_name,email,gender,initial_points,notes
@@ -175,7 +178,7 @@ export default async function AdminPlayersPage() {
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
                 <label
                   htmlFor="initialPoints"
@@ -191,6 +194,26 @@ export default async function AdminPlayersPage() {
                   defaultValue={0}
                   className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-500"
                 />
+              </div>
+              <div className="space-y-2">
+                <label
+                  htmlFor="level"
+                  className="text-sm font-medium text-slate-700"
+                >
+                  Nivel
+                </label>
+                <select
+                  id="level"
+                  name="level"
+                  defaultValue=""
+                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-500"
+                >
+                  <option value="">Sin definir</option>
+                  <option value="principiante">Principiante</option>
+                  <option value="intermedio_bajo">Intermedio bajo</option>
+                  <option value="intermedio_alto">Intermedio alto</option>
+                  <option value="avanzado">Avanzado</option>
+                </select>
               </div>
               <div className="space-y-2">
                 <label
@@ -244,7 +267,7 @@ export default async function AdminPlayersPage() {
               Plantel actual
             </h2>
             <p className="mt-2 text-sm text-slate-600">
-              Puedes ajustar nombre, email, categoría, estado, puntos base y
+              Puedes ajustar nombre, email, categoría, nivel, estado, puntos base y
               notas.
             </p>
           </div>
@@ -271,8 +294,9 @@ export default async function AdminPlayersPage() {
                     </h3>
                     {statusBadge(player.status)}
                   </div>
-                  <div className="text-xs text-slate-500">
-                    {player.gender === "M" ? "Hombres" : "Mujeres"}
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <span>{player.gender === "M" ? "Hombres" : "Mujeres"}</span>
+                    {levelBadge(player.level)}
                   </div>
                 </div>
 
@@ -318,7 +342,7 @@ export default async function AdminPlayersPage() {
                       <option value="retirado">Retirado</option>
                     </select>
                   </label>
-                  <label className="space-y-2 text-sm text-slate-700 md:col-span-2">
+                  <label className="space-y-2 text-sm text-slate-700">
                     <span className="font-medium">Puntos iniciales</span>
                     <input
                       name="initialPoints"
@@ -327,6 +351,20 @@ export default async function AdminPlayersPage() {
                       defaultValue={player.initialPoints}
                       className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-emerald-500"
                     />
+                  </label>
+                  <label className="space-y-2 text-sm text-slate-700">
+                    <span className="font-medium">Nivel</span>
+                    <select
+                      name="level"
+                      defaultValue={player.level ?? ""}
+                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-emerald-500"
+                    >
+                      <option value="">Sin definir</option>
+                      <option value="principiante">Principiante</option>
+                      <option value="intermedio_bajo">Intermedio bajo</option>
+                      <option value="intermedio_alto">Intermedio alto</option>
+                      <option value="avanzado">Avanzado</option>
+                    </select>
                   </label>
                   <label className="space-y-2 text-sm text-slate-700 md:col-span-2">
                     <span className="font-medium">Notas</span>

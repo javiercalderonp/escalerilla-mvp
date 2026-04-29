@@ -15,6 +15,17 @@ const playerSchema = z.object({
     .optional(),
   gender: z.enum(["M", "F"]),
   status: z.enum(["activo", "congelado", "retirado"]),
+  level: z
+    .union([
+      z.enum([
+        "principiante",
+        "intermedio_bajo",
+        "intermedio_alto",
+        "avanzado",
+      ]),
+      z.literal(""),
+    ])
+    .optional(),
   initialPoints: z.coerce.number().int().min(0).max(9999),
   notes: z.string().trim().max(1000).optional(),
 });
@@ -179,6 +190,7 @@ export async function createPlayerAction(formData: FormData) {
     email: formData.get("email"),
     gender: formData.get("gender"),
     status: formData.get("status") ?? "activo",
+    level: formData.get("level") ?? "",
     initialPoints: formData.get("initialPoints") ?? 0,
     notes: formData.get("notes"),
   });
@@ -192,6 +204,7 @@ export async function createPlayerAction(formData: FormData) {
     email: normalizeOptional(parsed.data.email),
     gender: parsed.data.gender,
     status: parsed.data.status,
+    level: parsed.data.level && parsed.data.level.length > 0 ? parsed.data.level : null,
     initialPoints: parsed.data.initialPoints,
     notes: normalizeOptional(parsed.data.notes),
   };
@@ -326,6 +339,7 @@ export async function updatePlayerAction(formData: FormData) {
     email: normalizeOptional(parsed.data.email),
     gender: parsed.data.gender,
     status: parsed.data.status,
+    level: parsed.data.level && parsed.data.level.length > 0 ? parsed.data.level : null,
     initialPoints: parsed.data.initialPoints,
     notes: normalizeOptional(parsed.data.notes),
     updatedAt: new Date(),
