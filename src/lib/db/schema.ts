@@ -30,6 +30,11 @@ export const matchTypeEnum = pgEnum("match_type", [
   "desafio",
   "campeonato",
 ]);
+export const championshipTypeEnum = pgEnum("championship_type", [
+  "regular",
+  "clausura",
+  "especial",
+]);
 export const matchStatusEnum = pgEnum("match_status", [
   "pendiente",
   "reportado",
@@ -298,6 +303,59 @@ export const freezes = pgTable(
   (table) => ({
     playerIdx: index("freezes_player_idx").on(table.playerId),
     seasonIdx: index("freezes_season_idx").on(table.seasonId),
+  }),
+);
+
+export const championships = pgTable(
+  "championships",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    seasonId: uuid("season_id")
+      .notNull()
+      .references(() => seasons.id, { onDelete: "restrict" }),
+    name: text("name").notNull(),
+    category: genderEnum("category").notNull(),
+    type: championshipTypeEnum("type").notNull().default("regular"),
+    playedOn: date("played_on").notNull(),
+    createdById: uuid("created_by_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    seasonIdx: index("championships_season_idx").on(table.seasonId),
+    categoryIdx: index("championships_category_idx").on(table.category),
+  }),
+);
+
+export const championshipPlacements = pgTable(
+  "championship_placements",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    championshipId: uuid("championship_id")
+      .notNull()
+      .references(() => championships.id, { onDelete: "cascade" }),
+    playerId: uuid("player_id")
+      .notNull()
+      .references(() => players.id, { onDelete: "restrict" }),
+    position: integer("position").notNull(),
+    delta: integer("delta").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    champPlayerUnique: unique("champ_placements_champ_player_unique").on(
+      table.championshipId,
+      table.playerId,
+    ),
+    champPositionUnique: unique("champ_placements_champ_pos_unique").on(
+      table.championshipId,
+      table.position,
+    ),
+    champIdx: index("champ_placements_champ_idx").on(table.championshipId),
   }),
 );
 

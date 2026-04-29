@@ -31,37 +31,26 @@ export async function Header() {
           </Link>
           {session?.user && (
             <>
-              <Link
-                href="/mi-perfil"
-                className="transition hover:text-slate-950"
-              >
+              <Link href="/mi-perfil" className="transition hover:text-slate-950">
                 Mi perfil
               </Link>
-              <Link
-                href="/disponibilidad"
-                className="transition hover:text-slate-950"
-              >
+              <Link href="/disponibilidad" className="transition hover:text-slate-950">
                 Disponibilidad
               </Link>
             </>
           )}
-          {session?.user && (
-            <Link href="/mi-perfil" className="transition hover:text-slate-950">
-              Mi perfil
-            </Link>
-          )}
           {session?.user?.role === "admin" && (
-            <Link
-              href="/admin/semanas"
-              className="transition hover:text-slate-950"
-            >
-              Semanas
-            </Link>
-          )}
-          {session?.user?.role === "admin" && (
-            <Link href="/admin/partidos" className="transition hover:text-slate-950">
-              Partidos
-            </Link>
+            <>
+              <Link href="/admin/semanas" className="transition hover:text-slate-950">
+                Semanas
+              </Link>
+              <Link href="/admin/partidos" className="transition hover:text-slate-950">
+                Partidos
+              </Link>
+              <Link href="/admin/campeonatos" className="transition hover:text-slate-950">
+                Campeonatos
+              </Link>
+            </>
           )}
           {session?.user ? (
             <div className="flex items-center gap-3">
