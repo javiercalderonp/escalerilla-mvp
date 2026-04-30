@@ -90,8 +90,8 @@ export async function generateProposalAction(
       recentOpponents.set(m.player1Id, new Set());
     if (!recentOpponents.has(m.player2Id))
       recentOpponents.set(m.player2Id, new Set());
-    recentOpponents.get(m.player1Id)!.add(m.player2Id);
-    recentOpponents.get(m.player2Id)!.add(m.player1Id);
+    recentOpponents.get(m.player1Id)?.add(m.player2Id);
+    recentOpponents.get(m.player2Id)?.add(m.player1Id);
   }
 
   const proposal = proposeFixture(

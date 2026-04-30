@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 function EmptyState({
   title,
@@ -6,14 +6,14 @@ function EmptyState({
   className,
   children,
 }: React.ComponentProps<"div"> & {
-  title: string
-  description?: string
+  title: string;
+  description?: string;
 }) {
   return (
     <div
       className={cn(
         "rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-10 text-center",
-        className
+        className,
       )}
     >
       <div className="mx-auto max-w-md space-y-2">
@@ -26,7 +26,7 @@ function EmptyState({
         {children ? <div className="pt-2">{children}</div> : null}
       </div>
     </div>
-  )
+  );
 }
 
-export { EmptyState }
+export { EmptyState };

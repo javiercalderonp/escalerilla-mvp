@@ -81,10 +81,7 @@ export async function createFreezeAction(formData: FormData) {
     );
   }
 
-  if (
-    parsed.data.endsOn &&
-    parsed.data.endsOn < parsed.data.startsOn
-  ) {
+  if (parsed.data.endsOn && parsed.data.endsOn < parsed.data.startsOn) {
     throw new Error("La fecha de fin no puede ser anterior al inicio");
   }
 

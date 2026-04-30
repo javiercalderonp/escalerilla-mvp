@@ -72,20 +72,30 @@ export default async function AdminDesafiosPage() {
 
   const allActive = [...rankingM, ...rankingF];
 
-  function RankingMini({ rows, label }: { rows: RankedPlayer[]; label: string }) {
+  function RankingMini({
+    rows,
+    label,
+  }: {
+    rows: RankedPlayer[];
+    label: string;
+  }) {
     return (
       <div>
         <h3 className="mb-2 text-sm font-semibold text-slate-700">{label}</h3>
         <div className="space-y-1">
           {rows.slice(0, 15).map((p) => (
             <div key={p.id} className="flex items-center gap-2 text-sm">
-              <span className="w-6 text-right text-xs text-slate-400">{p.rank}</span>
+              <span className="w-6 text-right text-xs text-slate-400">
+                {p.rank}
+              </span>
               <span className="flex-1 text-slate-800">{p.fullName}</span>
               <span className="text-xs text-slate-500">{p.points} pts</span>
             </div>
           ))}
           {rows.length > 15 && (
-            <p className="pl-8 text-xs text-slate-400">…y {rows.length - 15} más</p>
+            <p className="pl-8 text-xs text-slate-400">
+              …y {rows.length - 15} más
+            </p>
           )}
         </div>
       </div>
@@ -221,8 +231,7 @@ export default async function AdminDesafiosPage() {
                 className="flex items-center justify-between gap-4 rounded-2xl border border-slate-100 px-4 py-3"
               >
                 <p className="text-sm text-slate-800">
-                  {d.player1Name}{" "}
-                  <span className="text-slate-400">vs</span>{" "}
+                  {d.player1Name} <span className="text-slate-400">vs</span>{" "}
                   {d.player2Name}
                 </p>
                 <span

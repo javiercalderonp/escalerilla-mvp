@@ -2,9 +2,9 @@ import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
+import { requireCompleteProfile } from "@/lib/auth/require-complete-profile";
 import { db } from "@/lib/db";
 import { availability, players, weeks } from "@/lib/db/schema";
-import { requireCompleteProfile } from "@/lib/auth/require-complete-profile";
 import { upsertAvailabilityAction } from "./actions";
 
 const DAYS = [
@@ -45,7 +45,7 @@ export default async function DisponibilidadPage() {
       status: players.status,
     })
     .from(players)
-    .where(eq(players.email, session.user.email!.toLowerCase()))
+    .where(eq(players.email, session.user.email?.toLowerCase() ?? ""))
     .limit(1);
 
   if (!player) {
@@ -56,8 +56,8 @@ export default async function DisponibilidadPage() {
             Mi disponibilidad
           </h1>
           <p className="mt-3 text-sm text-slate-600">
-            Tu cuenta ({session.user.email}) no está vinculada a ningún
-            jugador. Pedile al administrador que te agregue con este email.
+            Tu cuenta ({session.user.email}) no está vinculada a ningún jugador.
+            Pedile al administrador que te agregue con este email.
           </p>
         </div>
       </main>
@@ -113,8 +113,8 @@ export default async function DisponibilidadPage() {
         </h1>
         {existing && (
           <p className="mt-2 rounded-2xl bg-emerald-50 px-4 py-2 text-sm text-emerald-700">
-            Ya declaraste disponibilidad. Podés actualizarla hasta que cierre
-            la ventana.
+            Ya declaraste disponibilidad. Podés actualizarla hasta que cierre la
+            ventana.
           </p>
         )}
       </section>

@@ -1,6 +1,6 @@
-import { cva, type VariantProps } from "class-variance-authority"
+import { cva, type VariantProps } from "class-variance-authority";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 const avatarVariants = cva(
   "inline-flex shrink-0 items-center justify-center rounded-full bg-court font-bold tracking-tight text-court-foreground",
@@ -17,26 +17,26 @@ const avatarVariants = cva(
     defaultVariants: {
       size: "md",
     },
-  }
-)
+  },
+);
 
 function getInitials(firstName?: string, lastName?: string) {
-  const first = firstName?.trim()?.[0]
-  const last = lastName?.trim()?.[0]
+  const first = firstName?.trim()?.[0];
+  const last = lastName?.trim()?.[0];
 
   if (first && last) {
-    return `${first}${last}`.toUpperCase()
+    return `${first}${last}`.toUpperCase();
   }
 
   if (first) {
-    return first.toUpperCase()
+    return first.toUpperCase();
   }
 
   if (last) {
-    return last.toUpperCase()
+    return last.toUpperCase();
   }
 
-  return "?"
+  return "?";
 }
 
 function Avatar({
@@ -45,15 +45,15 @@ function Avatar({
   size,
   className,
 }: {
-  firstName?: string
-  lastName?: string
-  className?: string
+  firstName?: string;
+  lastName?: string;
+  className?: string;
 } & VariantProps<typeof avatarVariants>) {
   return (
     <span className={cn(avatarVariants({ size }), className)}>
       {getInitials(firstName, lastName)}
     </span>
-  )
+  );
 }
 
-export { Avatar }
+export { Avatar };

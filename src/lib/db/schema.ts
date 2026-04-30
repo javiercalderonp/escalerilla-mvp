@@ -191,7 +191,9 @@ export const matches = pgTable(
   "matches",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    weekId: uuid("week_id").references(() => weeks.id, { onDelete: "set null" }),
+    weekId: uuid("week_id").references(() => weeks.id, {
+      onDelete: "set null",
+    }),
     category: genderEnum("category").notNull(),
     type: matchTypeEnum("type").notNull(),
     player1Id: uuid("player1_id")

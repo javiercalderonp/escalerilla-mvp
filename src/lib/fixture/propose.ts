@@ -50,8 +50,8 @@ export function proposeFixture(
 
       if (!pairedWith.has(p1.id)) pairedWith.set(p1.id, new Set());
       if (!pairedWith.has(partner.id)) pairedWith.set(partner.id, new Set());
-      pairedWith.get(p1.id)!.add(partner.id);
-      pairedWith.get(partner.id)!.add(p1.id);
+      pairedWith.get(p1.id)?.add(partner.id);
+      pairedWith.get(partner.id)?.add(p1.id);
 
       madeProgress = true;
     }

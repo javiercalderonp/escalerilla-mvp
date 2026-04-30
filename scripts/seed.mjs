@@ -1,23 +1,23 @@
-import { neon } from '@neondatabase/serverless';
+import { neon } from "@neondatabase/serverless";
 
 const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
-  throw new Error('DATABASE_URL is required');
+  throw new Error("DATABASE_URL is required");
 }
 
 const sql = neon(databaseUrl);
 
 const players = [
-  ['Juan Pérez', 'juan.perez@club.cl', 'M', 420],
-  ['Pedro García', 'pedro.garcia@club.cl', 'M', 380],
-  ['Diego Rojas', 'diego.rojas@club.cl', 'M', 350],
-  ['Mateo López', 'mateo.lopez@club.cl', 'M', 300],
-  ['Sergio Muñoz', 'sergio.munoz@club.cl', 'M', 250],
-  ['Ana Silva', 'ana.silva@club.cl', 'F', 410],
-  ['María Torres', 'maria.torres@club.cl', 'F', 385],
-  ['Josefa Ríos', 'josefa.rios@club.cl', 'F', 340],
-  ['Catalina Reyes', 'catalina.reyes@club.cl', 'F', 315],
+  ["Juan Pérez", "juan.perez@club.cl", "M", 420],
+  ["Pedro García", "pedro.garcia@club.cl", "M", 380],
+  ["Diego Rojas", "diego.rojas@club.cl", "M", 350],
+  ["Mateo López", "mateo.lopez@club.cl", "M", 300],
+  ["Sergio Muñoz", "sergio.munoz@club.cl", "M", 250],
+  ["Ana Silva", "ana.silva@club.cl", "F", 410],
+  ["María Torres", "maria.torres@club.cl", "F", 385],
+  ["Josefa Ríos", "josefa.rios@club.cl", "F", 340],
+  ["Catalina Reyes", "catalina.reyes@club.cl", "F", 315],
 ];
 
 await sql`insert into seasons (year, status) values (2026, 'activa') on conflict (year) do nothing`;

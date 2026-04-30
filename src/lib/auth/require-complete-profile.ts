@@ -1,38 +1,38 @@
-import { eq } from "drizzle-orm"
-import { redirect } from "next/navigation"
+import { eq } from "drizzle-orm";
+import { redirect } from "next/navigation";
 
-import { auth } from "@/lib/auth"
-import { db } from "@/lib/db"
-import { players } from "@/lib/db/schema"
-import { ensureAppUser } from "@/lib/auth/ensure-app-user"
-import { isProfileComplete } from "@/lib/players/profile-completeness"
+import { auth } from "@/lib/auth";
+import { ensureAppUser } from "@/lib/auth/ensure-app-user";
+import { db } from "@/lib/db";
+import { players } from "@/lib/db/schema";
+import { isProfileComplete } from "@/lib/players/profile-completeness";
 
 export async function requireCompleteProfile() {
-  const session = await auth()
+  const session = await auth();
 
   if (!session?.user?.email) {
-    redirect("/login")
+    redirect("/login");
   }
 
   if (!db) {
-    throw new Error("Base de datos no configurada")
+    throw new Error("Base de datos no configurada");
   }
 
-  const user = await ensureAppUser(session.user)
+  const user = await ensureAppUser(session.user);
 
   if (!user?.playerId) {
-    redirect("/onboarding")
+    redirect("/onboarding");
   }
 
   const [player] = await db
     .select()
     .from(players)
     .where(eq(players.id, user.playerId))
-    .limit(1)
+    .limit(1);
 
   if (!isProfileComplete(player)) {
-    redirect("/onboarding")
+    redirect("/onboarding");
   }
 
-  return { user, player }
+  return { user, player };
 }

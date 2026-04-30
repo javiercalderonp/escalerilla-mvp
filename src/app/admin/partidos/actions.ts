@@ -7,12 +7,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { ensureAppUser } from "@/lib/auth/ensure-app-user";
 import { db } from "@/lib/db";
-import {
-  auditLog,
-  matches,
-  matchSets,
-  rankingEvents,
-} from "@/lib/db/schema";
+import { auditLog, matches, matchSets, rankingEvents } from "@/lib/db/schema";
 import {
   calculateWinLossPoints,
   getLoserReason,

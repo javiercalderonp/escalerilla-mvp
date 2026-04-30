@@ -4,11 +4,8 @@ import { useState, useTransition } from "react";
 
 import { CopyButton } from "@/components/ui/copy-button";
 import { buildFixtureMessage } from "@/lib/fixture/message";
-import {
-  generateProposalAction,
-  publishFixtureAction,
-} from "./actions";
 import type { SerializedPair } from "./actions";
+import { generateProposalAction, publishFixtureAction } from "./actions";
 
 type ActivePlayer = {
   id: string;
@@ -71,11 +68,7 @@ function CategoryEditor({
     });
   }
 
-  function updatePair(
-    index: number,
-    field: "p1" | "p2",
-    playerId: string,
-  ) {
+  function updatePair(index: number, field: "p1" | "p2", playerId: string) {
     const player = allActivePlayers.find((p) => p.id === playerId);
     if (!player) return;
     setPairs((prev) => {
@@ -116,11 +109,13 @@ function CategoryEditor({
         <div>
           <h2 className="text-lg font-semibold text-slate-950">{label}</h2>
           <p className="mt-1 text-sm text-slate-500">
-            {availableCount} disponibles ·{" "}
-            {pairs.length} partido{pairs.length !== 1 ? "s" : ""} propuesto{pairs.length !== 1 ? "s" : ""}
+            {availableCount} disponibles · {pairs.length} partido
+            {pairs.length !== 1 ? "s" : ""} propuesto
+            {pairs.length !== 1 ? "s" : ""}
           </p>
         </div>
         <button
+          type="button"
           onClick={handleRegenerate}
           disabled={isPending}
           className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:text-slate-950 disabled:opacity-50"
@@ -143,9 +138,11 @@ function CategoryEditor({
             );
             return (
               <div
-                key={index}
+                key={`${pair.p1Id}-${pair.p2Id}`}
                 className={`flex flex-wrap items-center gap-2 rounded-2xl border p-3 ${
-                  violation ? "border-amber-300 bg-amber-50" : "border-slate-200"
+                  violation
+                    ? "border-amber-300 bg-amber-50"
+                    : "border-slate-200"
                 }`}
               >
                 <select
@@ -177,6 +174,7 @@ function CategoryEditor({
                   </span>
                 )}
                 <button
+                  type="button"
                   onClick={() => removePair(index)}
                   className="shrink-0 rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
                   title="Eliminar partido"
@@ -191,6 +189,7 @@ function CategoryEditor({
 
       {allActivePlayers.length >= 2 && (
         <button
+          type="button"
           onClick={addPair}
           className="mt-3 rounded-full border border-dashed border-slate-300 px-4 py-2 text-sm text-slate-600 transition hover:border-slate-400 hover:text-slate-950"
         >
@@ -287,6 +286,7 @@ export function FixtureEditor({
             </p>
           </div>
           <button
+            type="button"
             onClick={handlePublish}
             disabled={isPending || totalPairs === 0}
             className="rounded-full bg-emerald-600 px-6 py-3 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-50"

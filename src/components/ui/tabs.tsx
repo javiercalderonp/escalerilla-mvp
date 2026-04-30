@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import { Tabs as TabsPrimitive } from "@base-ui/react/tabs"
+import { Tabs as TabsPrimitive } from "@base-ui/react/tabs";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 function Tabs({ ...props }: TabsPrimitive.Root.Props) {
-  return <TabsPrimitive.Root data-slot="tabs" {...props} />
+  return <TabsPrimitive.Root data-slot="tabs" {...props} />;
 }
 
 function TabsList({ className, ...props }: TabsPrimitive.List.Props) {
@@ -14,11 +14,11 @@ function TabsList({ className, ...props }: TabsPrimitive.List.Props) {
       data-slot="tabs-list"
       className={cn(
         "inline-flex h-10 items-center rounded-full bg-muted p-1 text-muted-foreground",
-        className
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
 function TabsTab({ className, ...props }: TabsPrimitive.Tab.Props) {
@@ -27,11 +27,11 @@ function TabsTab({ className, ...props }: TabsPrimitive.Tab.Props) {
       data-slot="tabs-tab"
       className={cn(
         "inline-flex min-w-20 items-center justify-center rounded-full px-3 py-1.5 text-sm font-medium transition data-[selected]:bg-court data-[selected]:text-court-foreground",
-        className
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
 function TabsPanel({ className, ...props }: TabsPrimitive.Panel.Props) {
@@ -41,7 +41,7 @@ function TabsPanel({ className, ...props }: TabsPrimitive.Panel.Props) {
       className={cn("outline-none", className)}
       {...props}
     />
-  )
+  );
 }
 
-export { Tabs, TabsList, TabsPanel, TabsTab }
+export { Tabs, TabsList, TabsPanel, TabsTab };

@@ -1,29 +1,31 @@
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 type StreakDotsProps = {
-  total?: number
-  active?: number
-  className?: string
-}
+  total?: number;
+  active?: number;
+  className?: string;
+};
 
 function StreakDots({ total = 5, active = 0, className }: StreakDotsProps) {
+  const dots = Array.from({ length: total }, (_, slot) => slot + 1);
+
   return (
     <div className={cn("flex items-center gap-1", className)}>
-      {Array.from({ length: total }).map((_, index) => {
-        const isActive = index < active
+      {dots.map((slot) => {
+        const isActive = slot <= active;
 
         return (
           <span
-            key={index}
+            key={`dot-${slot}`}
             className={cn(
               "size-2 rounded-full bg-muted",
-              isActive && "bg-court"
+              isActive && "bg-court",
             )}
           />
-        )
+        );
       })}
     </div>
-  )
+  );
 }
 
-export { StreakDots }
+export { StreakDots };

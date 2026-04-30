@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { desc } from "drizzle-orm";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";

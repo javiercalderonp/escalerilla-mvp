@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-export default function Error({
+export default function AppError({
   reset,
 }: {
   error: Error;
@@ -16,10 +16,12 @@ export default function Error({
           Algo salió mal
         </h1>
         <p className="mt-4 text-sm leading-6 text-slate-600">
-          Ocurrió un error inesperado. Podés intentar de nuevo o volver al inicio.
+          Ocurrió un error inesperado. Podés intentar de nuevo o volver al
+          inicio.
         </p>
         <div className="mt-8 flex justify-center gap-3">
           <button
+            type="button"
             onClick={reset}
             className="rounded-full bg-emerald-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-emerald-700"
           >

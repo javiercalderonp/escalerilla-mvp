@@ -37,7 +37,11 @@ export default async function AdminCongelacionesPage() {
     .limit(1);
 
   const allPlayers = await db
-    .select({ id: players.id, fullName: players.fullName, gender: players.gender })
+    .select({
+      id: players.id,
+      fullName: players.fullName,
+      gender: players.gender,
+    })
     .from(players)
     .where(eq(players.status, "activo"))
     .orderBy(players.gender, players.fullName);
@@ -63,12 +67,10 @@ export default async function AdminCongelacionesPage() {
   const today = new Date().toISOString().slice(0, 10);
   const currentMonth = parseInt(today.slice(5, 7), 10);
   const currentYear = today.slice(0, 4);
-  const semStart = currentMonth <= 6
-    ? `${currentYear}-01-01`
-    : `${currentYear}-07-01`;
-  const semEnd = currentMonth <= 6
-    ? `${currentYear}-06-30`
-    : `${currentYear}-12-31`;
+  const semStart =
+    currentMonth <= 6 ? `${currentYear}-01-01` : `${currentYear}-07-01`;
+  const semEnd =
+    currentMonth <= 6 ? `${currentYear}-06-30` : `${currentYear}-12-31`;
 
   const semesterCountRows = activeSeason
     ? await db

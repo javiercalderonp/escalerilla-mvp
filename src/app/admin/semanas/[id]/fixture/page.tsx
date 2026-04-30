@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, gte, or, sql } from "drizzle-orm";
+import { and, desc, eq, gte, or, sql } from "drizzle-orm";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
@@ -12,8 +12,8 @@ import {
   weeks,
 } from "@/lib/db/schema";
 import { proposeFixture } from "@/lib/fixture/propose";
-import { FixtureEditor } from "./editor";
 import type { SerializedPair } from "./actions";
+import { FixtureEditor } from "./editor";
 
 function formatDate(dateStr: string) {
   const [year, month, day] = dateStr.split("-");
@@ -92,7 +92,7 @@ export default async function FixturePage({
       id: p.id,
       fullName: p.fullName,
       points: Number(p.points),
-      maxMatches: p.maxMatches!,
+      maxMatches: p.maxMatches ?? 0,
     }));
 
   const availableF = allPlayersRaw
@@ -101,7 +101,7 @@ export default async function FixturePage({
       id: p.id,
       fullName: p.fullName,
       points: Number(p.points),
-      maxMatches: p.maxMatches!,
+      maxMatches: p.maxMatches ?? 0,
     }));
 
   // Recent opponents (last 30 days) for RN-03 validation
@@ -124,8 +124,8 @@ export default async function FixturePage({
       recentOpponentsMap.set(m.player1Id, new Set());
     if (!recentOpponentsMap.has(m.player2Id))
       recentOpponentsMap.set(m.player2Id, new Set());
-    recentOpponentsMap.get(m.player1Id)!.add(m.player2Id);
-    recentOpponentsMap.get(m.player2Id)!.add(m.player1Id);
+    recentOpponentsMap.get(m.player1Id)?.add(m.player2Id);
+    recentOpponentsMap.get(m.player2Id)?.add(m.player1Id);
   }
 
   const recentOpponentMap: Record<string, string[]> = {};

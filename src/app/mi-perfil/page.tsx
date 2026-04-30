@@ -3,9 +3,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
+import { requireCompleteProfile } from "@/lib/auth/require-complete-profile";
 import { db } from "@/lib/db";
 import { matches, matchSets, players } from "@/lib/db/schema";
-import { requireCompleteProfile } from "@/lib/auth/require-complete-profile";
 import {
   getRanking,
   type RankingCategory,
@@ -296,7 +296,8 @@ export default async function MiPerfilPage() {
               {player.fullName}
             </h1>
             <p className="mt-3 text-sm text-slate-600">
-              Categoría {rankingCategoryLabels[category]} · Estado {player.status}
+              Categoría {rankingCategoryLabels[category]} · Estado{" "}
+              {player.status}
               {rankingEntry
                 ? ` · #${rankingEntry.position} · ${rankingEntry.points} pts`
                 : ""}

@@ -7,9 +7,9 @@ import {
   toggleRetiredPlayerAction,
   updatePlayerAction,
 } from "@/app/admin/jugadores/actions";
+import { Badge } from "@/components/ui/badge";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Badge } from "@/components/ui/badge";
 import { players } from "@/lib/db/schema";
 
 async function getPlayers() {
@@ -267,8 +267,8 @@ export default async function AdminPlayersPage() {
               Plantel actual
             </h2>
             <p className="mt-2 text-sm text-slate-600">
-              Puedes ajustar nombre, email, categoría, nivel, estado, puntos base y
-              notas.
+              Puedes ajustar nombre, email, categoría, nivel, estado, puntos
+              base y notas.
             </p>
           </div>
         </div>

@@ -6,8 +6,15 @@ import { PlayerCardModalLink } from "@/components/players/player-card-modal-link
 import { RankingTable } from "@/components/ranking/ranking-table";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { championshipPlacements, championships, players } from "@/lib/db/schema";
-import { getPlayerCardData, getViewerContext } from "@/lib/players/get-player-card-data";
+import {
+  championshipPlacements,
+  championships,
+  players,
+} from "@/lib/db/schema";
+import {
+  getPlayerCardData,
+  getViewerContext,
+} from "@/lib/players/get-player-card-data";
 import {
   getRanking,
   isRankingCategory,
@@ -43,22 +50,41 @@ async function getCategoryChampionships(category: "M" | "F") {
       playerName: players.fullName,
     })
     .from(championships)
-    .leftJoin(championshipPlacements, eq(championshipPlacements.championshipId, championships.id))
+    .leftJoin(
+      championshipPlacements,
+      eq(championshipPlacements.championshipId, championships.id),
+    )
     .leftJoin(players, eq(players.id, championshipPlacements.playerId))
     .where(eq(championships.category, category))
     .orderBy(championships.playedOn);
 
-  const byId = new Map<string, {
-    id: string; name: string; type: string; playedOn: string;
-    placements: { position: number; playerName: string; delta: number }[];
-  }>();
+  const byId = new Map<
+    string,
+    {
+      id: string;
+      name: string;
+      type: string;
+      playedOn: string;
+      placements: { position: number; playerName: string; delta: number }[];
+    }
+  >();
 
   for (const row of rows) {
     if (!byId.has(row.id)) {
-      byId.set(row.id, { id: row.id, name: row.name, type: row.type, playedOn: row.playedOn, placements: [] });
+      byId.set(row.id, {
+        id: row.id,
+        name: row.name,
+        type: row.type,
+        playedOn: row.playedOn,
+        placements: [],
+      });
     }
     if (row.position !== null && row.playerName) {
-      byId.get(row.id)!.placements.push({ position: row.position, playerName: row.playerName, delta: row.delta ?? 0 });
+      byId.get(row.id)?.placements.push({
+        position: row.position,
+        playerName: row.playerName,
+        delta: row.delta ?? 0,
+      });
     }
   }
 
@@ -90,7 +116,12 @@ export default async function RankingCategoryPage({
 
   const [playerCardData, categoryChampionships] = await Promise.all([
     selectedPlayerId
-      ? getPlayerCardData(categoria, selectedPlayerId, viewer.viewerRole, viewer.viewerPlayerId)
+      ? getPlayerCardData(
+          categoria,
+          selectedPlayerId,
+          viewer.viewerRole,
+          viewer.viewerPlayerId,
+        )
       : Promise.resolve(null),
     getCategoryChampionships(gender),
   ]);
@@ -146,18 +177,31 @@ export default async function RankingCategoryPage({
           </p>
           <div className="mt-4 space-y-4">
             {categoryChampionships.map((c) => (
-              <div key={c.id} className="rounded-2xl border border-border/70 p-4">
+              <div
+                key={c.id}
+                className="rounded-2xl border border-border/70 p-4"
+              >
                 <p className="font-medium text-foreground">
                   {c.name}
                   <span className="ml-2 text-xs font-normal text-muted-foreground">
-                    {formatDate(new Date(c.playedOn + "T00:00:00").toISOString().slice(0, 10))} · {c.type}
+                    {formatDate(
+                      new Date(`${c.playedOn}T00:00:00`)
+                        .toISOString()
+                        .slice(0, 10),
+                    )}{" "}
+                    · {c.type}
                   </span>
                 </p>
                 <div className="mt-2 space-y-1">
                   {c.placements.map((p) => (
-                    <div key={p.position} className="flex items-center gap-2 text-sm">
+                    <div
+                      key={p.position}
+                      className="flex items-center gap-2 text-sm"
+                    >
                       <span>{podiumEmoji[p.position] ?? `#${p.position}`}</span>
-                      <span className="font-medium text-foreground">{p.playerName}</span>
+                      <span className="font-medium text-foreground">
+                        {p.playerName}
+                      </span>
                       <span className="text-xs text-grass">+{p.delta} pts</span>
                     </div>
                   ))}

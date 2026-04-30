@@ -1,8 +1,13 @@
 import { and, eq, gte, lte, or, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { auditLog, freezes, matches, players, rankingEvents } from "@/lib/db/schema";
-
+import {
+  auditLog,
+  freezes,
+  matches,
+  players,
+  rankingEvents,
+} from "@/lib/db/schema";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -25,7 +30,12 @@ export async function GET(request: Request) {
   }
 
   const todayStr = today();
-  const applied: Array<{ playerId: string; name: string; reason: string; delta: number }> = [];
+  const applied: Array<{
+    playerId: string;
+    name: string;
+    reason: string;
+    delta: number;
+  }> = [];
   const skipped: Array<{ playerId: string; name: string; reason: string }> = [];
 
   // Load all active players with points + last match date
@@ -74,10 +84,7 @@ export async function GET(request: Request) {
     .where(
       and(
         lte(freezes.startsOn, todayStr),
-        or(
-          sql`${freezes.endsOn} IS NULL`,
-          gte(freezes.endsOn, todayStr),
-        ),
+        or(sql`${freezes.endsOn} IS NULL`, gte(freezes.endsOn, todayStr)),
       ),
     );
 
@@ -107,7 +114,10 @@ export async function GET(request: Request) {
     .where(
       and(
         sql`${rankingEvents.reason} = ANY(ARRAY['inactivity_month','inactivity_3mo','inactivity_6mo','inactivity_1y'])`,
-        gte(rankingEvents.occurredAt, new Date(new Date().setFullYear(new Date().getFullYear() - 2))),
+        gte(
+          rankingEvents.occurredAt,
+          new Date(new Date().setFullYear(new Date().getFullYear() - 2)),
+        ),
       ),
     );
 
@@ -119,9 +129,9 @@ export async function GET(request: Request) {
       lastPenaltyMap.set(row.playerId, new Map());
     }
     const dateStr = row.occurredAt.toISOString().slice(0, 10);
-    const existing = lastPenaltyMap.get(row.playerId)!.get(row.reason);
+    const existing = lastPenaltyMap.get(row.playerId)?.get(row.reason);
     if (!existing || dateStr > existing) {
-      lastPenaltyMap.get(row.playerId)!.set(row.reason, dateStr);
+      lastPenaltyMap.get(row.playerId)?.set(row.reason, dateStr);
     }
   }
 
@@ -137,7 +147,11 @@ export async function GET(request: Request) {
 
     // Skip frozen players
     if (frozenPlayerIds.has(player.id)) {
-      skipped.push({ playerId: player.id, name: player.fullName, reason: "congelado" });
+      skipped.push({
+        playerId: player.id,
+        name: player.fullName,
+        reason: "congelado",
+      });
       continue;
     }
 
@@ -145,12 +159,13 @@ export async function GET(request: Request) {
     const daysSince = lastMatchDate
       ? Math.floor(
           (new Date(todayStr).getTime() -
-            new Date(lastMatchDate + "T00:00:00").getTime()) /
+            new Date(`${lastMatchDate}T00:00:00`).getTime()) /
             86400000,
         )
       : 9999;
 
-    const penaltyMap = lastPenaltyMap.get(player.id) ?? new Map<string, string>();
+    const penaltyMap =
+      lastPenaltyMap.get(player.id) ?? new Map<string, string>();
 
     // -40 monthly (repeat monthly, idempotent: last penalty must be >30 days ago or not exist after last match)
     if (daysSince >= 30) {
@@ -160,7 +175,8 @@ export async function GET(request: Request) {
         lastMonthly !== null &&
         (lastMatchDate === null || lastMonthly > lastMatchDate) &&
         Math.floor(
-          (new Date(todayStr).getTime() - new Date(lastMonthly + "T00:00:00").getTime()) /
+          (new Date(todayStr).getTime() -
+            new Date(`${lastMonthly}T00:00:00`).getTime()) /
             86400000,
         ) < 35;
 
@@ -245,7 +261,11 @@ export async function GET(request: Request) {
       await tx.insert(auditLog).values({
         action: "cron.inactividad",
         entityType: "cron",
-        payload: { applied: applied.length, skipped: skipped.length, date: todayStr },
+        payload: {
+          applied: applied.length,
+          skipped: skipped.length,
+          date: todayStr,
+        },
       });
     });
   }

@@ -43,7 +43,11 @@ async function getRankedPlayers(
     .groupBy(players.id)
     .orderBy(sql`coalesce(sum(${rankingEvents.delta}), 0) desc`);
 
-  return rows.map((p, i) => ({ id: p.id, points: Number(p.points), rank: i + 1 }));
+  return rows.map((p, i) => ({
+    id: p.id,
+    points: Number(p.points),
+    rank: i + 1,
+  }));
 }
 
 export async function createChallengeAction(formData: FormData) {
@@ -68,8 +72,16 @@ export async function createChallengeAction(formData: FormData) {
 
   // Verify both players exist and are active
   const [p1, p2] = await Promise.all([
-    dbClient.select({ id: players.id }).from(players).where(and(eq(players.id, player1Id), eq(players.status, "activo"))).limit(1),
-    dbClient.select({ id: players.id }).from(players).where(and(eq(players.id, player2Id), eq(players.status, "activo"))).limit(1),
+    dbClient
+      .select({ id: players.id })
+      .from(players)
+      .where(and(eq(players.id, player1Id), eq(players.status, "activo")))
+      .limit(1),
+    dbClient
+      .select({ id: players.id })
+      .from(players)
+      .where(and(eq(players.id, player2Id), eq(players.status, "activo")))
+      .limit(1),
   ]);
   if (!p1[0] || !p2[0]) throw new Error("Jugador no encontrado o inactivo");
 
@@ -83,7 +95,9 @@ export async function createChallengeAction(formData: FormData) {
   if (rank1 && rank2) {
     const diff = Math.abs(rank1.rank - rank2.rank);
     if (diff > 5) {
-      violations.push(`RN-06: diferencia de posición ${diff} supera el límite de 5`);
+      violations.push(
+        `RN-06: diferencia de posición ${diff} supera el límite de 5`,
+      );
     }
   }
 
@@ -98,17 +112,29 @@ export async function createChallengeAction(formData: FormData) {
     .where(
       and(
         or(
-          and(eq(matches.player1Id, player1Id), eq(matches.player2Id, player2Id)),
-          and(eq(matches.player1Id, player2Id), eq(matches.player2Id, player1Id)),
+          and(
+            eq(matches.player1Id, player1Id),
+            eq(matches.player2Id, player2Id),
+          ),
+          and(
+            eq(matches.player1Id, player2Id),
+            eq(matches.player2Id, player1Id),
+          ),
         ),
-        or(eq(matches.status, "confirmado"), eq(matches.status, "wo"), eq(matches.status, "empate")),
+        or(
+          eq(matches.status, "confirmado"),
+          eq(matches.status, "wo"),
+          eq(matches.status, "empate"),
+        ),
         gte(matches.playedOn, cutoff),
       ),
     )
     .limit(1);
 
   if (recentMatch[0]) {
-    violations.push("RN-03: estos jugadores ya se enfrentaron en los últimos 30 días");
+    violations.push(
+      "RN-03: estos jugadores ya se enfrentaron en los últimos 30 días",
+    );
   }
 
   if (violations.length > 0 && !overrideNote?.trim()) {

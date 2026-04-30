@@ -1,11 +1,11 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest";
 
-import { isProfileComplete } from "../../src/lib/players/profile-completeness"
+import { isProfileComplete } from "../../src/lib/players/profile-completeness";
 
 describe("isProfileComplete", () => {
   it("returns false for null", () => {
-    expect(isProfileComplete(null)).toBe(false)
-  })
+    expect(isProfileComplete(null)).toBe(false);
+  });
 
   it("returns false when a required field is missing", () => {
     expect(
@@ -20,9 +20,9 @@ describe("isProfileComplete", () => {
         backhand: "dos_manos",
         yearsPlaying: 8,
         joinedLadderOn: "2026-04-29",
-      })
-    ).toBe(false)
-  })
+      }),
+    ).toBe(false);
+  });
 
   it("returns true when all required fields are present", () => {
     expect(
@@ -37,7 +37,7 @@ describe("isProfileComplete", () => {
         backhand: "dos_manos",
         yearsPlaying: 8,
         joinedLadderOn: "2026-04-29",
-      })
-    ).toBe(true)
-  })
-})
+      }),
+    ).toBe(true);
+  });
+});

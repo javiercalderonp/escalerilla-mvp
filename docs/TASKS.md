@@ -42,7 +42,7 @@
 **Objetivo**: modelo de jugadores cargado y ranking público navegable.
 **Estimación**: ~2-3 días.
 
-> Estado actual (2026-04-28): admin de jugadores operativo, import CSV inicial listo, historial por jugador visible en ranking, migración de `matches` + `match_sets` aplicada en DB real y 60 partidos históricos confirmados cargados manualmente en la base. El ranking ya tiene datos suficientes para empezar a validar desempates reales. Falta convertir esta carga manual en flujo de producto para registrar resultados desde la app.
+> Estado actual (2026-04-30): admin de jugadores operativo, import CSV inicial listo, historial por jugador visible en ranking y perfil/modal público accesible desde el ranking. La carga manual histórica ya convive con flujo de producto para registrar resultados desde la app.
 
 - [x] 🔴 Schema Drizzle: `users`, `players`, `seasons`, `ranking_events`, `audit_log`
 - [x] 🔴 Seed de temporada 2026 (`seasons`)
@@ -52,7 +52,7 @@
 - [x] 🔴 Vista `/ranking/[categoria]` con historial de eventos al hacer click en un jugador
 - [x] 🔴 Cálculo de puntos vigentes = `sum(ranking_events.delta)`
 - [x] 🔴 Desempate RN-11 (H2H, sets, games, sorteo) implementado
-- [ ] 🟡 Link del jugador al perfil público con sus partidos jugados
+- [x] 🟡 Link del jugador al perfil público con sus partidos jugados
 - [x] 🟡 Auditoría de alta/edición de jugadores
 - [ ] 🟢 Export CSV del ranking actual
 
@@ -179,14 +179,14 @@
 **Objetivo**: dejar la app lista para ser usada por los socios del club.
 **Estimación**: ~1-2 días.
 
-> Estado actual (2026-04-28): completo. Mobile nav con hamburger, error pages en español, copy de onboarding actualizado, home con "¿Cómo funciona?", OpenGraph configurado, 26 tests Vitest en verde (scoring + tiebreak RN-11 + elegibilidad desafío RN-06/RN-03).
+> Estado actual (2026-04-30): casi completo. Mobile nav con hamburger, error pages en español, copy de onboarding actualizado, home con "¿Cómo funciona?", OpenGraph configurado, 44 tests Vitest en verde. Falta guía admin y happy path e2e.
 
 - [x] 🔴 Revisión mobile de todas las pantallas (hamburger nav para móvil)
 - [x] 🔴 Copy de onboarding en `/login` y en la primera visita
 - [x] 🔴 Mensaje "¿Cómo funciona?" en home para jugadores nuevos
 - [ ] 🔴 Guía para el admin (`docs/ADMIN_GUIDE.md`)
 - [x] 🟡 Manejo de errores amable (páginas 404 / 500 en español)
-- [x] 🟡 Tests Vitest de reglas críticas (scoring, desempates RN-11, elegibilidad desafío RN-06/RN-03) — 26 tests
+- [x] 🟡 Tests Vitest de reglas críticas (scoring, desempates RN-11, elegibilidad desafío RN-06/RN-03) — 44 tests
 - [ ] 🟡 Test Playwright del happy path completo
 - [ ] 🟢 Dominio custom del club (si lo hay)
 - [x] 🟢 OpenGraph metadata configurada
@@ -198,18 +198,20 @@
 **Objetivo**: que la app deje de sentirse "MVP funcional" y se convierta en una experiencia tipo mini-ATP. Perfiles ricos accesibles desde modal, onboarding bloqueante con datos personales y deportivos, navegación entre semanas pasadas/futuras del fixture, paleta visual de torneo.
 **Estimación**: ~5-7 días.
 
+> Estado actual (2026-04-30): muy avanzado. El alcance funcional principal está implementado y mergeado a `main`; quedan remates de lint/a11y y validación manual fina.
+>
 > **Detalle ejecutable** completo en [`docs/M8_REDESIGN.md`](./M8_REDESIGN.md). Este resumen solo entrega el alcance.
 
-- [ ] 🔴 Schema extendido de `players` (firstName, lastName, birthDate, phone, rut, level, dominantHand, backhand, yearsPlaying, joinedLadderOn, visibility) + enums + migración aditiva
-- [ ] 🔴 Validación RUT (módulo 11) y teléfono CL (E.164) con tests
-- [ ] 🔴 Design system ATP-inspired: tokens court/grass/clay/gold + componentes (Avatar, Badge, Tabs, Skeleton, EmptyState, WeekStepper, StreakDots)
-- [ ] 🔴 Onboarding bloqueante de 2 pasos (identidad + tenis) con guard `requireCompleteProfile`
-- [ ] 🔴 PlayerCardModal con tabs Info + Rendimiento, deep-link `?player=<id>`
-- [ ] 🔴 Ranking refactor: tabular-nums, top-3 destacado, click → modal
-- [ ] 🔴 Fixture con WeekStepper para navegar semanas (excluye `disponibilidad_*`)
-- [ ] 🟡 Admin /jugadores: edición de `level`
-- [ ] 🟡 Header con paleta court
-- [ ] 🔴 Build, lint, tests verdes y verificación manual mobile 375px
+- [x] 🔴 Schema extendido de `players` (firstName, lastName, birthDate, phone, rut, level, dominantHand, backhand, yearsPlaying, joinedLadderOn, visibility) + enums + migración aditiva
+- [x] 🔴 Validación RUT (módulo 11) y teléfono CL (E.164) con tests
+- [x] 🔴 Design system ATP-inspired: tokens court/grass/clay/gold + componentes (Avatar, Badge, Tabs, Skeleton, EmptyState, WeekStepper, StreakDots)
+- [x] 🔴 Onboarding bloqueante de 2 pasos (identidad + tenis) con guard `requireCompleteProfile`
+- [x] 🔴 PlayerCardModal con tabs Info + Rendimiento, deep-link `?player=<id>`
+- [x] 🔴 Ranking refactor: tabular-nums, top-3 destacado, click → modal
+- [x] 🔴 Fixture con WeekStepper para navegar semanas (excluye `disponibilidad_*`)
+- [x] 🟡 Admin /jugadores: edición de `level`
+- [x] 🟡 Header con paleta court
+- [~] 🔴 Build, lint, tests verdes y verificación manual mobile 375px
 
 **Criterio de aceptación**: un jugador nuevo entra con Google, completa onboarding obligatorio, ve el ranking con paleta ATP, hace click en cualquier jugador y abre un modal con su info y rendimiento, navega entre semanas pasadas del fixture.
 

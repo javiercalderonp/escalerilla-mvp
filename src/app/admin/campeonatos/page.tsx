@@ -4,7 +4,10 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { players, rankingEvents } from "@/lib/db/schema";
-import { createChampionshipAction, getChampionshipsWithPlacements } from "./actions";
+import {
+  createChampionshipAction,
+  getChampionshipsWithPlacements,
+} from "./actions";
 
 const typeLabels: Record<string, string> = {
   regular: "Regular",
@@ -19,8 +22,12 @@ const positionLabels: Record<number, string> = {
 };
 
 function formatDate(dateStr: string) {
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" });
+  const d = new Date(`${dateStr}T00:00:00`);
+  return d.toLocaleDateString("es-CL", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 async function getActivePlayers(category: "M" | "F") {
@@ -55,11 +62,13 @@ export default async function AdminCampeonatosPage() {
   );
 
   function PlayerSelect({
+    id,
     name,
     category,
     required = false,
     placeholder,
   }: {
+    id?: string;
     name: string;
     category: "M" | "F";
     required?: boolean;
@@ -68,6 +77,7 @@ export default async function AdminCampeonatosPage() {
     const opts = category === "M" ? playersM : playersF;
     return (
       <select
+        id={id}
         name={name}
         required={required}
         defaultValue=""
@@ -91,8 +101,9 @@ export default async function AdminCampeonatosPage() {
           Campeonatos
         </h1>
         <p className="mt-3 text-sm text-slate-600">
-          Registrá un campeonato y su podio. Los bonus se aplican automáticamente al
-          ranking según RN-12: +150 campeón, +75 finalista, +40 tercer lugar.
+          Registrá un campeonato y su podio. Los bonus se aplican
+          automáticamente al ranking según RN-12: +150 campeón, +75 finalista,
+          +40 tercer lugar.
         </p>
       </section>
 
@@ -155,28 +166,52 @@ export default async function AdminCampeonatosPage() {
                 Podio
               </p>
 
-              <label className="block space-y-2 text-sm text-slate-700">
+              <label
+                htmlFor="champion-player"
+                className="block space-y-2 text-sm text-slate-700"
+              >
                 <span className="font-medium">🥇 Campeón (+150 pts)</span>
-                <PlayerSelect name="player1Id" category="M" required />
+                <PlayerSelect
+                  id="champion-player"
+                  name="player1Id"
+                  category="M"
+                  required
+                />
               </label>
 
-              <label className="block space-y-2 text-sm text-slate-700">
+              <label
+                htmlFor="runner-up-player"
+                className="block space-y-2 text-sm text-slate-700"
+              >
                 <span className="font-medium">🥈 Finalista (+75 pts)</span>
-                <PlayerSelect name="player2Id" category="M" required />
+                <PlayerSelect
+                  id="runner-up-player"
+                  name="player2Id"
+                  category="M"
+                  required
+                />
               </label>
 
-              <label className="block space-y-2 text-sm text-slate-700">
+              <label
+                htmlFor="third-place-player"
+                className="block space-y-2 text-sm text-slate-700"
+              >
                 <span className="font-medium">
                   🥉 Tercer lugar (+40 pts){" "}
                   <span className="font-normal text-slate-400">opcional</span>
                 </span>
-                <PlayerSelect name="player3Id" category="M" placeholder="Sin tercer lugar" />
+                <PlayerSelect
+                  id="third-place-player"
+                  name="player3Id"
+                  category="M"
+                  placeholder="Sin tercer lugar"
+                />
               </label>
             </div>
 
             <p className="text-xs text-slate-400">
-              Los selects de jugadores muestran la categoría seleccionada arriba. Cambiá la
-              categoría antes de elegir los jugadores.
+              Los selects de jugadores muestran la categoría seleccionada
+              arriba. Cambiá la categoría antes de elegir los jugadores.
             </p>
 
             <button
@@ -197,18 +232,29 @@ export default async function AdminCampeonatosPage() {
             {[
               { pos: "🥇 Campeón", pts: "+150", color: "text-amber-600" },
               { pos: "🥈 Finalista", pts: "+75", color: "text-slate-500" },
-              { pos: "🥉 Tercer lugar", pts: "+40", color: "text-amber-700/70" },
+              {
+                pos: "🥉 Tercer lugar",
+                pts: "+40",
+                color: "text-amber-700/70",
+              },
             ].map(({ pos, pts, color }) => (
-              <div key={pos} className="flex items-center justify-between rounded-2xl border border-slate-100 px-4 py-3">
+              <div
+                key={pos}
+                className="flex items-center justify-between rounded-2xl border border-slate-100 px-4 py-3"
+              >
                 <span className="text-sm text-slate-800">{pos}</span>
-                <span className={`text-sm font-semibold ${color}`}>{pts} pts</span>
+                <span className={`text-sm font-semibold ${color}`}>
+                  {pts} pts
+                </span>
               </div>
             ))}
           </div>
           <p className="mt-4 text-xs text-slate-400">
             Los partidos jugados dentro del campeonato se registran con{" "}
-            <code className="rounded bg-slate-100 px-1 py-0.5">type=campeonato</code> desde
-            Admin › Partidos y no cuentan para el límite semanal RN-04.
+            <code className="rounded bg-slate-100 px-1 py-0.5">
+              type=campeonato
+            </code>{" "}
+            desde Admin › Partidos y no cuentan para el límite semanal RN-04.
           </p>
         </section>
       </div>
@@ -226,7 +272,10 @@ export default async function AdminCampeonatosPage() {
         ) : (
           <div className="mt-4 space-y-4">
             {allChamps.map((c) => (
-              <div key={c.id} className="rounded-2xl border border-slate-100 p-4">
+              <div
+                key={c.id}
+                className="rounded-2xl border border-slate-100 p-4"
+              >
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="font-medium text-slate-950">{c.name}</p>
@@ -238,12 +287,19 @@ export default async function AdminCampeonatosPage() {
                 {c.placements.length > 0 && (
                   <div className="mt-3 space-y-1.5">
                     {c.placements.map((p) => (
-                      <div key={p.position} className="flex items-center justify-between text-sm">
+                      <div
+                        key={p.position}
+                        className="flex items-center justify-between text-sm"
+                      >
                         <span className="text-slate-600">
                           {positionLabels[p.position] ?? `#${p.position}`}{" "}
-                          <span className="font-medium text-slate-900">{p.playerName}</span>
+                          <span className="font-medium text-slate-900">
+                            {p.playerName}
+                          </span>
                         </span>
-                        <span className="text-xs font-semibold text-emerald-700">+{p.delta} pts</span>
+                        <span className="text-xs font-semibold text-emerald-700">
+                          +{p.delta} pts
+                        </span>
                       </div>
                     ))}
                   </div>

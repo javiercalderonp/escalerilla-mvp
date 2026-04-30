@@ -44,11 +44,7 @@ export default async function AdminSemanaDetailPage({
 
   const { id } = await params;
 
-  const [week] = await db
-    .select()
-    .from(weeks)
-    .where(eq(weeks.id, id))
-    .limit(1);
+  const [week] = await db.select().from(weeks).where(eq(weeks.id, id)).limit(1);
 
   if (!week) notFound();
 
@@ -167,7 +163,12 @@ export default async function AdminSemanaDetailPage({
 
       {(
         [
-          { gender: "M", label: "Hombres", rows: men, total: totalM?.count ?? 0 },
+          {
+            gender: "M",
+            label: "Hombres",
+            rows: men,
+            total: totalM?.count ?? 0,
+          },
           {
             gender: "F",
             label: "Mujeres",

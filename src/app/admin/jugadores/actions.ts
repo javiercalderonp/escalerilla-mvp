@@ -201,7 +201,10 @@ export async function createPlayerAction(formData: FormData) {
     email: normalizeOptional(parsed.data.email),
     gender: parsed.data.gender,
     status: parsed.data.status,
-    level: parsed.data.level && parsed.data.level.length > 0 ? parsed.data.level : null,
+    level:
+      parsed.data.level && parsed.data.level.length > 0
+        ? parsed.data.level
+        : null,
     initialPoints: parsed.data.initialPoints,
     notes: normalizeOptional(parsed.data.notes),
   };
@@ -336,7 +339,10 @@ export async function updatePlayerAction(formData: FormData) {
     email: normalizeOptional(parsed.data.email),
     gender: parsed.data.gender,
     status: parsed.data.status,
-    level: parsed.data.level && parsed.data.level.length > 0 ? parsed.data.level : null,
+    level:
+      parsed.data.level && parsed.data.level.length > 0
+        ? parsed.data.level
+        : null,
     initialPoints: parsed.data.initialPoints,
     notes: normalizeOptional(parsed.data.notes),
     updatedAt: new Date(),

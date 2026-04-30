@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { TrendingDownIcon, TrendingUpIcon } from "lucide-react";
+import Link from "next/link";
 
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -56,15 +56,29 @@ export function RankingTable({ category, entries }: RankingTableProps) {
               </span>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <Avatar firstName={firstName} lastName={rest.join(" ")} size="sm" />
+                  <Avatar
+                    firstName={firstName}
+                    lastName={rest.join(" ")}
+                    size="sm"
+                  />
                   <span className="truncate text-sm font-medium text-foreground">
                     {entry.fullName}
                   </span>
-                  {entry.status === "congelado" ? <Badge variant="warning" size="sm">Congelado</Badge> : null}
-                  {entry.status === "retirado" ? <Badge variant="muted" size="sm">Retirado</Badge> : null}
+                  {entry.status === "congelado" ? (
+                    <Badge variant="warning" size="sm">
+                      Congelado
+                    </Badge>
+                  ) : null}
+                  {entry.status === "retirado" ? (
+                    <Badge variant="muted" size="sm">
+                      Retirado
+                    </Badge>
+                  ) : null}
                 </div>
                 <p className="mt-0.5 truncate text-xs text-muted-foreground sm:hidden">
-                  {entry.recentForm.length > 0 ? entry.recentForm.join(" · ") : "Ver perfil"}
+                  {entry.recentForm.length > 0
+                    ? entry.recentForm.join(" · ")
+                    : "Ver perfil"}
                 </p>
               </div>
               <span className="text-sm font-semibold text-foreground tabular-nums">
@@ -74,12 +88,16 @@ export function RankingTable({ category, entries }: RankingTableProps) {
                 {entry.weeklyDelta > 0 ? (
                   <>
                     <TrendingUpIcon className="size-4 text-grass" />
-                    <span className="text-grass">{formatDelta(entry.weeklyDelta)}</span>
+                    <span className="text-grass">
+                      {formatDelta(entry.weeklyDelta)}
+                    </span>
                   </>
                 ) : entry.weeklyDelta < 0 ? (
                   <>
                     <TrendingDownIcon className="size-4 text-destructive" />
-                    <span className="text-destructive">{formatDelta(entry.weeklyDelta)}</span>
+                    <span className="text-destructive">
+                      {formatDelta(entry.weeklyDelta)}
+                    </span>
                   </>
                 ) : (
                   <span className="text-muted-foreground">—</span>

@@ -17,8 +17,8 @@ export default function LoginPage() {
         </div>
         <div className="mt-6 space-y-2 text-xs text-slate-400">
           <p>
-            Solo socios con email registrado por el administrador pueden acceder.
-            Si tu cuenta no aparece vinculada, contactá al organizador.
+            Solo socios con email registrado por el administrador pueden
+            acceder. Si tu cuenta no aparece vinculada, contactá al organizador.
           </p>
         </div>
       </div>

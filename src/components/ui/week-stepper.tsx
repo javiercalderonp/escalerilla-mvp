@@ -1,27 +1,28 @@
-import Link from "next/link"
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import Link from "next/link";
 
-import { buttonVariants } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type WeekStepperProps = {
-  label: string
-  previousHref?: string | null
-  nextHref?: string | null
-  className?: string
-}
+  label: string;
+  previousHref?: string | null;
+  nextHref?: string | null;
+  className?: string;
+};
 
 function StepperButton({
   href,
   label,
   direction,
 }: {
-  href?: string | null
-  label: string
-  direction: "prev" | "next"
+  href?: string | null;
+  label: string;
+  direction: "prev" | "next";
 }) {
-  const icon = direction === "prev" ? <ChevronLeftIcon /> : <ChevronRightIcon />
-  const classes = cn(buttonVariants({ variant: "outline", size: "icon-sm" }))
+  const icon =
+    direction === "prev" ? <ChevronLeftIcon /> : <ChevronRightIcon />;
+  const classes = cn(buttonVariants({ variant: "outline", size: "icon-sm" }));
 
   if (!href) {
     return (
@@ -32,14 +33,14 @@ function StepperButton({
         {icon}
         <span className="sr-only">{label}</span>
       </span>
-    )
+    );
   }
 
   return (
     <Link aria-label={label} className={classes} href={href}>
       {icon}
     </Link>
-  )
+  );
 }
 
 function WeekStepper({
@@ -52,7 +53,7 @@ function WeekStepper({
     <div
       className={cn(
         "flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-3",
-        className
+        className,
       )}
     >
       <StepperButton
@@ -71,7 +72,7 @@ function WeekStepper({
         label="Semana siguiente"
       />
     </div>
-  )
+  );
 }
 
-export { WeekStepper }
+export { WeekStepper };
