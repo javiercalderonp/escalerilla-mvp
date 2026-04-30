@@ -34,7 +34,7 @@ export function RankingTable({ category, entries }: RankingTableProps) {
 
       <div className="divide-y divide-border/70">
         {entries.map((entry) => {
-          const [firstName, ...rest] = entry.fullName.split(" ")
+          const [firstName, ...rest] = entry.fullName.split(" ");
           const borderTone =
             entry.position === 1
               ? "border-l-[3px] border-l-gold"
@@ -42,7 +42,7 @@ export function RankingTable({ category, entries }: RankingTableProps) {
                 ? "border-l-[3px] border-l-silver"
                 : entry.position === 3
                   ? "border-l-[3px] border-l-bronze"
-                  : "border-l-[3px] border-l-transparent"
+                  : "border-l-[3px] border-l-transparent";
 
           return (
             <Link
@@ -86,7 +86,7 @@ export function RankingTable({ category, entries }: RankingTableProps) {
                 )}
               </span>
             </Link>
-          )
+          );
         })}
       </div>
     </div>

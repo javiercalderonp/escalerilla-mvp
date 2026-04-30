@@ -23,12 +23,10 @@ type RankingCategoryPageProps = {
   }>;
 };
 
-function formatDate(value: Date) {
-  return new Intl.DateTimeFormat("es-CL", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(value));
+function formatDate(value: string | null) {
+  if (!value) return "Sin fecha";
+  const [year, month, day] = value.split("-");
+  return `${day}/${month}/${year}`;
 }
 
 async function getCategoryChampionships(category: "M" | "F") {
@@ -152,7 +150,7 @@ export default async function RankingCategoryPage({
                 <p className="font-medium text-foreground">
                   {c.name}
                   <span className="ml-2 text-xs font-normal text-muted-foreground">
-                    {formatDate(new Date(c.playedOn + "T00:00:00"))} · {c.type}
+                    {formatDate(new Date(c.playedOn + "T00:00:00").toISOString().slice(0, 10))} · {c.type}
                   </span>
                 </p>
                 <div className="mt-2 space-y-1">
