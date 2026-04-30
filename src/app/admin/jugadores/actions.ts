@@ -1,13 +1,14 @@
 "use server";
 
 import { and, eq, inArray } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { ensureAppUser } from "@/lib/auth/ensure-app-user";
 import { db } from "@/lib/db";
 import { auditLog, players, rankingEvents } from "@/lib/db/schema";
+import { refreshHistoricalBestRanking } from "@/lib/ranking";
 
 const playerSchema = z.object({
   fullName: z.string().trim().min(3, "Nombre demasiado corto").max(120),
@@ -219,6 +220,8 @@ export async function createPlayerAction(formData: FormData) {
     payload,
   });
 
+  await refreshHistoricalBestRanking(parsed.data.gender);
+  revalidateTag("ranking", "max");
   revalidatePath("/admin/jugadores");
 }
 
@@ -311,6 +314,12 @@ export async function importPlayersCsvAction(formData: FormData) {
     });
   });
 
+  const categories = new Set(rows.map((row) => row.gender));
+  for (const category of categories) {
+    await refreshHistoricalBestRanking(category);
+  }
+
+  revalidateTag("ranking", "max");
   revalidatePath("/admin/jugadores");
 }
 
@@ -352,6 +361,8 @@ export async function updatePlayerAction(formData: FormData) {
     payload,
   });
 
+  await refreshHistoricalBestRanking(parsed.data.gender);
+  revalidateTag("ranking", "max");
   revalidatePath("/admin/jugadores");
 }
 

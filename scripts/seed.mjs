@@ -43,4 +43,29 @@ for (const [fullName, email, gender, points] of players) {
   `;
 }
 
+await sql`
+  with ranked as (
+    select
+      p.id,
+      row_number() over (
+        partition by p.gender
+        order by coalesce(sum(re.delta), 0) desc, p.full_name asc
+      ) as position
+    from players p
+    left join ranking_events re on re.player_id = p.id
+    where p.status in ('activo', 'congelado')
+    group by p.id, p.gender, p.full_name
+  )
+  update players p
+  set
+    best_ranking_position = ranked.position,
+    best_ranking_achieved_at = now()
+  from ranked
+  where p.id = ranked.id
+    and (
+      p.best_ranking_position is null
+      or ranked.position < p.best_ranking_position
+    )
+`;
+
 console.log(`Seed OK: ${players.length} jugadores base`);

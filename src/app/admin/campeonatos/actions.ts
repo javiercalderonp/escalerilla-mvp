@@ -1,7 +1,7 @@
 "use server";
 
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 import { auth } from "@/lib/auth";
 import { ensureAppUser } from "@/lib/auth/ensure-app-user";
@@ -14,6 +14,7 @@ import {
   rankingEvents,
   seasons,
 } from "@/lib/db/schema";
+import { refreshHistoricalBestRanking } from "@/lib/ranking";
 
 const POSITION_DELTAS: Record<number, number> = {
   1: 150,
@@ -102,6 +103,8 @@ export async function createChampionshipAction(formData: FormData) {
     });
   });
 
+  await refreshHistoricalBestRanking(category);
+  revalidateTag("ranking", "max");
   revalidatePath("/admin/campeonatos");
   revalidatePath("/ranking/hombres");
   revalidatePath("/ranking/mujeres");

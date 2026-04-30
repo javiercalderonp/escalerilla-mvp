@@ -24,6 +24,8 @@ export type PlayerCardData = {
   }
   ranking: {
     position: number
+    bestPosition: number | null
+    bestPositionAchievedAt: string | null
     points: number
     deltaWeek: number
   }
@@ -269,6 +271,8 @@ export async function getPlayerCardData(
     },
     ranking: {
       position: rankingEntry.position,
+      bestPosition: rankingEntry.bestRankingPosition,
+      bestPositionAchievedAt: toIsoDate(rankingEntry.bestRankingAchievedAt),
       points: rankingEntry.points,
       deltaWeek: Number(deltaWeekRow?.value ?? rankingEntry.weeklyDelta ?? 0),
     },

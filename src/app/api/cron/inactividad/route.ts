@@ -1,7 +1,9 @@
 import { and, eq, gte, lte, or, sql } from "drizzle-orm";
+import { revalidateTag } from "next/cache";
 
 import { db } from "@/lib/db";
 import { auditLog, freezes, matches, players, rankingEvents } from "@/lib/db/schema";
+import { refreshHistoricalBestRanking } from "@/lib/ranking";
 
 
 function today() {
@@ -33,12 +35,13 @@ export async function GET(request: Request) {
     .select({
       id: players.id,
       fullName: players.fullName,
+      gender: players.gender,
       points: sql<number>`coalesce(sum(${rankingEvents.delta}), 0)`,
     })
     .from(players)
     .leftJoin(rankingEvents, eq(rankingEvents.playerId, players.id))
     .where(eq(players.status, "activo"))
-    .groupBy(players.id, players.fullName);
+    .groupBy(players.id, players.fullName, players.gender);
 
   // Last match date per player — fetch all completed matches and aggregate in JS
   const allRelevantMatches = await db
@@ -227,8 +230,15 @@ export async function GET(request: Request) {
 
   // Insert in a transaction
   if (eventsToInsert.length > 0) {
+    const affectedGenders = new Set<"M" | "F">();
+
     await db.transaction(async (tx) => {
       for (const ev of eventsToInsert) {
+        const player = activePlayers.find((p) => p.id === ev.playerId);
+        if (player) {
+          affectedGenders.add(player.gender);
+        }
+
         await tx.insert(rankingEvents).values({
           playerId: ev.playerId,
           delta: ev.delta,
@@ -237,7 +247,7 @@ export async function GET(request: Request) {
         });
         applied.push({
           playerId: ev.playerId,
-          name: activePlayers.find((p) => p.id === ev.playerId)?.fullName ?? "",
+          name: player?.fullName ?? "",
           reason: ev.reason,
           delta: ev.delta,
         });
@@ -248,6 +258,12 @@ export async function GET(request: Request) {
         payload: { applied: applied.length, skipped: skipped.length, date: todayStr },
       });
     });
+
+    for (const gender of affectedGenders) {
+      await refreshHistoricalBestRanking(gender);
+    }
+
+    revalidateTag("ranking", "max");
   }
 
   return Response.json({

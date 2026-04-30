@@ -1,7 +1,7 @@
 "use server";
 
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
@@ -18,6 +18,7 @@ import {
   getLoserReason,
   isValidMatchScore,
 } from "@/lib/rules/scoring";
+import { refreshHistoricalBestRanking } from "@/lib/ranking";
 
 const createMatchSchema = z.object({
   player1Id: z.string().uuid(),
@@ -62,6 +63,7 @@ type MatchForResolution = {
   id: string;
   player1Id: string;
   player2Id: string;
+  category: "M" | "F";
   status: "pendiente" | "reportado" | "confirmado" | "wo" | "empate";
   format: "mr3" | "set_largo" | null;
   winnerId: string | null;
@@ -146,6 +148,7 @@ async function getMatchOrThrow(matchId: string) {
       id: matches.id,
       player1Id: matches.player1Id,
       player2Id: matches.player2Id,
+      category: matches.category,
       status: matches.status,
       format: matches.format,
       winnerId: matches.winnerId,
@@ -303,9 +306,15 @@ async function insertCompensationEvents(args: {
 }
 
 function revalidateMatchSurfaces() {
+  revalidateTag("ranking", "max");
   revalidatePath("/admin/partidos");
   revalidatePath("/ranking/hombres");
   revalidatePath("/ranking/mujeres");
+}
+
+async function refreshRankingAfterResult(category: "M" | "F") {
+  await refreshHistoricalBestRanking(category);
+  revalidateMatchSurfaces();
 }
 
 export async function createMatchAction(formData: FormData) {
@@ -661,7 +670,7 @@ export async function registerResultAction(formData: FormData) {
     isCorrection: false,
   });
 
-  revalidateMatchSurfaces();
+  await refreshRankingAfterResult(match.category);
 }
 
 export async function registerDrawAction(formData: FormData) {
@@ -681,7 +690,7 @@ export async function registerDrawAction(formData: FormData) {
     isCorrection: false,
   });
 
-  revalidateMatchSurfaces();
+  await refreshRankingAfterResult(match.category);
 }
 
 export async function registerWalkoverAction(formData: FormData) {
@@ -705,7 +714,7 @@ export async function registerWalkoverAction(formData: FormData) {
     isCorrection: false,
   });
 
-  revalidateMatchSurfaces();
+  await refreshRankingAfterResult(match.category);
 }
 
 export async function correctResultAction(formData: FormData) {
@@ -725,7 +734,7 @@ export async function correctResultAction(formData: FormData) {
     isCorrection: true,
   });
 
-  revalidateMatchSurfaces();
+  await refreshRankingAfterResult(match.category);
 }
 
 export async function correctDrawAction(formData: FormData) {
@@ -745,7 +754,7 @@ export async function correctDrawAction(formData: FormData) {
     isCorrection: true,
   });
 
-  revalidateMatchSurfaces();
+  await refreshRankingAfterResult(match.category);
 }
 
 export async function correctWalkoverAction(formData: FormData) {
@@ -769,5 +778,5 @@ export async function correctWalkoverAction(formData: FormData) {
     isCorrection: true,
   });
 
-  revalidateMatchSurfaces();
+  await refreshRankingAfterResult(match.category);
 }

@@ -128,6 +128,10 @@ export const players = pgTable(
     playFrequency: playFrequencyEnum("play_frequency"),
     visibility: jsonb("visibility").$type<PlayerVisibility>(),
     initialPoints: integer("initial_points").notNull().default(0),
+    bestRankingPosition: integer("best_ranking_position"),
+    bestRankingAchievedAt: timestamp("best_ranking_achieved_at", {
+      withTimezone: true,
+    }),
     notes: text("notes"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

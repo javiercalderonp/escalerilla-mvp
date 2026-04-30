@@ -89,6 +89,18 @@ export function PlayerCardModal({
               <Stat label="Ganados" value={String(data.performance.matchesWon)} tone="grass" />
               <Stat label="% Win" value={`${data.performance.winRate.toFixed(0)}%`} />
             </div>
+            <div className="grid grid-cols-2 gap-3 text-center">
+              <Stat label="Ranking actual" value={`#${data.ranking.position}`} />
+              <Stat
+                label="Mejor ranking"
+                value={
+                  data.ranking.bestPosition != null
+                    ? `#${data.ranking.bestPosition}`
+                    : "—"
+                }
+                tone="grass"
+              />
+            </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span>Racha:</span>
               <div className="flex gap-1">

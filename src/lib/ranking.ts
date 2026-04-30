@@ -3,8 +3,8 @@ import { unstable_cache } from "next/cache";
 
 import { db } from "@/lib/db";
 import { matches, matchSets, players, rankingEvents } from "@/lib/db/schema";
-import { createZeroTieBreakDeps, resolveTies } from "@/lib/ranking/tiebreak";
 import type { TieBreakDeps } from "@/lib/ranking/tiebreak";
+import { createZeroTieBreakDeps, resolveTies } from "@/lib/ranking/tiebreak";
 
 export type RankingCategory = "hombres" | "mujeres";
 export type PlayerStatus = "pendiente" | "activo" | "congelado" | "retirado";
@@ -15,6 +15,11 @@ export type RankingEntry = {
   fullName: string;
   points: number;
   weeklyDelta: number;
+  bestRankingPosition: number | null;
+  bestRankingAchievedAt: Date | null;
+  matchesPlayed: number;
+  matchesWon: number;
+  matchesLost: number;
   status: PlayerStatus;
   category: RankingCategory;
   recentForm: Array<"W" | "L" | "D">;
@@ -63,6 +68,8 @@ type RankingRow = {
   fullName: string;
   points: number;
   weeklyDelta: number;
+  bestRankingPosition: number | null;
+  bestRankingAchievedAt: Date | null;
   status: PlayerStatus;
   category: RankingCategory;
 };
@@ -82,6 +89,12 @@ type MatchSetRow = {
   gamesP2: number;
   tiebreakP1: number | null;
   tiebreakP2: number | null;
+};
+
+type RankingMatchStats = {
+  played: number;
+  won: number;
+  lost: number;
 };
 
 export const rankingCategoryLabels: Record<RankingCategory, string> = {
@@ -109,6 +122,14 @@ const rankingReasonLabels: Record<string, string> = {
 
 export function isRankingCategory(value: string): value is RankingCategory {
   return value === "hombres" || value === "mujeres";
+}
+
+export function rankingCategoryFromGender(gender: "M" | "F"): RankingCategory {
+  return gender === "M" ? "hombres" : "mujeres";
+}
+
+export function rankingGenderFromCategory(category: RankingCategory): "M" | "F" {
+  return category === "hombres" ? "M" : "F";
 }
 
 // Pre-fetches ALL match + set data in 2 parallel queries.
@@ -234,6 +255,7 @@ async function mapRowsToEntries(
   category: RankingCategory,
   rows: RankingRow[],
   deps: TieBreakDeps,
+  matchStats: Map<string, RankingMatchStats>,
 ): Promise<RankingEntry[]> {
   const resolved = await resolveTies(
     rows.map((row) => ({
@@ -241,6 +263,11 @@ async function mapRowsToEntries(
       fullName: row.fullName,
       points: Number(row.points ?? 0),
       weeklyDelta: Number(row.weeklyDelta ?? 0),
+      bestRankingPosition: row.bestRankingPosition,
+      bestRankingAchievedAt: row.bestRankingAchievedAt,
+      matchesPlayed: matchStats.get(row.id)?.played ?? 0,
+      matchesWon: matchStats.get(row.id)?.won ?? 0,
+      matchesLost: matchStats.get(row.id)?.lost ?? 0,
       status: row.status,
       category: row.category,
       recentForm: [] as Array<"W" | "L" | "D">,
@@ -254,10 +281,63 @@ async function mapRowsToEntries(
     fullName: row.fullName,
     points: row.points,
     weeklyDelta: row.weeklyDelta,
+    bestRankingPosition: row.bestRankingPosition,
+    bestRankingAchievedAt: row.bestRankingAchievedAt,
+    matchesPlayed: row.matchesPlayed,
+    matchesWon: row.matchesWon,
+    matchesLost: row.matchesLost,
     status: row.status,
     category,
     recentForm: row.recentForm,
   }));
+}
+
+async function fetchRankingMatchStats(gender: "M" | "F") {
+  const stats = new Map<string, RankingMatchStats>();
+  if (!db) return stats;
+
+  const completedMatches = await db
+    .select({
+      player1Id: matches.player1Id,
+      player2Id: matches.player2Id,
+      winnerId: matches.winnerId,
+      status: matches.status,
+    })
+    .from(matches)
+    .where(
+      and(
+        eq(matches.category, gender),
+        sql`${matches.status} in ('confirmado', 'wo', 'empate')`,
+      ),
+    );
+
+  const ensureStats = (playerId: string) => {
+    const current = stats.get(playerId);
+    if (current) return current;
+    const next = { played: 0, won: 0, lost: 0 };
+    stats.set(playerId, next);
+    return next;
+  };
+
+  for (const match of completedMatches) {
+    const player1Stats = ensureStats(match.player1Id);
+    const player2Stats = ensureStats(match.player2Id);
+
+    player1Stats.played += 1;
+    player2Stats.played += 1;
+
+    if (match.status === "empate" || !match.winnerId) continue;
+
+    if (match.winnerId === match.player1Id) {
+      player1Stats.won += 1;
+      player2Stats.lost += 1;
+    } else if (match.winnerId === match.player2Id) {
+      player2Stats.won += 1;
+      player1Stats.lost += 1;
+    }
+  }
+
+  return stats;
 }
 
 async function fetchRankingFromDb(
@@ -265,10 +345,10 @@ async function fetchRankingFromDb(
 ): Promise<RankingEntry[] | null> {
   if (!db) return null;
 
-  const gender = category === "hombres" ? "M" : "F";
+  const gender = rankingGenderFromCategory(category);
   const weeklyWindow = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-  const [rows, deps] = await Promise.all([
+  const [rows, deps, matchStats] = await Promise.all([
     db
       .select({
         id: players.id,
@@ -277,6 +357,8 @@ async function fetchRankingFromDb(
         points: sql<number>`coalesce(sum(${rankingEvents.delta}), 0)`,
         category: sql<RankingCategory>`${category}`,
         weeklyDelta: sql<number>`coalesce(sum(case when ${rankingEvents.occurredAt} >= ${weeklyWindow} then ${rankingEvents.delta} else 0 end), 0)`,
+        bestRankingPosition: players.bestRankingPosition,
+        bestRankingAchievedAt: players.bestRankingAchievedAt,
       })
       .from(players)
       .leftJoin(rankingEvents, eq(rankingEvents.playerId, players.id))
@@ -289,16 +371,41 @@ async function fetchRankingFromDb(
       .groupBy(players.id),
 
     buildTieBreakDeps(),
+    fetchRankingMatchStats(gender),
   ]);
 
-  return mapRowsToEntries(category, rows as RankingRow[], deps);
+  return mapRowsToEntries(category, rows as RankingRow[], deps, matchStats);
 }
 
-const getCachedRanking = unstable_cache(
-  fetchRankingFromDb,
-  ["ranking"],
-  { tags: ["ranking"], revalidate: 30 },
-);
+export async function refreshHistoricalBestRanking(gender: "M" | "F") {
+  if (!db) return;
+
+  const ranking = await fetchRankingFromDb(rankingCategoryFromGender(gender));
+  const achievedAt = new Date();
+
+  for (const entry of ranking ?? []) {
+    if (
+      entry.bestRankingPosition != null &&
+      entry.bestRankingPosition <= entry.position
+    ) {
+      continue;
+    }
+
+    await db
+      .update(players)
+      .set({
+        bestRankingPosition: entry.position,
+        bestRankingAchievedAt: achievedAt,
+        updatedAt: achievedAt,
+      })
+      .where(eq(players.id, entry.id));
+  }
+}
+
+const getCachedRanking = unstable_cache(fetchRankingFromDb, ["ranking"], {
+  tags: ["ranking"],
+  revalidate: 30,
+});
 
 export async function getRanking(
   category: RankingCategory,
@@ -330,7 +437,7 @@ export async function getPlayerRankingDetail(
     .where(
       and(
         eq(rankingEvents.playerId, playerId),
-        eq(players.gender, category === "hombres" ? "M" : "F"),
+        eq(players.gender, rankingGenderFromCategory(category)),
       ),
     )
     .orderBy(desc(rankingEvents.occurredAt))
@@ -372,7 +479,7 @@ export async function getPublicPlayerProfile(
       and(
         or(eq(matches.player1Id, playerId), eq(matches.player2Id, playerId)),
         sql`${matches.status} in ('confirmado', 'empate', 'wo')`,
-        eq(players.gender, category === "hombres" ? "M" : "F"),
+        eq(players.gender, rankingGenderFromCategory(category)),
       ),
     )
     .orderBy(
