@@ -15,7 +15,7 @@ const playerSchema = z.object({
     .union([z.string().trim().email("Email inválido"), z.literal("")])
     .optional(),
   gender: z.enum(["M", "F"]),
-  status: z.enum(["activo", "congelado", "retirado"]),
+  status: z.enum(["pendiente", "activo", "congelado", "retirado"]),
   level: z
     .union([
       z.enum([
@@ -350,6 +350,27 @@ export async function updatePlayerAction(formData: FormData) {
     entityType: "player",
     entityId: playerId,
     payload,
+  });
+
+  revalidatePath("/admin/jugadores");
+}
+
+export async function approvePlayerAction(formData: FormData) {
+  const { actorId, dbClient } = await requireAdminActor();
+
+  const playerId = z.string().uuid().parse(formData.get("playerId"));
+
+  await dbClient
+    .update(players)
+    .set({ status: "activo", updatedAt: new Date() })
+    .where(eq(players.id, playerId));
+
+  await dbClient.insert(auditLog).values({
+    actorId,
+    action: "player.approve",
+    entityType: "player",
+    entityId: playerId,
+    payload: { status: "activo" },
   });
 
   revalidatePath("/admin/jugadores");

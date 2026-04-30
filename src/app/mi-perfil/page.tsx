@@ -180,84 +180,85 @@ export default async function MiPerfilPage() {
 
   const category: RankingCategory =
     player.gender === "M" ? "hombres" : "mujeres";
-  const ranking = await getRanking(category);
-  const rankingEntry = ranking.find((entry) => entry.id === player.id) ?? null;
 
   const today = getTodayInSantiago();
   const weekStart = getWeekStart(today);
   const weekEnd = getWeekEnd(weekStart);
   const monthStart = getMonthStart(today);
 
-  const [weekCountRow] = await db
-    .select({ value: sql<number>`count(*)` })
-    .from(matches)
-    .where(
-      and(
-        or(eq(matches.player1Id, player.id), eq(matches.player2Id, player.id)),
-        sql`${matches.status} in ('confirmado', 'empate', 'wo')`,
-        sql`${matches.playedOn} is not null`,
-        sql`${matches.playedOn} between ${weekStart} and ${weekEnd}`,
-        sql`${matches.type} <> 'campeonato'`,
-      ),
-    );
+  const [ranking, [weekCountRow], [monthCountRow], [challengeMonthRow], historyRows] =
+    await Promise.all([
+      getRanking(category),
+      db
+        .select({ value: sql<number>`count(*)` })
+        .from(matches)
+        .where(
+          and(
+            or(eq(matches.player1Id, player.id), eq(matches.player2Id, player.id)),
+            sql`${matches.status} in ('confirmado', 'empate', 'wo')`,
+            sql`${matches.playedOn} is not null`,
+            sql`${matches.playedOn} between ${weekStart} and ${weekEnd}`,
+            sql`${matches.type} <> 'campeonato'`,
+          ),
+        ),
+      db
+        .select({ value: sql<number>`count(*)` })
+        .from(matches)
+        .where(
+          and(
+            or(eq(matches.player1Id, player.id), eq(matches.player2Id, player.id)),
+            sql`${matches.status} in ('confirmado', 'empate', 'wo')`,
+            sql`${matches.playedOn} is not null`,
+            sql`${matches.playedOn} between ${monthStart} and ${today}`,
+            sql`${matches.type} <> 'campeonato'`,
+          ),
+        ),
+      db
+        .select({ value: sql<number>`count(*)` })
+        .from(matches)
+        .where(
+          and(
+            or(eq(matches.player1Id, player.id), eq(matches.player2Id, player.id)),
+            eq(matches.type, "desafio"),
+            sql`${matches.status} in ('confirmado', 'empate', 'wo')`,
+            sql`${matches.playedOn} is not null`,
+            sql`${matches.playedOn} between ${monthStart} and ${today}`,
+          ),
+        ),
+      db
+        .select({
+          id: matches.id,
+          playedOn: matches.playedOn,
+          status: matches.status,
+          type: matches.type,
+          format: matches.format,
+          winnerId: matches.winnerId,
+          player1Id: matches.player1Id,
+          player2Id: matches.player2Id,
+          player1Name: players.fullName,
+          player2Name: sql<string>`players_p2.full_name`,
+        })
+        .from(matches)
+        .innerJoin(players, eq(matches.player1Id, players.id))
+        .innerJoin(
+          sql`players as players_p2`,
+          sql`${matches.player2Id} = players_p2.id`,
+        )
+        .where(
+          and(
+            or(eq(matches.player1Id, player.id), eq(matches.player2Id, player.id)),
+            sql`${matches.status} in ('confirmado', 'empate', 'wo')`,
+          ),
+        )
+        .orderBy(
+          desc(matches.playedOn),
+          desc(matches.confirmedAt),
+          desc(matches.createdAt),
+        )
+        .limit(10) as Promise<MatchHistoryRow[]>,
+    ]);
 
-  const [monthCountRow] = await db
-    .select({ value: sql<number>`count(*)` })
-    .from(matches)
-    .where(
-      and(
-        or(eq(matches.player1Id, player.id), eq(matches.player2Id, player.id)),
-        sql`${matches.status} in ('confirmado', 'empate', 'wo')`,
-        sql`${matches.playedOn} is not null`,
-        sql`${matches.playedOn} between ${monthStart} and ${today}`,
-        sql`${matches.type} <> 'campeonato'`,
-      ),
-    );
-
-  const [challengeMonthRow] = await db
-    .select({ value: sql<number>`count(*)` })
-    .from(matches)
-    .where(
-      and(
-        or(eq(matches.player1Id, player.id), eq(matches.player2Id, player.id)),
-        eq(matches.type, "desafio"),
-        sql`${matches.status} in ('confirmado', 'empate', 'wo')`,
-        sql`${matches.playedOn} is not null`,
-        sql`${matches.playedOn} between ${monthStart} and ${today}`,
-      ),
-    );
-
-  const historyRows = (await db
-    .select({
-      id: matches.id,
-      playedOn: matches.playedOn,
-      status: matches.status,
-      type: matches.type,
-      format: matches.format,
-      winnerId: matches.winnerId,
-      player1Id: matches.player1Id,
-      player2Id: matches.player2Id,
-      player1Name: players.fullName,
-      player2Name: sql<string>`players_p2.full_name`,
-    })
-    .from(matches)
-    .innerJoin(players, eq(matches.player1Id, players.id))
-    .innerJoin(
-      sql`players as players_p2`,
-      sql`${matches.player2Id} = players_p2.id`,
-    )
-    .where(
-      and(
-        or(eq(matches.player1Id, player.id), eq(matches.player2Id, player.id)),
-        sql`${matches.status} in ('confirmado', 'empate', 'wo')`,
-      ),
-    )
-    .orderBy(
-      desc(matches.playedOn),
-      desc(matches.confirmedAt),
-      desc(matches.createdAt),
-    )
-    .limit(10)) as MatchHistoryRow[];
+  const rankingEntry = ranking.find((entry) => entry.id === player.id) ?? null;
 
   const matchIds = historyRows.map((row) => row.id);
   const allSets = matchIds.length

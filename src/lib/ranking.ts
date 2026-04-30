@@ -1,11 +1,13 @@
 import { and, desc, eq, or, sql } from "drizzle-orm";
+import { unstable_cache } from "next/cache";
 
 import { db } from "@/lib/db";
 import { matches, matchSets, players, rankingEvents } from "@/lib/db/schema";
 import { createZeroTieBreakDeps, resolveTies } from "@/lib/ranking/tiebreak";
+import type { TieBreakDeps } from "@/lib/ranking/tiebreak";
 
 export type RankingCategory = "hombres" | "mujeres";
-export type PlayerStatus = "activo" | "congelado" | "retirado";
+export type PlayerStatus = "pendiente" | "activo" | "congelado" | "retirado";
 
 export type RankingEntry = {
   id: string;
@@ -109,146 +111,76 @@ export function isRankingCategory(value: string): value is RankingCategory {
   return value === "hombres" || value === "mujeres";
 }
 
-async function getTieBreakDeps() {
-  const dbClient = db;
+// Pre-fetches ALL match + set data in 2 parallel queries.
+// Tie-break computations then run entirely in memory — no per-pair DB calls.
+async function buildTieBreakDeps(): Promise<TieBreakDeps> {
+  if (!db) return createZeroTieBreakDeps();
 
-  if (!dbClient) {
-    return createZeroTieBreakDeps();
-  }
+  const completedFilter = or(
+    eq(matches.status, "confirmado"),
+    eq(matches.status, "wo"),
+  );
+
+  const [allMatches, allSets] = await Promise.all([
+    db
+      .select({
+        id: matches.id,
+        player1Id: matches.player1Id,
+        player2Id: matches.player2Id,
+        winnerId: matches.winnerId,
+        status: matches.status,
+      })
+      .from(matches)
+      .where(completedFilter),
+
+    db
+      .select({
+        matchId: matchSets.matchId,
+        setNumber: matchSets.setNumber,
+        gamesP1: matchSets.gamesP1,
+        gamesP2: matchSets.gamesP2,
+        tiebreakP1: matchSets.tiebreakP1,
+        tiebreakP2: matchSets.tiebreakP2,
+      })
+      .from(matchSets)
+      .innerJoin(matches, eq(matchSets.matchId, matches.id))
+      .where(completedFilter),
+  ]);
 
   return {
-    async getHeadToHead(aId: string, bId: string) {
-      try {
-        const rows = await dbClient
-          .select({
-            winnerId: matches.winnerId,
-            status: matches.status,
-            player1Id: matches.player1Id,
-            player2Id: matches.player2Id,
-          })
-          .from(matches)
-          .where(
-            or(
-              and(eq(matches.player1Id, aId), eq(matches.player2Id, bId)),
-              and(eq(matches.player1Id, bId), eq(matches.player2Id, aId)),
-            ),
-          );
-
-        let winsA = 0;
-        let winsB = 0;
-
-        for (const row of rows) {
-          if (row.status !== "confirmado" && row.status !== "wo") {
-            continue;
-          }
-
-          if (row.winnerId === aId) {
-            winsA += 1;
-          }
-
-          if (row.winnerId === bId) {
-            winsB += 1;
-          }
+    getHeadToHead: async (aId: string, bId: string) => {
+      let winsA = 0;
+      let winsB = 0;
+      for (const m of allMatches) {
+        if (
+          (m.player1Id === aId && m.player2Id === bId) ||
+          (m.player1Id === bId && m.player2Id === aId)
+        ) {
+          if (m.winnerId === aId) winsA += 1;
+          else if (m.winnerId === bId) winsB += 1;
         }
-
-        return { winsA, winsB };
-      } catch {
-        return { winsA: 0, winsB: 0 };
       }
+      return { winsA, winsB };
     },
-    async getSetDifferential(playerId: string) {
-      try {
-        const rows = await dbClient
-          .select({
-            id: matches.id,
-            player1Id: matches.player1Id,
-            player2Id: matches.player2Id,
-            winnerId: matches.winnerId,
-            status: matches.status,
-          })
-          .from(matches)
-          .where(
-            and(
-              or(
-                eq(matches.player1Id, playerId),
-                eq(matches.player2Id, playerId),
-              ),
-              or(eq(matches.status, "confirmado"), eq(matches.status, "wo")),
-            ),
-          );
 
-        if (rows.length === 0) {
-          return 0;
-        }
-
-        const sets = await dbClient
-          .select({
-            matchId: matchSets.matchId,
-            setNumber: matchSets.setNumber,
-            gamesP1: matchSets.gamesP1,
-            gamesP2: matchSets.gamesP2,
-            tiebreakP1: matchSets.tiebreakP1,
-            tiebreakP2: matchSets.tiebreakP2,
-          })
-          .from(matchSets)
-          .where(
-            sql`${matchSets.matchId} in (${sql.join(
-              rows.map((row) => sql`${row.id}`),
-              sql`, `,
-            )})`,
-          );
-
-        return computeSetDifferential(playerId, rows, sets);
-      } catch {
-        return 0;
-      }
+    getSetDifferential: async (playerId: string) => {
+      const playerMatches = allMatches.filter(
+        (m) => m.player1Id === playerId || m.player2Id === playerId,
+      );
+      if (!playerMatches.length) return 0;
+      const ids = new Set(playerMatches.map((m) => m.id));
+      const playerSets = allSets.filter((s) => ids.has(s.matchId));
+      return computeSetDifferential(playerId, playerMatches, playerSets);
     },
-    async getGameDifferential(playerId: string) {
-      try {
-        const rows = await dbClient
-          .select({
-            id: matches.id,
-            player1Id: matches.player1Id,
-            player2Id: matches.player2Id,
-            winnerId: matches.winnerId,
-            status: matches.status,
-          })
-          .from(matches)
-          .where(
-            and(
-              or(
-                eq(matches.player1Id, playerId),
-                eq(matches.player2Id, playerId),
-              ),
-              or(eq(matches.status, "confirmado"), eq(matches.status, "wo")),
-            ),
-          );
 
-        if (rows.length === 0) {
-          return 0;
-        }
-
-        const sets = await dbClient
-          .select({
-            matchId: matchSets.matchId,
-            setNumber: matchSets.setNumber,
-            gamesP1: matchSets.gamesP1,
-            gamesP2: matchSets.gamesP2,
-            tiebreakP1: matchSets.tiebreakP1,
-            tiebreakP2: matchSets.tiebreakP2,
-          })
-          .from(matchSets)
-          .where(
-            sql`${matchSets.matchId} in (${sql.join(
-              rows.map((row) => sql`${row.id}`),
-              sql`, `,
-            )})`,
-          );
-
-        return computeGameDifferential(playerId, rows, sets);
-      } catch {
-        return 0;
-      }
+    getGameDifferential: async (playerId: string) => {
+      const playerMatches = allMatches.filter(
+        (m) => m.player1Id === playerId || m.player2Id === playerId,
+      );
+      if (!playerMatches.length) return 0;
+      const ids = new Set(playerMatches.map((m) => m.id));
+      const playerSets = allSets.filter((s) => ids.has(s.matchId));
+      return computeGameDifferential(playerId, playerMatches, playerSets);
     },
   };
 }
@@ -264,20 +196,14 @@ function computeSetDifferential(
 
   for (const set of setRows) {
     const match = matchesById.get(set.matchId);
-
-    if (!match) {
-      continue;
-    }
+    if (!match) continue;
 
     const isP1 = match.player1Id === playerId;
     const myGames = isP1 ? set.gamesP1 : set.gamesP2;
     const oppGames = isP1 ? set.gamesP2 : set.gamesP1;
 
-    if (myGames > oppGames) {
-      won += 1;
-    } else if (oppGames > myGames) {
-      lost += 1;
-    }
+    if (myGames > oppGames) won += 1;
+    else if (oppGames > myGames) lost += 1;
   }
 
   return won - lost;
@@ -294,10 +220,7 @@ function computeGameDifferential(
 
   for (const set of setRows) {
     const match = matchesById.get(set.matchId);
-
-    if (!match) {
-      continue;
-    }
+    if (!match) continue;
 
     const isP1 = match.player1Id === playerId;
     won += isP1 ? set.gamesP1 : set.gamesP2;
@@ -310,6 +233,7 @@ function computeGameDifferential(
 async function mapRowsToEntries(
   category: RankingCategory,
   rows: RankingRow[],
+  deps: TieBreakDeps,
 ): Promise<RankingEntry[]> {
   const resolved = await resolveTies(
     rows.map((row) => ({
@@ -321,7 +245,7 @@ async function mapRowsToEntries(
       category: row.category,
       recentForm: [] as Array<"W" | "L" | "D">,
     })),
-    await getTieBreakDeps(),
+    deps,
   );
 
   return resolved.map((row) => ({
@@ -344,32 +268,42 @@ async function fetchRankingFromDb(
   const gender = category === "hombres" ? "M" : "F";
   const weeklyWindow = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-  const rows = await db
-    .select({
-      id: players.id,
-      fullName: players.fullName,
-      status: players.status,
-      points: sql<number>`coalesce(sum(${rankingEvents.delta}), 0)`,
-      category: sql<RankingCategory>`${category}`,
-      weeklyDelta: sql<number>`coalesce(sum(case when ${rankingEvents.occurredAt} >= ${weeklyWindow} then ${rankingEvents.delta} else 0 end), 0)`,
-    })
-    .from(players)
-    .leftJoin(rankingEvents, eq(rankingEvents.playerId, players.id))
-    .where(
-      and(
-        eq(players.gender, gender),
-        or(eq(players.status, "activo"), eq(players.status, "congelado")),
-      ),
-    )
-    .groupBy(players.id);
+  const [rows, deps] = await Promise.all([
+    db
+      .select({
+        id: players.id,
+        fullName: players.fullName,
+        status: players.status,
+        points: sql<number>`coalesce(sum(${rankingEvents.delta}), 0)`,
+        category: sql<RankingCategory>`${category}`,
+        weeklyDelta: sql<number>`coalesce(sum(case when ${rankingEvents.occurredAt} >= ${weeklyWindow} then ${rankingEvents.delta} else 0 end), 0)`,
+      })
+      .from(players)
+      .leftJoin(rankingEvents, eq(rankingEvents.playerId, players.id))
+      .where(
+        and(
+          eq(players.gender, gender),
+          or(eq(players.status, "activo"), eq(players.status, "congelado")),
+        ),
+      )
+      .groupBy(players.id),
 
-  return mapRowsToEntries(category, rows as RankingRow[]);
+    buildTieBreakDeps(),
+  ]);
+
+  return mapRowsToEntries(category, rows as RankingRow[], deps);
 }
+
+const getCachedRanking = unstable_cache(
+  fetchRankingFromDb,
+  ["ranking"],
+  { tags: ["ranking"], revalidate: 30 },
+);
 
 export async function getRanking(
   category: RankingCategory,
 ): Promise<RankingEntry[]> {
-  const fromDb = await fetchRankingFromDb(category);
+  const fromDb = await getCachedRanking(category);
   return fromDb ?? [];
 }
 
@@ -380,16 +314,8 @@ export async function getPlayerRankingDetail(
   const ranking = await getRanking(category);
   const player = ranking.find((entry) => entry.id === playerId);
 
-  if (!player) {
-    return null;
-  }
-
-  if (!db) {
-    return {
-      player,
-      events: [],
-    };
-  }
+  if (!player) return null;
+  if (!db) return { player, events: [] };
 
   const events = await db
     .select({
@@ -410,10 +336,7 @@ export async function getPlayerRankingDetail(
     .orderBy(desc(rankingEvents.occurredAt))
     .limit(20);
 
-  return {
-    player,
-    events,
-  };
+  return { player, events };
 }
 
 export async function getPublicPlayerProfile(
@@ -423,16 +346,8 @@ export async function getPublicPlayerProfile(
   const ranking = await getRanking(category);
   const player = ranking.find((entry) => entry.id === playerId);
 
-  if (!player) {
-    return null;
-  }
-
-  if (!db) {
-    return {
-      player,
-      recentMatches: [],
-    };
-  }
+  if (!player) return null;
+  if (!db) return { player, recentMatches: [] };
 
   const recentMatches = (await db
     .select({
@@ -506,17 +421,22 @@ export async function getPublicPlayerProfile(
 }
 
 export async function getRankingSummary() {
-  const categories = await Promise.all(
-    (["hombres", "mujeres"] as RankingCategory[]).map(async (category) => {
-      const ranking = await getRanking(category);
-      return {
-        category,
-        label: rankingCategoryLabels[category],
-        leader: ranking[0],
-        players: ranking.length,
-      };
-    }),
-  );
+  const [hombres, mujeres] = await Promise.all([
+    getRanking("hombres"),
+    getRanking("mujeres"),
+  ]);
+
+  const categories = (
+    [
+      { category: "hombres" as RankingCategory, ranking: hombres },
+      { category: "mujeres" as RankingCategory, ranking: mujeres },
+    ] as const
+  ).map(({ category, ranking }) => ({
+    category,
+    label: rankingCategoryLabels[category],
+    leader: ranking[0],
+    players: ranking.length,
+  }));
 
   return {
     updatedLabel: db

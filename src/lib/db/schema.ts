@@ -15,6 +15,7 @@ import {
 export const userRoleEnum = pgEnum("user_role", ["admin", "player", "guest"]);
 export const genderEnum = pgEnum("gender", ["M", "F"]);
 export const playerStatusEnum = pgEnum("player_status", [
+  "pendiente",
   "activo",
   "congelado",
   "retirado",
@@ -394,6 +395,26 @@ export const championshipPlacements = pgTable(
       table.position,
     ),
     champIdx: index("champ_placements_champ_idx").on(table.championshipId),
+  }),
+);
+
+export const playerScheduleSlots = pgTable(
+  "player_schedule_slots",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    playerId: uuid("player_id")
+      .notNull()
+      .references(() => players.id, { onDelete: "cascade" }),
+    dayOfWeek: integer("day_of_week").notNull(),
+    hour: integer("hour").notNull(),
+  },
+  (table) => ({
+    playerSlotUnique: unique("player_schedule_slot_unique").on(
+      table.playerId,
+      table.dayOfWeek,
+      table.hour,
+    ),
+    playerIdx: index("player_schedule_slot_player_idx").on(table.playerId),
   }),
 );
 

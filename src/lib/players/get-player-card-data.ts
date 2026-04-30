@@ -245,7 +245,7 @@ export async function getPlayerCardData(
     .where(
       and(
         eq(rankingEvents.playerId, playerId),
-        sql`${rankingEvents.createdAt} >= ${startOfCurrentWeekSantiago()}`
+        sql`${rankingEvents.occurredAt} >= ${startOfCurrentWeekSantiago()}`
       )
     )
 

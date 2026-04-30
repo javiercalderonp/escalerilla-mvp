@@ -1,35 +1,60 @@
-import NextAuth, { type NextAuthConfig } from "next-auth";
-import Google from "next-auth/providers/google";
+import { eq } from "drizzle-orm";
+import NextAuth from "next-auth";
 
-import { env, isAdminEmail } from "@/lib/env";
+import { authConfig } from "@/lib/auth.config";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+import { isAdminEmail } from "@/lib/env";
 
-export const authConfig = {
-  providers: env.googleClientId && env.googleClientSecret
-    ? [
-        Google({
-          clientId: env.googleClientId,
-          clientSecret: env.googleClientSecret,
-        }),
-      ]
-    : [],
-  trustHost: true,
-  secret: env.authSecret || undefined,
+export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
+  ...authConfig,
   callbacks: {
-    jwt({ token }) {
-      const role = isAdminEmail(token.email) ? "admin" : "guest";
-      token.role = token.role ?? role;
+    ...authConfig.callbacks,
+    async jwt({ token, user, trigger, session }) {
+      token.role = isAdminEmail(token.email)
+        ? "admin"
+        : (token.role ?? "player");
+
+      if (trigger === "signIn" && user?.email && db) {
+        const email = user.email.toLowerCase();
+
+        const existing = await db
+          .select({ id: users.id, playerId: users.playerId })
+          .from(users)
+          .where(eq(users.email, email))
+          .limit(1);
+
+        if (existing.length === 0) {
+          const [created] = await db
+            .insert(users)
+            .values({
+              email,
+              name: user.name ?? null,
+              image: user.image ?? null,
+              role: isAdminEmail(email) ? "admin" : "guest",
+              lastLoginAt: new Date(),
+            })
+            .returning({ id: users.id, playerId: users.playerId });
+
+          token.playerId = created?.playerId ?? null;
+        } else {
+          await db
+            .update(users)
+            .set({ lastLoginAt: new Date() })
+            .where(eq(users.email, email));
+
+          token.playerId = existing[0].playerId ?? null;
+        }
+      }
+
+      if (trigger === "update" && session && typeof session === "object") {
+        const u = (session as { user?: Record<string, unknown> }).user;
+        if (u && "playerId" in u) {
+          token.playerId = u.playerId as string | null;
+        }
+      }
+
       return token;
     },
-    session({ session, token }) {
-      if (session.user) {
-        session.user.role = (token.role as "admin" | "player" | "guest") ?? "guest";
-      }
-      return session;
-    },
   },
-  pages: {
-    signIn: "/login",
-  },
-} satisfies NextAuthConfig;
-
-export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
+});

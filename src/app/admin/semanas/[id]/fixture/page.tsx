@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, gte, or, sql } from "drizzle-orm";
+import { and, desc, eq, gte, or, sql } from "drizzle-orm";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
@@ -12,8 +12,8 @@ import {
   weeks,
 } from "@/lib/db/schema";
 import { proposeFixture } from "@/lib/fixture/propose";
-import { FixtureEditor } from "./editor";
 import type { SerializedPair } from "./actions";
+import { FixtureEditor } from "./editor";
 
 function formatDate(dateStr: string) {
   const [year, month, day] = dateStr.split("-");
@@ -80,11 +80,21 @@ export default async function FixturePage({
 
   const allActiveM = allPlayersRaw
     .filter((p) => p.gender === "M")
-    .map((p) => ({ id: p.id, fullName: p.fullName, points: Number(p.points) }));
+    .map((p) => ({
+      id: p.id,
+      fullName: p.fullName,
+      points: Number(p.points),
+      maxMatches: p.maxMatches ?? 0,
+    }));
 
   const allActiveF = allPlayersRaw
     .filter((p) => p.gender === "F")
-    .map((p) => ({ id: p.id, fullName: p.fullName, points: Number(p.points) }));
+    .map((p) => ({
+      id: p.id,
+      fullName: p.fullName,
+      points: Number(p.points),
+      maxMatches: p.maxMatches ?? 0,
+    }));
 
   const availableM = allPlayersRaw
     .filter((p) => p.gender === "M" && (p.maxMatches ?? 0) > 0)
@@ -92,7 +102,7 @@ export default async function FixturePage({
       id: p.id,
       fullName: p.fullName,
       points: Number(p.points),
-      maxMatches: p.maxMatches!,
+      maxMatches: p.maxMatches ?? 0,
     }));
 
   const availableF = allPlayersRaw
@@ -101,7 +111,7 @@ export default async function FixturePage({
       id: p.id,
       fullName: p.fullName,
       points: Number(p.points),
-      maxMatches: p.maxMatches!,
+      maxMatches: p.maxMatches ?? 0,
     }));
 
   // Recent opponents (last 30 days) for RN-03 validation
@@ -124,8 +134,8 @@ export default async function FixturePage({
       recentOpponentsMap.set(m.player1Id, new Set());
     if (!recentOpponentsMap.has(m.player2Id))
       recentOpponentsMap.set(m.player2Id, new Set());
-    recentOpponentsMap.get(m.player1Id)!.add(m.player2Id);
-    recentOpponentsMap.get(m.player2Id)!.add(m.player1Id);
+    recentOpponentsMap.get(m.player1Id)?.add(m.player2Id);
+    recentOpponentsMap.get(m.player2Id)?.add(m.player1Id);
   }
 
   const recentOpponentMap: Record<string, string[]> = {};
@@ -187,8 +197,8 @@ export default async function FixturePage({
   const hasPublishedMatches = existingMatchRows.length > 0;
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6">
-      <section className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-black/5">
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6">
+      <section className="rounded-lg bg-white p-8 shadow-sm ring-1 ring-black/5">
         <p className="text-sm font-medium text-emerald-700">
           <Link
             href="/admin/semanas"

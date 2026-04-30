@@ -2,6 +2,7 @@ import { asc } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
 import {
+  approvePlayerAction,
   createPlayerAction,
   importPlayersCsvAction,
   toggleRetiredPlayerAction,
@@ -23,14 +24,15 @@ async function getPlayers() {
     .orderBy(asc(players.gender), asc(players.fullName));
 }
 
-function statusBadge(status: "activo" | "congelado" | "retirado") {
-  const variants = {
-    activo: "success",
-    congelado: "warning",
-    retirado: "muted",
+function statusBadge(status: "pendiente" | "activo" | "congelado" | "retirado") {
+  const styles = {
+    pendiente: "bg-orange-100 text-orange-800",
+    activo: "bg-emerald-100 text-emerald-800",
+    congelado: "bg-amber-100 text-amber-800",
+    retirado: "bg-slate-200 text-slate-700",
   } as const;
 
-  return <Badge variant={variants[status]}>{status}</Badge>;
+  return <Badge className={styles[status]}>{status}</Badge>;
 }
 
 function levelBadge(level: string | null) {
@@ -58,6 +60,8 @@ export default async function AdminPlayersPage() {
   }
 
   const rows = await getPlayers();
+  const pending = rows.filter((p) => p.status === "pendiente");
+  const active = rows.filter((p) => p.status !== "pendiente");
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6">
@@ -260,6 +264,53 @@ export default async function AdminPlayersPage() {
         </article>
       </section>
 
+      {pending.length > 0 && (
+        <section className="rounded-3xl border border-orange-200 bg-orange-50 p-6 shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-lg">
+              ⏳
+            </span>
+            <div>
+              <h2 className="text-lg font-semibold text-slate-950">
+                Pendientes de aprobación
+              </h2>
+              <p className="text-sm text-slate-600">
+                Se registraron con un nombre que no coincidió con ningún
+                jugador existente.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {pending.map((player) => (
+              <div
+                key={player.id}
+                className="flex flex-col gap-3 rounded-2xl border border-orange-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="space-y-0.5">
+                  <p className="font-semibold text-slate-950">
+                    {player.fullName}
+                  </p>
+                  <p className="text-sm text-slate-500">
+                    {player.email ?? "Sin email"} ·{" "}
+                    {player.gender === "M" ? "Hombres" : "Mujeres"}
+                  </p>
+                </div>
+                <form action={approvePlayerAction}>
+                  <input type="hidden" name="playerId" value={player.id} />
+                  <button
+                    type="submit"
+                    className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
+                  >
+                    Aprobar
+                  </button>
+                </form>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -274,12 +325,12 @@ export default async function AdminPlayersPage() {
         </div>
 
         <div className="mt-6 space-y-4">
-          {rows.length === 0 ? (
+          {active.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center text-sm text-slate-500">
               Aún no hay jugadores cargados en la base.
             </div>
           ) : (
-            rows.map((player) => (
+            active.map((player) => (
               <form
                 key={player.id}
                 action={updatePlayerAction}
@@ -390,7 +441,7 @@ export default async function AdminPlayersPage() {
           )}
         </div>
 
-        {rows.length > 0 ? (
+        {active.length > 0 ? (
           <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <h3 className="text-sm font-semibold text-slate-900">
               Retiro rápido
@@ -399,7 +450,7 @@ export default async function AdminPlayersPage() {
               Marca retirado o reactiva sin tocar el resto de los datos.
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
-              {rows.map((player) => {
+              {active.map((player) => {
                 const nextStatus =
                   player.status === "retirado" ? "activo" : "retirado";
                 const label =

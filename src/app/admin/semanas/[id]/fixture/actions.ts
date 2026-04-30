@@ -90,8 +90,8 @@ export async function generateProposalAction(
       recentOpponents.set(m.player1Id, new Set());
     if (!recentOpponents.has(m.player2Id))
       recentOpponents.set(m.player2Id, new Set());
-    recentOpponents.get(m.player1Id)!.add(m.player2Id);
-    recentOpponents.get(m.player2Id)!.add(m.player1Id);
+    recentOpponents.get(m.player1Id)?.add(m.player2Id);
+    recentOpponents.get(m.player2Id)?.add(m.player1Id);
   }
 
   const proposal = proposeFixture(
@@ -127,9 +127,70 @@ export async function publishFixtureAction(
   z.string().uuid().parse(weekId);
   const validPairs = z.array(pairSchema).parse(pairs);
 
+  const availablePlayers = await dbClient
+    .select({
+      id: players.id,
+      fullName: players.fullName,
+      gender: players.gender,
+      maxMatches: availability.maxMatches,
+    })
+    .from(availability)
+    .innerJoin(players, eq(availability.playerId, players.id))
+    .where(
+      and(
+        eq(availability.weekId, weekId),
+        eq(players.status, "activo"),
+        gt(availability.maxMatches, 0),
+      ),
+    );
+
+  const availableById = new Map(
+    availablePlayers.map((player) => [player.id, player]),
+  );
+  const usageByPlayer = new Map<string, number>();
+  const uniquePairs = new Set<string>();
+
   for (const pair of validPairs) {
     if (pair.player1Id === pair.player2Id) {
       throw new Error("Un partido no puede tener el mismo jugador dos veces");
+    }
+
+    const p1 = availableById.get(pair.player1Id);
+    const p2 = availableById.get(pair.player2Id);
+
+    if (!p1 || !p2) {
+      throw new Error(
+        "Todos los jugadores publicados deben tener disponibilidad",
+      );
+    }
+
+    if (p1.gender !== pair.category || p2.gender !== pair.category) {
+      throw new Error("La categoría del partido no coincide con sus jugadores");
+    }
+
+    const pairKey = `${pair.category}:${[pair.player1Id, pair.player2Id]
+      .sort()
+      .join(":")}`;
+
+    if (uniquePairs.has(pairKey)) {
+      throw new Error("No se puede publicar el mismo cruce dos veces");
+    }
+
+    uniquePairs.add(pairKey);
+    usageByPlayer.set(
+      pair.player1Id,
+      (usageByPlayer.get(pair.player1Id) ?? 0) + 1,
+    );
+    usageByPlayer.set(
+      pair.player2Id,
+      (usageByPlayer.get(pair.player2Id) ?? 0) + 1,
+    );
+  }
+
+  for (const [playerId, used] of usageByPlayer) {
+    const player = availableById.get(playerId);
+    if (player && used > player.maxMatches) {
+      throw new Error(`${player.fullName} excede su máximo de partidos`);
     }
   }
 

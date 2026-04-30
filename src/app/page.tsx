@@ -25,8 +25,10 @@ const steps = [
 ];
 
 export default async function Home() {
-  const summary = await getRankingSummary();
-  const featuredEntries = await getRanking("hombres");
+  const [summary, featuredEntries] = await Promise.all([
+    getRankingSummary(),
+    getRanking("hombres"),
+  ]);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-12 px-4 py-10 sm:px-6">
