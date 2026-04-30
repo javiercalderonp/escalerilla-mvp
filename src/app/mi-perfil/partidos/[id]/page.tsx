@@ -49,7 +49,7 @@ function formatWeekLabel(start: string | null, end: string | null) {
 
 function formatTypeLabel(type: MatchDetailRow["type"]) {
   if (type === "desafio") return "Desafío";
-  if (type === "campeonato") return "Campeonato";
+  if (type === "campeonato") return "Partido";
   return "Sorteo";
 }
 

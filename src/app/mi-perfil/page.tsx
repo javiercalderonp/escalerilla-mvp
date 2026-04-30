@@ -3,9 +3,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
+import { requireCompleteProfile } from "@/lib/auth/require-complete-profile";
 import { db } from "@/lib/db";
 import { matches, matchSets, players } from "@/lib/db/schema";
-import { requireCompleteProfile } from "@/lib/auth/require-complete-profile";
 import {
   getRanking,
   type RankingCategory,
@@ -186,77 +186,94 @@ export default async function MiPerfilPage() {
   const weekEnd = getWeekEnd(weekStart);
   const monthStart = getMonthStart(today);
 
-  const [ranking, [weekCountRow], [monthCountRow], [challengeMonthRow], historyRows] =
-    await Promise.all([
-      getRanking(category),
-      db
-        .select({ value: sql<number>`count(*)` })
-        .from(matches)
-        .where(
-          and(
-            or(eq(matches.player1Id, player.id), eq(matches.player2Id, player.id)),
-            sql`${matches.status} in ('confirmado', 'empate', 'wo')`,
-            sql`${matches.playedOn} is not null`,
-            sql`${matches.playedOn} between ${weekStart} and ${weekEnd}`,
-            sql`${matches.type} <> 'campeonato'`,
+  const [
+    ranking,
+    [weekCountRow],
+    [monthCountRow],
+    [challengeMonthRow],
+    historyRows,
+  ] = await Promise.all([
+    getRanking(category),
+    db
+      .select({ value: sql<number>`count(*)` })
+      .from(matches)
+      .where(
+        and(
+          or(
+            eq(matches.player1Id, player.id),
+            eq(matches.player2Id, player.id),
           ),
+          sql`${matches.status} in ('confirmado', 'empate', 'wo')`,
+          sql`${matches.playedOn} is not null`,
+          sql`${matches.playedOn} between ${weekStart} and ${weekEnd}`,
+          sql`${matches.type} <> 'campeonato'`,
         ),
-      db
-        .select({ value: sql<number>`count(*)` })
-        .from(matches)
-        .where(
-          and(
-            or(eq(matches.player1Id, player.id), eq(matches.player2Id, player.id)),
-            sql`${matches.status} in ('confirmado', 'empate', 'wo')`,
-            sql`${matches.playedOn} is not null`,
-            sql`${matches.playedOn} between ${monthStart} and ${today}`,
-            sql`${matches.type} <> 'campeonato'`,
+      ),
+    db
+      .select({ value: sql<number>`count(*)` })
+      .from(matches)
+      .where(
+        and(
+          or(
+            eq(matches.player1Id, player.id),
+            eq(matches.player2Id, player.id),
           ),
+          sql`${matches.status} in ('confirmado', 'empate', 'wo')`,
+          sql`${matches.playedOn} is not null`,
+          sql`${matches.playedOn} between ${monthStart} and ${today}`,
+          sql`${matches.type} <> 'campeonato'`,
         ),
-      db
-        .select({ value: sql<number>`count(*)` })
-        .from(matches)
-        .where(
-          and(
-            or(eq(matches.player1Id, player.id), eq(matches.player2Id, player.id)),
-            eq(matches.type, "desafio"),
-            sql`${matches.status} in ('confirmado', 'empate', 'wo')`,
-            sql`${matches.playedOn} is not null`,
-            sql`${matches.playedOn} between ${monthStart} and ${today}`,
+      ),
+    db
+      .select({ value: sql<number>`count(*)` })
+      .from(matches)
+      .where(
+        and(
+          or(
+            eq(matches.player1Id, player.id),
+            eq(matches.player2Id, player.id),
           ),
+          eq(matches.type, "desafio"),
+          sql`${matches.status} in ('confirmado', 'empate', 'wo')`,
+          sql`${matches.playedOn} is not null`,
+          sql`${matches.playedOn} between ${monthStart} and ${today}`,
         ),
-      db
-        .select({
-          id: matches.id,
-          playedOn: matches.playedOn,
-          status: matches.status,
-          type: matches.type,
-          format: matches.format,
-          winnerId: matches.winnerId,
-          player1Id: matches.player1Id,
-          player2Id: matches.player2Id,
-          player1Name: players.fullName,
-          player2Name: sql<string>`players_p2.full_name`,
-        })
-        .from(matches)
-        .innerJoin(players, eq(matches.player1Id, players.id))
-        .innerJoin(
-          sql`players as players_p2`,
-          sql`${matches.player2Id} = players_p2.id`,
-        )
-        .where(
-          and(
-            or(eq(matches.player1Id, player.id), eq(matches.player2Id, player.id)),
-            sql`${matches.status} in ('confirmado', 'empate', 'wo')`,
+      ),
+    db
+      .select({
+        id: matches.id,
+        playedOn: matches.playedOn,
+        status: matches.status,
+        type: matches.type,
+        format: matches.format,
+        winnerId: matches.winnerId,
+        player1Id: matches.player1Id,
+        player2Id: matches.player2Id,
+        player1Name: players.fullName,
+        player2Name: sql<string>`players_p2.full_name`,
+      })
+      .from(matches)
+      .innerJoin(players, eq(matches.player1Id, players.id))
+      .innerJoin(
+        sql`players as players_p2`,
+        sql`${matches.player2Id} = players_p2.id`,
+      )
+      .where(
+        and(
+          or(
+            eq(matches.player1Id, player.id),
+            eq(matches.player2Id, player.id),
           ),
-        )
-        .orderBy(
-          desc(matches.playedOn),
-          desc(matches.confirmedAt),
-          desc(matches.createdAt),
-        )
-        .limit(10) as Promise<MatchHistoryRow[]>,
-    ]);
+          sql`${matches.status} in ('confirmado', 'empate', 'wo')`,
+        ),
+      )
+      .orderBy(
+        desc(matches.playedOn),
+        desc(matches.confirmedAt),
+        desc(matches.createdAt),
+      )
+      .limit(10) as Promise<MatchHistoryRow[]>,
+  ]);
 
   const rankingEntry = ranking.find((entry) => entry.id === player.id) ?? null;
 
@@ -297,7 +314,8 @@ export default async function MiPerfilPage() {
               {player.fullName}
             </h1>
             <p className="mt-3 text-sm text-slate-600">
-              Categoría {rankingCategoryLabels[category]} · Estado {player.status}
+              Categoría {rankingCategoryLabels[category]} · Estado{" "}
+              {player.status}
               {rankingEntry
                 ? ` · #${rankingEntry.position} · ${rankingEntry.points} pts`
                 : ""}
@@ -343,7 +361,7 @@ export default async function MiPerfilPage() {
             </span>
           </div>
           <p className="mt-3 text-xs text-slate-500">
-            No cuentan campeonatos internos.
+            Conteo informativo según las reglas de la escalerilla.
           </p>
         </article>
 
@@ -402,7 +420,7 @@ export default async function MiPerfilPage() {
                 match.type === "desafio"
                   ? "Desafío"
                   : match.type === "campeonato"
-                    ? "Campeonato"
+                    ? "Partido"
                     : "Sorteo";
 
               return (

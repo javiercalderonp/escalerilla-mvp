@@ -9,16 +9,16 @@ export default function LoginPage() {
           Ingresá con tu cuenta
         </h1>
         <p className="mt-3 text-sm leading-6 text-slate-600">
-          Accedé al ranking, declaré tu disponibilidad semanal, revisá el
-          fixture y consultá tus partidos — todo en un lugar.
+          Accedé al ranking, declaré tu disponibilidad semanal, revisá la
+          programación y consultá tus partidos — todo en un lugar.
         </p>
         <div className="mt-6">
           <GoogleSignInButton />
         </div>
         <div className="mt-6 space-y-2 text-xs text-slate-400">
           <p>
-            Solo socios con email registrado por el administrador pueden acceder.
-            Si tu cuenta no aparece vinculada, contactá al organizador.
+            Solo socios con email registrado por el administrador pueden
+            acceder. Si tu cuenta no aparece vinculada, contactá al organizador.
           </p>
         </div>
       </div>

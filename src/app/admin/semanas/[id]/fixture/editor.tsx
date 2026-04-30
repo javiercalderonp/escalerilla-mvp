@@ -507,12 +507,12 @@ export function FixtureEditor({
               Salida
             </p>
             <h2 className="mt-1 text-xl font-semibold text-slate-950">
-              Publicar fixture
+              Publicar programación
             </h2>
             <p className="mt-1 text-sm text-slate-500">
               {totalPairs} partido{totalPairs !== 1 ? "s" : ""} en total
               {isPublished
-                ? " · Ya publicado: republicar reemplaza los pendientes"
+                ? " · Ya publicado: republicar actualiza la programación"
                 : ""}
             </p>
           </div>

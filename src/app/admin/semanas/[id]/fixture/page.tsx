@@ -204,7 +204,7 @@ export default async function FixturePage({
             href="/admin/semanas"
             className="transition hover:text-emerald-900"
           >
-            Admin › Semanas
+            Admin › Programación
           </Link>{" "}
           ›{" "}
           <Link
@@ -213,15 +213,15 @@ export default async function FixturePage({
           >
             {weekLabel}
           </Link>{" "}
-          › Fixture
+          › Cruces
         </p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-          Fixture — semana {weekLabel}
+          Cruces — semana {weekLabel}
         </h1>
         {hasPublishedMatches && (
           <p className="mt-3 text-sm text-slate-600">
-            Ya hay un fixture publicado para esta semana. Podés editarlo y
-            republicar (solo reemplaza los partidos pendientes).
+            Ya hay cruces publicados para esta semana. Podés editarlos y
+            republicar la programación.
           </p>
         )}
       </section>

@@ -10,13 +10,12 @@ export async function Header() {
 
   const navItems = [
     { href: "/ranking/hombres", label: "Ranking" },
-    { href: "/fixture", label: "Fixture" },
+    { href: "/fixture", label: "Partidos" },
     ...(session?.user ? [] : [{ href: "/login", label: "Ingresar" }]),
     ...(isAdmin
       ? [
-          { href: "/admin/semanas", label: "Semanas" },
-          { href: "/admin/partidos", label: "Partidos" },
-          { href: "/admin/campeonatos", label: "Campeonatos" },
+          { href: "/admin/semanas", label: "Programación" },
+          { href: "/admin/jugadores", label: "Jugadores" },
         ]
       : []),
   ];

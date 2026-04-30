@@ -1,4 +1,4 @@
-import { and, count, eq } from "drizzle-orm";
+import { and, asc, count, eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { availability, players, weeks } from "@/lib/db/schema";
 import { closeAvailabilityAction, openAvailabilityAction } from "../actions";
+import { AddPlayersDialog } from "./add-players-dialog";
 
 const DAYS = [
   "monday",
@@ -44,11 +45,7 @@ export default async function AdminSemanaDetailPage({
 
   const { id } = await params;
 
-  const [week] = await db
-    .select()
-    .from(weeks)
-    .where(eq(weeks.id, id))
-    .limit(1);
+  const [week] = await db.select().from(weeks).where(eq(weeks.id, id)).limit(1);
 
   if (!week) notFound();
 
@@ -82,8 +79,35 @@ export default async function AdminSemanaDetailPage({
     .from(players)
     .where(and(eq(players.gender, "F"), eq(players.status, "activo")));
 
+  const activePlayers = await db
+    .select({
+      id: players.id,
+      fullName: players.fullName,
+      gender: players.gender,
+    })
+    .from(players)
+    .where(eq(players.status, "activo"))
+    .orderBy(asc(players.fullName));
+
   const men = responses.filter((r) => r.gender === "M");
   const women = responses.filter((r) => r.gender === "F");
+  const addedPlayerIds = new Set(
+    responses.map((response) => response.playerId),
+  );
+  const addableMen = activePlayers
+    .filter((player) => player.gender === "M")
+    .map((player) => ({
+      id: player.id,
+      fullName: player.fullName,
+      isAdded: addedPlayerIds.has(player.id),
+    }));
+  const addableWomen = activePlayers
+    .filter((player) => player.gender === "F")
+    .map((player) => ({
+      id: player.id,
+      fullName: player.fullName,
+      isAdded: addedPlayerIds.has(player.id),
+    }));
 
   const weekLabel = `${formatDate(week.startsOn)}–${formatDate(week.endsOn)}`;
   const reminderMsg = [
@@ -94,7 +118,7 @@ export default async function AdminSemanaDetailPage({
     "✅ Declará tus días y cuántos partidos podés jugar en:",
     "https://escalerilla-mvp.vercel.app/disponibilidad",
     "",
-    "_La ventana cierra pronto. Si no declarás, no entrás al fixture._",
+    "_La ventana cierra pronto. Si no declarás, no entrás a la programación._",
   ].join("\n");
 
   const statusStyles = {
@@ -106,7 +130,9 @@ export default async function AdminSemanaDetailPage({
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6">
       <section className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-black/5">
-        <p className="text-sm font-medium text-emerald-700">Admin › Semanas</p>
+        <p className="text-sm font-medium text-emerald-700">
+          Admin › Programación
+        </p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
           Semana {weekLabel}
         </h1>
@@ -148,7 +174,7 @@ export default async function AdminSemanaDetailPage({
             href={`/admin/semanas/${week.id}/fixture`}
             className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:text-slate-950"
           >
-            Gestionar fixture →
+            Gestionar cruces →
           </Link>
         </div>
       </section>
@@ -167,7 +193,12 @@ export default async function AdminSemanaDetailPage({
 
       {(
         [
-          { gender: "M", label: "Hombres", rows: men, total: totalM?.count ?? 0 },
+          {
+            gender: "M",
+            label: "Hombres",
+            rows: men,
+            total: totalM?.count ?? 0,
+          },
           {
             gender: "F",
             label: "Mujeres",
@@ -181,10 +212,17 @@ export default async function AdminSemanaDetailPage({
           className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
         >
           <div className="flex items-baseline gap-3">
-            <h2 className="text-lg font-semibold text-slate-950">{label}</h2>
-            <span className="text-sm text-slate-500">
-              {rows.length} de {total} activos declararon
-            </span>
+            <div className="flex flex-1 flex-wrap items-baseline gap-3">
+              <h2 className="text-lg font-semibold text-slate-950">{label}</h2>
+              <span className="text-sm text-slate-500">
+                {rows.length} de {total} activos declararon
+              </span>
+            </div>
+            <AddPlayersDialog
+              weekId={week.id}
+              label={label}
+              players={gender === "M" ? addableMen : addableWomen}
+            />
           </div>
 
           {rows.length === 0 ? (

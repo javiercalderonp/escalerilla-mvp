@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { desc } from "drizzle-orm";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
@@ -54,16 +54,18 @@ export default async function AdminSemanasPage() {
       <section className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-black/5">
         <p className="text-sm font-medium text-emerald-700">Admin</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-          Semanas
+          Programación
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-          Abrí la ventana para que los jugadores declaren disponibilidad.
-          Cerrála antes de generar el fixture.
+          Abrí la disponibilidad, revisá respuestas y armá los cruces de la
+          semana desde un solo lugar.
         </p>
       </section>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-950">Nueva semana</h2>
+        <h2 className="text-lg font-semibold text-slate-950">
+          Nueva programación
+        </h2>
         <p className="mt-1 text-sm text-slate-600">
           El sistema calcula el fin de semana automáticamente (+6 días).
         </p>
@@ -85,7 +87,7 @@ export default async function AdminSemanasPage() {
             type="submit"
             className="rounded-full bg-emerald-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-emerald-700"
           >
-            Crear semana
+            Crear programación
           </button>
         </form>
       </section>
@@ -95,7 +97,7 @@ export default async function AdminSemanasPage() {
 
         {rows.length === 0 ? (
           <div className="mt-4 rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center text-sm text-slate-500">
-            No hay semanas creadas aún.
+            No hay programaciones creadas aún.
           </div>
         ) : (
           <div className="mt-4 space-y-3">

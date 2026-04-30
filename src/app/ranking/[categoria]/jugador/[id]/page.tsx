@@ -23,11 +23,15 @@ function formatDate(value: string | null) {
 
 function formatMatchTypeLabel(type: "sorteo" | "desafio" | "campeonato") {
   if (type === "desafio") return "Desafío";
-  if (type === "campeonato") return "Campeonato";
+  if (type === "campeonato") return "Partido";
   return "Sorteo";
 }
 
-function formatScore(match: NonNullable<Awaited<ReturnType<typeof getPublicPlayerProfile>>>["recentMatches"][number]) {
+function formatScore(
+  match: NonNullable<
+    Awaited<ReturnType<typeof getPublicPlayerProfile>>
+  >["recentMatches"][number],
+) {
   if (match.status === "wo") {
     return "W.O.";
   }
@@ -48,7 +52,9 @@ function formatScore(match: NonNullable<Awaited<ReturnType<typeof getPublicPlaye
 }
 
 function getOutcomeLabel(
-  match: NonNullable<Awaited<ReturnType<typeof getPublicPlayerProfile>>>["recentMatches"][number],
+  match: NonNullable<
+    Awaited<ReturnType<typeof getPublicPlayerProfile>>
+  >["recentMatches"][number],
   playerId: string,
 ) {
   if (match.status === "empate") {
@@ -68,7 +74,9 @@ function getOutcomeLabel(
   };
 }
 
-export default async function PublicPlayerPage({ params }: PublicPlayerPageProps) {
+export default async function PublicPlayerPage({
+  params,
+}: PublicPlayerPageProps) {
   const { categoria, id } = await params;
 
   if (!isRankingCategory(categoria)) {
@@ -93,7 +101,8 @@ export default async function PublicPlayerPage({ params }: PublicPlayerPageProps
               {profile.player.fullName}
             </h1>
             <p className="mt-3 text-sm text-slate-600">
-              Posición #{profile.player.position} · {profile.player.points} pts · Semana {formatDelta(profile.player.weeklyDelta)}
+              Posición #{profile.player.position} · {profile.player.points} pts
+              · Semana {formatDelta(profile.player.weeklyDelta)}
             </p>
           </div>
           <Link
@@ -121,7 +130,9 @@ export default async function PublicPlayerPage({ params }: PublicPlayerPageProps
           <div className="mt-6 space-y-3">
             {profile.recentMatches.map((match) => {
               const isPlayer1 = match.player1Id === profile.player.id;
-              const opponentName = isPlayer1 ? match.player2Name : match.player1Name;
+              const opponentName = isPlayer1
+                ? match.player2Name
+                : match.player1Name;
               const outcome = getOutcomeLabel(match, profile.player.id);
 
               return (
@@ -132,12 +143,15 @@ export default async function PublicPlayerPage({ params }: PublicPlayerPageProps
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
                       <p className="text-sm text-slate-500">
-                        {formatDate(match.playedOn)} · {formatMatchTypeLabel(match.type)}
+                        {formatDate(match.playedOn)} ·{" "}
+                        {formatMatchTypeLabel(match.type)}
                       </p>
                       <h3 className="mt-1 text-base font-semibold text-slate-950">
                         vs {opponentName}
                       </h3>
-                      <p className="mt-2 text-sm text-slate-600">{formatScore(match)}</p>
+                      <p className="mt-2 text-sm text-slate-600">
+                        {formatScore(match)}
+                      </p>
                     </div>
                     <span
                       className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${outcome.tone}`}

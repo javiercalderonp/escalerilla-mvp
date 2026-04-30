@@ -12,7 +12,7 @@ const steps = [
   },
   {
     step: "02",
-    title: "El admin publica el fixture",
+    title: "El admin publica la programación",
     description:
       "El sistema propone cruces minimizando la diferencia de ranking y respetando el límite de 30 días entre rivales.",
   },
@@ -40,9 +40,9 @@ export default async function Home() {
               Escalerilla de Tenis Club La Dehesa
             </h1>
             <p className="max-w-2xl text-lg leading-8 text-slate-600">
-              Ranking, fixture semanal y registro de resultados para los socios
-              del club. Declaré disponibilidad, jugá tus cruces y seguí tu
-              posición en tiempo real.
+              Ranking, programación semanal y registro de resultados para los
+              socios del club. Declaré disponibilidad, jugá tus cruces y seguí
+              tu posición en tiempo real.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">

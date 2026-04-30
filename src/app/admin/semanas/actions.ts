@@ -7,7 +7,13 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { ensureAppUser } from "@/lib/auth/ensure-app-user";
 import { db } from "@/lib/db";
-import { auditLog, seasons, weeks } from "@/lib/db/schema";
+import {
+  auditLog,
+  availability,
+  players,
+  seasons,
+  weeks,
+} from "@/lib/db/schema";
 
 async function requireAdminActor() {
   const session = await auth();
@@ -125,4 +131,67 @@ export async function closeAvailabilityAction(formData: FormData) {
 
   revalidatePath("/admin/semanas");
   revalidatePath(`/admin/semanas/${weekId}`);
+}
+
+export async function addPlayersToWeekAvailabilityAction(args: {
+  weekId: string;
+  playerIds: string[];
+  maxMatches?: number;
+}) {
+  const { actorId, dbClient } = await requireAdminActor();
+
+  const weekId = z.string().uuid().parse(args.weekId);
+  const playerIds = z.array(z.string().uuid()).min(1).parse(args.playerIds);
+  const maxMatches = z
+    .number()
+    .int()
+    .min(1)
+    .max(3)
+    .parse(args.maxMatches ?? 1);
+
+  const activePlayers = await dbClient
+    .select({ id: players.id })
+    .from(players)
+    .where(and(eq(players.status, "activo")));
+  const activePlayerIds = new Set(activePlayers.map((player) => player.id));
+  const validPlayerIds = [...new Set(playerIds)].filter((playerId) =>
+    activePlayerIds.has(playerId),
+  );
+
+  if (validPlayerIds.length === 0) {
+    throw new Error("Seleccioná al menos un jugador activo");
+  }
+
+  const now = new Date();
+
+  await dbClient.transaction(async (tx) => {
+    await tx
+      .insert(availability)
+      .values(
+        validPlayerIds.map((playerId) => ({
+          weekId,
+          playerId,
+          maxMatches,
+          updatedAt: now,
+        })),
+      )
+      .onConflictDoUpdate({
+        target: [availability.weekId, availability.playerId],
+        set: {
+          maxMatches,
+          updatedAt: now,
+        },
+      });
+
+    await tx.insert(auditLog).values({
+      actorId,
+      action: "week.admin_add_availability",
+      entityType: "week",
+      entityId: weekId,
+      payload: { playerIds: validPlayerIds, maxMatches },
+    });
+  });
+
+  revalidatePath(`/admin/semanas/${weekId}`);
+  revalidatePath(`/admin/semanas/${weekId}/fixture`);
 }
