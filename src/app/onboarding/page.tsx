@@ -3,8 +3,9 @@ import { redirect } from "next/navigation"
 
 import { OnboardingWizard } from "@/app/onboarding/onboarding-wizard"
 import { auth } from "@/lib/auth"
+import { ensureAppUser } from "@/lib/auth/ensure-app-user"
 import { db } from "@/lib/db"
-import { players, users } from "@/lib/db/schema"
+import { players } from "@/lib/db/schema"
 import { isProfileComplete } from "@/lib/players/profile-completeness"
 
 export default async function OnboardingPage() {
@@ -24,11 +25,7 @@ export default async function OnboardingPage() {
     )
   }
 
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, session.user.email.toLowerCase()))
-    .limit(1)
+  const user = await ensureAppUser(session.user)
 
   if (user?.playerId) {
     const [player] = await db

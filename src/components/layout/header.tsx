@@ -11,12 +11,7 @@ export async function Header() {
   const navItems = [
     { href: "/ranking/hombres", label: "Ranking" },
     { href: "/fixture", label: "Fixture" },
-    ...(session?.user
-      ? [
-          { href: "/mi-perfil", label: "Mi perfil" },
-          { href: "/disponibilidad", label: "Disponibilidad" },
-        ]
-      : [{ href: "/login", label: "Ingresar" }]),
+    ...(session?.user ? [] : [{ href: "/login", label: "Ingresar" }]),
     ...(isAdmin
       ? [
           { href: "/admin/semanas", label: "Semanas" },
@@ -51,9 +46,12 @@ export async function Header() {
           ))}
           {session?.user && (
             <div className="flex items-center gap-3">
-              <span className="max-w-48 truncate text-muted-foreground">
+              <Link
+                href="/mi-perfil"
+                className="max-w-48 truncate text-muted-foreground transition hover:text-foreground"
+              >
                 {session.user.name ?? session.user.email}
-              </span>
+              </Link>
               <span className="rounded-full bg-court/10 px-3 py-1 text-xs font-medium text-court">
                 {session.user.role}
               </span>
@@ -61,7 +59,17 @@ export async function Header() {
           )}
         </nav>
 
-        <MobileNav items={navItems} />
+        <MobileNav
+          items={navItems}
+          profileItem={
+            session?.user
+              ? {
+                  href: "/mi-perfil",
+                  label: session.user.name ?? session.user.email ?? "Mi perfil",
+                }
+              : null
+          }
+        />
       </div>
     </header>
   );

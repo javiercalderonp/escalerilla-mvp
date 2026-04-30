@@ -6,7 +6,13 @@ import { useState } from "react";
 
 type NavItem = { href: string; label: string };
 
-export function MobileNav({ items }: { items: NavItem[] }) {
+export function MobileNav({
+  items,
+  profileItem,
+}: {
+  items: NavItem[];
+  profileItem?: NavItem | null;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -26,6 +32,15 @@ export function MobileNav({ items }: { items: NavItem[] }) {
             onClick={() => setOpen(false)}
           />
           <div className="absolute right-0 top-11 z-20 w-52 rounded-2xl border border-border bg-card py-2 shadow-lg">
+            {profileItem ? (
+              <Link
+                href={profileItem.href}
+                onClick={() => setOpen(false)}
+                className="block border-b border-border px-4 py-3 text-sm font-medium text-foreground transition hover:bg-court/5"
+              >
+                {profileItem.label}
+              </Link>
+            ) : null}
             {items.map((item) => (
               <Link
                 key={item.href}

@@ -5,8 +5,10 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
 import { auth } from "@/lib/auth"
+import { ensureAppUser } from "@/lib/auth/ensure-app-user"
 import { db } from "@/lib/db"
 import { players, users } from "@/lib/db/schema"
+import { isAdminEmail } from "@/lib/env"
 import { onboardingFullSchema } from "@/lib/validation/player"
 
 export async function submitOnboarding(input: unknown) {
@@ -20,17 +22,10 @@ export async function submitOnboarding(input: unknown) {
     throw new Error("Base de datos no configurada")
   }
 
+  const email = session.user.email.toLowerCase()
   const data = onboardingFullSchema.parse(input)
 
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, session.user.email.toLowerCase()))
-    .limit(1)
-
-  if (!user) {
-    throw new Error("Usuario no existe")
-  }
+  const user = await ensureAppUser(session.user)
 
   const fullName = `${data.firstName} ${data.lastName}`.trim()
   const today = new Date().toISOString().slice(0, 10)
@@ -44,7 +39,7 @@ export async function submitOnboarding(input: unknown) {
           fullName,
           firstName: data.firstName,
           lastName: data.lastName,
-          email: session.user.email.toLowerCase(),
+          email,
           gender: data.gender,
           birthDate,
           phone: data.phone,
@@ -59,7 +54,7 @@ export async function submitOnboarding(input: unknown) {
 
       await db
         .update(users)
-        .set({ playerId: created.id, role: "player" })
+        .set({ playerId: created.id, role: isAdminEmail(email) ? "admin" : "player" })
         .where(eq(users.id, user.id))
     } else {
       await db
@@ -68,7 +63,7 @@ export async function submitOnboarding(input: unknown) {
           fullName,
           firstName: data.firstName,
           lastName: data.lastName,
-          email: session.user.email.toLowerCase(),
+          email,
           gender: data.gender,
           birthDate,
           phone: data.phone,
@@ -82,7 +77,7 @@ export async function submitOnboarding(input: unknown) {
 
       await db
         .update(users)
-        .set({ role: "player" })
+        .set({ role: isAdminEmail(email) ? "admin" : "player" })
         .where(eq(users.id, user.id))
     }
   } catch (error: unknown) {
@@ -90,7 +85,10 @@ export async function submitOnboarding(input: unknown) {
       return { error: "rut_taken" as const }
     }
 
-    throw error
+    return {
+      error: "unexpected" as const,
+      message: error instanceof Error ? error.message : "No se pudo guardar tu perfil.",
+    }
   }
 
   revalidatePath("/")

@@ -3,7 +3,8 @@ import { redirect } from "next/navigation"
 
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { players, users } from "@/lib/db/schema"
+import { players } from "@/lib/db/schema"
+import { ensureAppUser } from "@/lib/auth/ensure-app-user"
 import { isProfileComplete } from "@/lib/players/profile-completeness"
 
 export async function requireCompleteProfile() {
@@ -17,11 +18,7 @@ export async function requireCompleteProfile() {
     throw new Error("Base de datos no configurada")
   }
 
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, session.user.email.toLowerCase()))
-    .limit(1)
+  const user = await ensureAppUser(session.user)
 
   if (!user?.playerId) {
     redirect("/onboarding")

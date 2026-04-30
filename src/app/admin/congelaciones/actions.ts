@@ -5,8 +5,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
+import { ensureAppUser } from "@/lib/auth/ensure-app-user";
 import { db } from "@/lib/db";
-import { auditLog, freezes, seasons, users } from "@/lib/db/schema";
+import { auditLog, freezes, seasons } from "@/lib/db/schema";
 
 const createFreezeSchema = z.object({
   playerId: z.string().uuid(),
@@ -25,12 +26,8 @@ async function requireAdminActor() {
     throw new Error("No autorizado");
   }
   if (!db) throw new Error("Base de datos no configurada");
-  const [actor] = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.email, session.user.email.toLowerCase()))
-    .limit(1);
-  return { actorId: actor?.id ?? null, dbClient: db };
+  const actor = await ensureAppUser(session.user);
+  return { actorId: actor.id, dbClient: db };
 }
 
 function semesterBounds(startsOn: string): { start: string; end: string } {

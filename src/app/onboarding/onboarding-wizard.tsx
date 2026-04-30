@@ -124,13 +124,26 @@ export function OnboardingWizard() {
     setServerError(null)
 
     startTransition(async () => {
-      const result = await submitOnboarding({
-        ...values,
-        yearsPlaying: Number(values.yearsPlaying),
-      })
+      try {
+        const result = await submitOnboarding({
+          ...values,
+          yearsPlaying: Number(values.yearsPlaying),
+        })
 
-      if (result?.error === "rut_taken") {
-        setServerError("Ese RUT ya está registrado para otro jugador.")
+        if (result?.error === "rut_taken") {
+          setServerError("Ese RUT ya está registrado para otro jugador.")
+          return
+        }
+
+        if (result?.error === "unexpected") {
+          setServerError(result.message || "No pudimos guardar tu perfil. Intenta de nuevo.")
+        }
+      } catch (error) {
+        setServerError(
+          error instanceof Error
+            ? error.message
+            : "No pudimos guardar tu perfil. Intenta de nuevo.",
+        )
       }
     })
   }

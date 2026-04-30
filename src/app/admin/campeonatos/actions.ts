@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth";
+import { ensureAppUser } from "@/lib/auth/ensure-app-user";
 import { db } from "@/lib/db";
 import {
   auditLog,
@@ -12,7 +13,6 @@ import {
   players,
   rankingEvents,
   seasons,
-  users,
 } from "@/lib/db/schema";
 
 const POSITION_DELTAS: Record<number, number> = {
@@ -59,12 +59,8 @@ export async function createChampionshipAction(formData: FormData) {
     .limit(1);
   if (!season) throw new Error("No hay temporada activa");
 
-  const [actor] = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.email, session.user.email!))
-    .limit(1);
-  const userId = actor?.id;
+  const actor = await ensureAppUser(session.user);
+  const userId = actor.id;
 
   const placements = [
     { position: 1, playerId: player1Id },

@@ -35,7 +35,6 @@ export function RankingTable({ category, entries }: RankingTableProps) {
       <div className="divide-y divide-border/70">
         {entries.map((entry) => {
           const [firstName, ...rest] = entry.fullName.split(" ")
-          const lastInitial = rest[0]?.[0] ? `${rest[0][0]}.` : ""
           const borderTone =
             entry.position === 1
               ? "border-l-[3px] border-l-gold"
@@ -59,7 +58,7 @@ export function RankingTable({ category, entries }: RankingTableProps) {
                 <div className="flex items-center gap-2">
                   <Avatar firstName={firstName} lastName={rest.join(" ")} size="sm" />
                   <span className="truncate text-sm font-medium text-foreground">
-                    {firstName} {lastInitial}
+                    {entry.fullName}
                   </span>
                   {entry.status === "congelado" ? <Badge variant="warning" size="sm">Congelado</Badge> : null}
                   {entry.status === "retirado" ? <Badge variant="muted" size="sm">Retirado</Badge> : null}

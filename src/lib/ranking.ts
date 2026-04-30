@@ -355,7 +355,12 @@ async function fetchRankingFromDb(
     })
     .from(players)
     .leftJoin(rankingEvents, eq(rankingEvents.playerId, players.id))
-    .where(eq(players.gender, gender))
+    .where(
+      and(
+        eq(players.gender, gender),
+        or(eq(players.status, "activo"), eq(players.status, "congelado")),
+      ),
+    )
     .groupBy(players.id);
 
   return mapRowsToEntries(category, rows as RankingRow[]);

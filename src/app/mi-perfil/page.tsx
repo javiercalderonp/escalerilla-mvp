@@ -289,16 +289,26 @@ export default async function MiPerfilPage() {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6">
       <section className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-black/5">
-        <p className="text-sm font-medium text-emerald-700">Mi perfil</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-          {player.fullName}
-        </h1>
-        <p className="mt-3 text-sm text-slate-600">
-          Categoría {rankingCategoryLabels[category]} · Estado {player.status}
-          {rankingEntry
-            ? ` · #${rankingEntry.position} · ${rankingEntry.points} pts`
-            : ""}
-        </p>
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-sm font-medium text-emerald-700">Mi perfil</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
+              {player.fullName}
+            </h1>
+            <p className="mt-3 text-sm text-slate-600">
+              Categoría {rankingCategoryLabels[category]} · Estado {player.status}
+              {rankingEntry
+                ? ` · #${rankingEntry.position} · ${rankingEntry.points} pts`
+                : ""}
+            </p>
+          </div>
+          <Link
+            href="/disponibilidad"
+            className="inline-flex rounded-full bg-emerald-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-emerald-700"
+          >
+            Gestionar disponibilidad
+          </Link>
+        </div>
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">

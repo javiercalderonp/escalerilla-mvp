@@ -5,8 +5,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
+import { ensureAppUser } from "@/lib/auth/ensure-app-user";
 import { db } from "@/lib/db";
-import { auditLog, seasons, users, weeks } from "@/lib/db/schema";
+import { auditLog, seasons, weeks } from "@/lib/db/schema";
 
 async function requireAdminActor() {
   const session = await auth();
@@ -21,13 +22,9 @@ async function requireAdminActor() {
     throw new Error("Base de datos no configurada");
   }
 
-  const [actor] = await dbClient
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.email, session.user.email.toLowerCase()))
-    .limit(1);
+  const actor = await ensureAppUser(session.user);
 
-  return { actorId: actor?.id ?? null, dbClient };
+  return { actorId: actor.id, dbClient };
 }
 
 function addDays(dateStr: string, days: number): string {
