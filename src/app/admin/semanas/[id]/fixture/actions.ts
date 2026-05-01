@@ -194,37 +194,35 @@ export async function publishFixtureAction(
     }
   }
 
-  await dbClient.transaction(async (tx) => {
-    await tx
-      .delete(matches)
-      .where(
-        and(
-          eq(matches.weekId, weekId),
-          eq(matches.type, "sorteo"),
-          eq(matches.status, "pendiente"),
-        ),
-      );
+  await dbClient
+    .delete(matches)
+    .where(
+      and(
+        eq(matches.weekId, weekId),
+        eq(matches.type, "sorteo"),
+        eq(matches.status, "pendiente"),
+      ),
+    );
 
-    if (validPairs.length > 0) {
-      await tx.insert(matches).values(
-        validPairs.map((pair) => ({
-          weekId,
-          category: pair.category,
-          type: "sorteo" as const,
-          player1Id: pair.player1Id,
-          player2Id: pair.player2Id,
-          status: "pendiente" as const,
-        })),
-      );
-    }
+  if (validPairs.length > 0) {
+    await dbClient.insert(matches).values(
+      validPairs.map((pair) => ({
+        weekId,
+        category: pair.category,
+        type: "sorteo" as const,
+        player1Id: pair.player1Id,
+        player2Id: pair.player2Id,
+        status: "pendiente" as const,
+      })),
+    );
+  }
 
-    await tx.insert(auditLog).values({
-      actorId,
-      action: "fixture.publish",
-      entityType: "week",
-      entityId: weekId,
-      payload: { pairsCount: validPairs.length },
-    });
+  await dbClient.insert(auditLog).values({
+    actorId,
+    action: "fixture.publish",
+    entityType: "week",
+    entityId: weekId,
+    payload: { pairsCount: validPairs.length },
   });
 
   revalidatePath(`/admin/semanas/${weekId}/fixture`);

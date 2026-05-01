@@ -24,14 +24,18 @@ type AddPlayersDialogProps = {
   weekId: string;
   label: string;
   players: AddablePlayer[];
+  defaultOpen?: boolean;
+  triggerLabel?: string;
 };
 
 export function AddPlayersDialog({
   weekId,
   label,
   players,
+  defaultOpen = false,
+  triggerLabel,
 }: AddPlayersDialogProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [query, setQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [maxMatches, setMaxMatches] = useState("1");
@@ -95,13 +99,15 @@ export function AddPlayersDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <Button
         type="button"
-        size="icon-sm"
+        size={triggerLabel ? "default" : "icon-sm"}
         variant="outline"
+        className={triggerLabel ? "rounded-full" : undefined}
         onClick={() => setOpen(true)}
         aria-label={`Agregar jugadores a ${label}`}
         title={`Agregar jugadores a ${label}`}
       >
         <Plus />
+        {triggerLabel}
       </Button>
 
       <DialogContent className="max-h-[85vh] overflow-hidden sm:max-w-lg">

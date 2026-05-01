@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { availability, players, weeks } from "@/lib/db/schema";
 import { closeAvailabilityAction, openAvailabilityAction } from "../actions";
+import { DeleteWeekButton } from "../delete-week-button";
 import { AddPlayersDialog } from "./add-players-dialog";
 
 const DAYS = [
@@ -28,8 +29,10 @@ function formatDate(dateStr: string) {
 
 export default async function AdminSemanaDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ agregarJugadores?: string }>;
 }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
@@ -44,6 +47,7 @@ export default async function AdminSemanaDetailPage({
   }
 
   const { id } = await params;
+  const query = searchParams ? await searchParams : {};
 
   const [week] = await db.select().from(weeks).where(eq(weeks.id, id)).limit(1);
 
@@ -108,6 +112,11 @@ export default async function AdminSemanaDetailPage({
       fullName: player.fullName,
       isAdded: addedPlayerIds.has(player.id),
     }));
+  const addablePlayers = activePlayers.map((player) => ({
+    id: player.id,
+    fullName: `${player.fullName} · ${player.gender === "M" ? "Hombres" : "Mujeres"}`,
+    isAdded: addedPlayerIds.has(player.id),
+  }));
 
   const weekLabel = `${formatDate(week.startsOn)}–${formatDate(week.endsOn)}`;
   const reminderMsg = [
@@ -176,6 +185,28 @@ export default async function AdminSemanaDetailPage({
           >
             Gestionar cruces →
           </Link>
+          <DeleteWeekButton weekId={week.id} weekLabel={weekLabel} />
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-950">
+              Jugadores de la programación
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Agregá jugadores manualmente con cupo de partidos para esta
+              semana.
+            </p>
+          </div>
+          <AddPlayersDialog
+            weekId={week.id}
+            label="la programación"
+            players={addablePlayers}
+            defaultOpen={query.agregarJugadores === "1"}
+            triggerLabel="Agregar jugadores"
+          />
         </div>
       </section>
 

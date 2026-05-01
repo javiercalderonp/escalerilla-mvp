@@ -10,6 +10,7 @@ import {
   createWeekAction,
   openAvailabilityAction,
 } from "./actions";
+import { DeleteWeekButton } from "./delete-week-button";
 
 function statusBadge(status: "borrador" | "abierta" | "cerrada") {
   const styles = {
@@ -144,6 +145,13 @@ export default async function AdminSemanasPage() {
                       </button>
                     </form>
                   )}
+
+                  <DeleteWeekButton
+                    weekId={week.id}
+                    weekLabel={`${formatDate(week.startsOn)} — ${formatDate(
+                      week.endsOn,
+                    )}`}
+                  />
                 </div>
               </div>
             ))}

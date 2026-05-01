@@ -135,6 +135,11 @@ export function OnboardingWizard() {
           return
         }
 
+        if (result?.error === "player_already_linked") {
+          setServerError("Ese jugador ya está asociado a otra cuenta.")
+          return
+        }
+
         if (result?.error === "unexpected") {
           setServerError(result.message || "No pudimos guardar tu perfil. Intenta de nuevo.")
         }

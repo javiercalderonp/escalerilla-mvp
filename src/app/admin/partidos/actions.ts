@@ -7,18 +7,13 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { ensureAppUser } from "@/lib/auth/ensure-app-user";
 import { db } from "@/lib/db";
-import {
-  auditLog,
-  matches,
-  matchSets,
-  rankingEvents,
-} from "@/lib/db/schema";
+import { auditLog, matches, matchSets, rankingEvents } from "@/lib/db/schema";
+import { refreshHistoricalBestRanking } from "@/lib/ranking";
 import {
   calculateWinLossPoints,
   getLoserReason,
   isValidMatchScore,
 } from "@/lib/rules/scoring";
-import { refreshHistoricalBestRanking } from "@/lib/ranking";
 
 const createMatchSchema = z.object({
   player1Id: z.string().uuid(),
@@ -399,42 +394,40 @@ async function applyConfirmedResult(args: {
       })
     : [];
 
-  await args.dbClient.transaction(async (tx) => {
-    if (compensationEvents.length > 0) {
-      for (const event of compensationEvents) {
-        await tx.insert(rankingEvents).values(event);
-      }
-    }
+  if (compensationEvents.length > 0) {
+    await args.dbClient.insert(rankingEvents).values(compensationEvents);
+  }
 
-    await tx
-      .update(matches)
-      .set({
-        format: args.parsed.format,
-        status: "confirmado",
-        winnerId,
-        woLoserId: null,
-        playedOn: args.parsed.playedOn || null,
-        confirmedAt: new Date(),
-        confirmedById: args.actorId,
-      })
-      .where(eq(matches.id, args.parsed.matchId));
+  await args.dbClient
+    .update(matches)
+    .set({
+      format: args.parsed.format,
+      status: "confirmado",
+      winnerId,
+      woLoserId: null,
+      playedOn: args.parsed.playedOn || null,
+      confirmedAt: new Date(),
+      confirmedById: args.actorId,
+    })
+    .where(eq(matches.id, args.parsed.matchId));
 
-    await tx
-      .delete(matchSets)
-      .where(eq(matchSets.matchId, args.parsed.matchId));
+  await args.dbClient
+    .delete(matchSets)
+    .where(eq(matchSets.matchId, args.parsed.matchId));
 
-    await tx.insert(matchSets).values(
-      sets.map((set) => ({
-        matchId: args.parsed.matchId,
-        setNumber: set.setNumber,
-        gamesP1: set.gamesP1,
-        gamesP2: set.gamesP2,
-        tiebreakP1: set.tiebreakP1 ?? null,
-        tiebreakP2: set.tiebreakP2 ?? null,
-      })),
-    );
+  await args.dbClient.insert(matchSets).values(
+    sets.map((set) => ({
+      matchId: args.parsed.matchId,
+      setNumber: set.setNumber,
+      gamesP1: set.gamesP1,
+      gamesP2: set.gamesP2,
+      tiebreakP1: set.tiebreakP1 ?? null,
+      tiebreakP2: set.tiebreakP2 ?? null,
+    })),
+  );
 
-    await tx.insert(rankingEvents).values({
+  await args.dbClient.insert(rankingEvents).values([
+    {
       playerId: winnerId,
       delta: scoring.winner,
       reason: "match_win",
@@ -444,9 +437,8 @@ async function applyConfirmedResult(args: {
         ? "Resultado corregido desde admin"
         : "Resultado confirmado desde admin",
       registeredById: args.actorId,
-    });
-
-    await tx.insert(rankingEvents).values({
+    },
+    {
       playerId: loserId,
       delta: scoring.loser,
       reason: loserReason,
@@ -456,23 +448,23 @@ async function applyConfirmedResult(args: {
         ? "Resultado corregido desde admin"
         : "Resultado confirmado desde admin",
       registeredById: args.actorId,
-    });
+    },
+  ]);
 
-    await tx.insert(auditLog).values({
-      actorId: args.actorId,
-      action: args.isCorrection
-        ? "match.correct_result"
-        : "match.register_result",
-      entityType: "match",
-      entityId: args.parsed.matchId,
-      payload: {
-        format: args.parsed.format,
-        winnerId,
-        loserId,
-        sets,
-        corrected: args.isCorrection,
-      },
-    });
+  await args.dbClient.insert(auditLog).values({
+    actorId: args.actorId,
+    action: args.isCorrection
+      ? "match.correct_result"
+      : "match.register_result",
+    entityType: "match",
+    entityId: args.parsed.matchId,
+    payload: {
+      format: args.parsed.format,
+      winnerId,
+      loserId,
+      sets,
+      corrected: args.isCorrection,
+    },
   });
 }
 
@@ -498,66 +490,62 @@ async function applyDrawResult(args: {
       })
     : [];
 
-  await args.dbClient.transaction(async (tx) => {
-    if (compensationEvents.length > 0) {
-      for (const event of compensationEvents) {
-        await tx.insert(rankingEvents).values(event);
-      }
-    }
+  if (compensationEvents.length > 0) {
+    await args.dbClient.insert(rankingEvents).values(compensationEvents);
+  }
 
-    await tx
-      .update(matches)
-      .set({
-        format: args.parsed.format,
-        status: "empate",
-        winnerId: null,
-        woLoserId: null,
-        playedOn: args.parsed.playedOn || null,
-        confirmedAt: new Date(),
-        confirmedById: args.actorId,
-      })
-      .where(eq(matches.id, args.parsed.matchId));
+  await args.dbClient
+    .update(matches)
+    .set({
+      format: args.parsed.format,
+      status: "empate",
+      winnerId: null,
+      woLoserId: null,
+      playedOn: args.parsed.playedOn || null,
+      confirmedAt: new Date(),
+      confirmedById: args.actorId,
+    })
+    .where(eq(matches.id, args.parsed.matchId));
 
-    await tx
-      .delete(matchSets)
-      .where(eq(matchSets.matchId, args.parsed.matchId));
+  await args.dbClient
+    .delete(matchSets)
+    .where(eq(matchSets.matchId, args.parsed.matchId));
 
-    await tx.insert(matchSets).values(
-      sets.map((set) => ({
-        matchId: args.parsed.matchId,
-        setNumber: set.setNumber,
-        gamesP1: set.gamesP1,
-        gamesP2: set.gamesP2,
-        tiebreakP1: set.tiebreakP1 ?? null,
-        tiebreakP2: set.tiebreakP2 ?? null,
-      })),
-    );
+  await args.dbClient.insert(matchSets).values(
+    sets.map((set) => ({
+      matchId: args.parsed.matchId,
+      setNumber: set.setNumber,
+      gamesP1: set.gamesP1,
+      gamesP2: set.gamesP2,
+      tiebreakP1: set.tiebreakP1 ?? null,
+      tiebreakP2: set.tiebreakP2 ?? null,
+    })),
+  );
 
-    for (const playerId of [args.match.player1Id, args.match.player2Id]) {
-      await tx.insert(rankingEvents).values({
-        playerId,
-        delta: drawDelta,
-        reason: "match_draw",
-        refType: "match",
-        refId: args.parsed.matchId,
-        note: args.isCorrection
-          ? "Empate corregido desde admin"
-          : "Empate confirmado desde admin",
-        registeredById: args.actorId,
-      });
-    }
+  await args.dbClient.insert(rankingEvents).values(
+    [args.match.player1Id, args.match.player2Id].map((playerId) => ({
+      playerId,
+      delta: drawDelta,
+      reason: "match_draw" as const,
+      refType: "match",
+      refId: args.parsed.matchId,
+      note: args.isCorrection
+        ? "Empate corregido desde admin"
+        : "Empate confirmado desde admin",
+      registeredById: args.actorId,
+    })),
+  );
 
-    await tx.insert(auditLog).values({
-      actorId: args.actorId,
-      action: args.isCorrection ? "match.correct_draw" : "match.register_draw",
-      entityType: "match",
-      entityId: args.parsed.matchId,
-      payload: {
-        format: args.parsed.format,
-        sets,
-        corrected: args.isCorrection,
-      },
-    });
+  await args.dbClient.insert(auditLog).values({
+    actorId: args.actorId,
+    action: args.isCorrection ? "match.correct_draw" : "match.register_draw",
+    entityType: "match",
+    entityId: args.parsed.matchId,
+    payload: {
+      format: args.parsed.format,
+      sets,
+      corrected: args.isCorrection,
+    },
   });
 }
 
@@ -589,31 +577,29 @@ async function applyWalkoverResult(args: {
       })
     : [];
 
-  await args.dbClient.transaction(async (tx) => {
-    if (compensationEvents.length > 0) {
-      for (const event of compensationEvents) {
-        await tx.insert(rankingEvents).values(event);
-      }
-    }
+  if (compensationEvents.length > 0) {
+    await args.dbClient.insert(rankingEvents).values(compensationEvents);
+  }
 
-    await tx
-      .update(matches)
-      .set({
-        status: "wo",
-        format: null,
-        winnerId,
-        woLoserId: loserId,
-        playedOn: args.parsed.playedOn || null,
-        confirmedAt: new Date(),
-        confirmedById: args.actorId,
-      })
-      .where(eq(matches.id, args.parsed.matchId));
+  await args.dbClient
+    .update(matches)
+    .set({
+      status: "wo",
+      format: null,
+      winnerId,
+      woLoserId: loserId,
+      playedOn: args.parsed.playedOn || null,
+      confirmedAt: new Date(),
+      confirmedById: args.actorId,
+    })
+    .where(eq(matches.id, args.parsed.matchId));
 
-    await tx
-      .delete(matchSets)
-      .where(eq(matchSets.matchId, args.parsed.matchId));
+  await args.dbClient
+    .delete(matchSets)
+    .where(eq(matchSets.matchId, args.parsed.matchId));
 
-    await tx.insert(rankingEvents).values({
+  await args.dbClient.insert(rankingEvents).values([
+    {
       playerId: winnerId,
       delta: 60,
       reason: "wo_win",
@@ -623,9 +609,8 @@ async function applyWalkoverResult(args: {
         ? "W.O. corregido desde admin"
         : "W.O. confirmado desde admin",
       registeredById: args.actorId,
-    });
-
-    await tx.insert(rankingEvents).values({
+    },
+    {
       playerId: loserId,
       delta: -20,
       reason: "wo_loss",
@@ -635,21 +620,21 @@ async function applyWalkoverResult(args: {
         ? "W.O. corregido desde admin"
         : "W.O. confirmado desde admin",
       registeredById: args.actorId,
-    });
+    },
+  ]);
 
-    await tx.insert(auditLog).values({
-      actorId: args.actorId,
-      action: args.isCorrection
-        ? "match.correct_walkover"
-        : "match.register_walkover",
-      entityType: "match",
-      entityId: args.parsed.matchId,
-      payload: {
-        winnerId,
-        loserId,
-        corrected: args.isCorrection,
-      },
-    });
+  await args.dbClient.insert(auditLog).values({
+    actorId: args.actorId,
+    action: args.isCorrection
+      ? "match.correct_walkover"
+      : "match.register_walkover",
+    entityType: "match",
+    entityId: args.parsed.matchId,
+    payload: {
+      winnerId,
+      loserId,
+      corrected: args.isCorrection,
+    },
   });
 }
 

@@ -50,39 +50,62 @@ export default async function RankingCategoryPage({
     : null;
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6">
-      <div className="w-full rounded-3xl bg-card p-8 shadow-sm ring-1 ring-black/5">
-        <p className="text-sm font-medium uppercase tracking-wide text-court">
-          Ranking · {categoryLabel}
-        </p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
-          Ranking público por categoría
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
-          Ranking real por categoría con acceso al perfil público de cada
-          jugador y su detalle de puntos.
-        </p>
-        <div className="mt-6 inline-flex rounded-full bg-muted p-1 text-sm">
-          <Link
-            href="/ranking/hombres"
-            className={`rounded-full px-4 py-2 font-medium transition ${
-              categoria === "hombres"
-                ? "bg-court text-court-foreground"
-                : "text-muted-foreground hover:bg-muted/80"
-            }`}
-          >
-            Hombres
-          </Link>
-          <Link
-            href="/ranking/mujeres"
-            className={`rounded-full px-4 py-2 font-medium transition ${
-              categoria === "mujeres"
-                ? "bg-court text-court-foreground"
-                : "text-muted-foreground hover:bg-muted/80"
-            }`}
-          >
-            Mujeres
-          </Link>
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-10 sm:px-6">
+      {/* ── Hero header ── */}
+      <div
+        className="relative overflow-hidden rounded-3xl shadow-md"
+        style={{
+          background:
+            "linear-gradient(140deg, #0b1d4f 0%, #1640a0 55%, #0d2460 100%)",
+        }}
+      >
+        {/* Court grid texture */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.07]"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)",
+            backgroundSize: "48px 48px",
+          }}
+        />
+
+        <div className="relative flex flex-col gap-6 p-8 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-blue-300/80">
+              Escalerilla · {categoryLabel}
+            </p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">
+              Ranking {categoryLabel}
+            </h1>
+            <p className="mt-2 text-sm text-white/50">
+              {entries.length} jugadores · Actualizado en tiempo real
+            </p>
+          </div>
+
+          {/* Category switcher */}
+          <div className="inline-flex self-start rounded-full bg-white/10 p-1 text-sm sm:self-auto">
+            <Link
+              href="/ranking/hombres"
+              className={`rounded-full px-5 py-2 font-medium transition ${
+                categoria === "hombres"
+                  ? "bg-white text-[#0b1d4f]"
+                  : "text-white/70 hover:text-white"
+              }`}
+            >
+              Hombres
+            </Link>
+            <Link
+              href="/ranking/mujeres"
+              className={`rounded-full px-5 py-2 font-medium transition ${
+                categoria === "mujeres"
+                  ? "bg-white text-[#0b1d4f]"
+                  : "text-white/70 hover:text-white"
+              }`}
+            >
+              Mujeres
+            </Link>
+          </div>
         </div>
       </div>
 

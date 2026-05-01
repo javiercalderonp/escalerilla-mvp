@@ -25,7 +25,7 @@ export function RankingTable({ category, entries }: RankingTableProps) {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <div className="grid grid-cols-[40px_minmax(0,1fr)_54px_38px_38px_38px] gap-2 border-b border-border bg-muted/60 px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid-cols-[56px_minmax(0,1fr)_72px_56px_56px_56px] sm:px-6 lg:grid-cols-[56px_minmax(0,1fr)_92px_72px_72px_72px_72px_120px]">
+      <div className="grid grid-cols-[40px_minmax(0,1fr)_54px_38px_38px_38px] gap-2 border-b border-border bg-muted/40 px-3 py-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground sm:grid-cols-[56px_minmax(0,1fr)_72px_56px_56px_56px] sm:px-6 lg:grid-cols-[56px_minmax(0,1fr)_92px_72px_72px_72px_72px_120px]">
         <span>#</span>
         <span>Jugador</span>
         <span className="text-right">Pts</span>
@@ -36,9 +36,11 @@ export function RankingTable({ category, entries }: RankingTableProps) {
         <span className="hidden lg:block">Δ semana</span>
       </div>
 
-      <div className="divide-y divide-border/70">
+      <div className="divide-y divide-border/60">
         {entries.map((entry) => {
           const [firstName, ...rest] = entry.fullName.split(" ");
+          const isTop3 = entry.position <= 3;
+
           const borderTone =
             entry.position === 1
               ? "border-l-[3px] border-l-gold"
@@ -48,14 +50,23 @@ export function RankingTable({ category, entries }: RankingTableProps) {
                   ? "border-l-[3px] border-l-bronze"
                   : "border-l-[3px] border-l-transparent";
 
+          const positionColor =
+            entry.position === 1
+              ? "text-gold font-bold"
+              : entry.position === 2
+                ? "text-silver font-bold"
+                : entry.position === 3
+                  ? "text-bronze font-bold"
+                  : "text-muted-foreground font-semibold";
+
           return (
             <Link
               key={entry.id}
               href={`/ranking/${category}?player=${entry.id}`}
               scroll={false}
-              className={`grid h-14 grid-cols-[40px_minmax(0,1fr)_54px_38px_38px_38px] gap-2 px-3 py-3 transition hover:bg-muted/50 sm:h-12 sm:grid-cols-[56px_minmax(0,1fr)_72px_56px_56px_56px] sm:px-6 lg:grid-cols-[56px_minmax(0,1fr)_92px_72px_72px_72px_72px_120px] ${borderTone}`}
+              className={`grid h-14 grid-cols-[40px_minmax(0,1fr)_54px_38px_38px_38px] items-center gap-2 px-3 py-3 transition hover:bg-muted/40 sm:h-12 sm:grid-cols-[56px_minmax(0,1fr)_72px_56px_56px_56px] sm:px-6 lg:grid-cols-[56px_minmax(0,1fr)_92px_72px_72px_72px_72px_120px] ${borderTone} ${isTop3 ? "bg-muted/20" : ""}`}
             >
-              <span className="text-sm font-semibold text-muted-foreground tabular-nums">
+              <span className={`text-sm tabular-nums ${positionColor}`}>
                 {entry.position}
               </span>
               <div className="min-w-0">
@@ -85,10 +96,10 @@ export function RankingTable({ category, entries }: RankingTableProps) {
                     : "Ver perfil"}
                 </p>
               </div>
-              <span className="text-right text-sm font-semibold text-foreground tabular-nums">
+              <span className="text-right text-sm font-bold text-foreground tabular-nums">
                 {entry.points}
               </span>
-              <span className="text-center text-sm font-semibold text-muted-foreground tabular-nums">
+              <span className="text-center text-sm text-muted-foreground tabular-nums">
                 {entry.matchesPlayed}
               </span>
               <span className="text-center text-sm font-semibold text-grass tabular-nums">
@@ -97,7 +108,7 @@ export function RankingTable({ category, entries }: RankingTableProps) {
               <span className="text-center text-sm font-semibold text-destructive tabular-nums">
                 {entry.matchesLost}
               </span>
-              <span className="hidden text-center text-sm font-semibold text-muted-foreground tabular-nums lg:block">
+              <span className="hidden text-center text-sm text-muted-foreground tabular-nums lg:block">
                 {entry.bestRankingPosition != null
                   ? `#${entry.bestRankingPosition}`
                   : "—"}

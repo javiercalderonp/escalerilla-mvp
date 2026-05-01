@@ -2,6 +2,7 @@
 
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
@@ -79,6 +80,44 @@ export async function createWeekAction(formData: FormData) {
   });
 
   revalidatePath("/admin/semanas");
+  redirect(`/admin/semanas/${week.id}?agregarJugadores=1`);
+}
+
+export async function deleteWeekAction(formData: FormData) {
+  const { actorId, dbClient } = await requireAdminActor();
+
+  const weekId = z.string().uuid().parse(formData.get("weekId"));
+
+  const [week] = await dbClient
+    .delete(weeks)
+    .where(eq(weeks.id, weekId))
+    .returning({
+      id: weeks.id,
+      startsOn: weeks.startsOn,
+      endsOn: weeks.endsOn,
+      status: weeks.status,
+    });
+
+  if (!week) {
+    throw new Error("La programación no existe");
+  }
+
+  await dbClient.insert(auditLog).values({
+    actorId,
+    action: "week.delete",
+    entityType: "week",
+    entityId: weekId,
+    payload: {
+      startsOn: week.startsOn,
+      endsOn: week.endsOn,
+      status: week.status,
+    },
+  });
+
+  revalidatePath("/admin/semanas");
+  revalidatePath(`/admin/semanas/${weekId}`);
+  revalidatePath(`/admin/semanas/${weekId}/fixture`);
+  redirect("/admin/semanas");
 }
 
 export async function openAvailabilityAction(formData: FormData) {
@@ -164,32 +203,30 @@ export async function addPlayersToWeekAvailabilityAction(args: {
 
   const now = new Date();
 
-  await dbClient.transaction(async (tx) => {
-    await tx
-      .insert(availability)
-      .values(
-        validPlayerIds.map((playerId) => ({
-          weekId,
-          playerId,
-          maxMatches,
-          updatedAt: now,
-        })),
-      )
-      .onConflictDoUpdate({
-        target: [availability.weekId, availability.playerId],
-        set: {
-          maxMatches,
-          updatedAt: now,
-        },
-      });
-
-    await tx.insert(auditLog).values({
-      actorId,
-      action: "week.admin_add_availability",
-      entityType: "week",
-      entityId: weekId,
-      payload: { playerIds: validPlayerIds, maxMatches },
+  await dbClient
+    .insert(availability)
+    .values(
+      validPlayerIds.map((playerId) => ({
+        weekId,
+        playerId,
+        maxMatches,
+        updatedAt: now,
+      })),
+    )
+    .onConflictDoUpdate({
+      target: [availability.weekId, availability.playerId],
+      set: {
+        maxMatches,
+        updatedAt: now,
+      },
     });
+
+  await dbClient.insert(auditLog).values({
+    actorId,
+    action: "week.admin_add_availability",
+    entityType: "week",
+    entityId: weekId,
+    payload: { playerIds: validPlayerIds, maxMatches },
   });
 
   revalidatePath(`/admin/semanas/${weekId}`);

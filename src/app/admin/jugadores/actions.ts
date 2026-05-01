@@ -202,7 +202,10 @@ export async function createPlayerAction(formData: FormData) {
     email: normalizeOptional(parsed.data.email),
     gender: parsed.data.gender,
     status: parsed.data.status,
-    level: parsed.data.level && parsed.data.level.length > 0 ? parsed.data.level : null,
+    level:
+      parsed.data.level && parsed.data.level.length > 0
+        ? parsed.data.level
+        : null,
     initialPoints: parsed.data.initialPoints,
     notes: normalizeOptional(parsed.data.notes),
   };
@@ -254,64 +257,62 @@ export async function importPlayersCsvAction(formData: FormData) {
     }
   }
 
-  await dbClient.transaction(async (tx) => {
-    const inserted = await tx
-      .insert(players)
-      .values(
-        rows.map((row) => ({
-          fullName: row.fullName,
-          email: normalizeOptional(row.email),
-          gender: row.gender,
-          status: "activo" as const,
-          initialPoints: row.initialPoints,
-          notes: normalizeOptional(row.notes),
-        })),
-      )
-      .returning({
-        id: players.id,
-        fullName: players.fullName,
-        initialPoints: players.initialPoints,
-      });
-
-    const byName = new Map(inserted.map((player) => [player.fullName, player]));
-    const seedEvents = rows.flatMap((row) => {
-      if (row.initialPoints <= 0) {
-        return [];
-      }
-
-      const player = byName.get(row.fullName);
-
-      if (!player) {
-        return [];
-      }
-
-      return [
-        {
-          playerId: player.id,
-          delta: row.initialPoints,
-          reason: "initial_seed" as const,
-          note: row.notes?.trim()
-            ? `Seed inicial CSV · ${row.notes.trim()}`
-            : "Seed inicial CSV",
-          registeredById: actorId,
-        },
-      ];
+  const inserted = await dbClient
+    .insert(players)
+    .values(
+      rows.map((row) => ({
+        fullName: row.fullName,
+        email: normalizeOptional(row.email),
+        gender: row.gender,
+        status: "activo" as const,
+        initialPoints: row.initialPoints,
+        notes: normalizeOptional(row.notes),
+      })),
+    )
+    .returning({
+      id: players.id,
+      fullName: players.fullName,
+      initialPoints: players.initialPoints,
     });
 
-    if (seedEvents.length > 0) {
-      await tx.insert(rankingEvents).values(seedEvents);
+  const byName = new Map(inserted.map((player) => [player.fullName, player]));
+  const seedEvents = rows.flatMap((row) => {
+    if (row.initialPoints <= 0) {
+      return [];
     }
 
-    await tx.insert(auditLog).values({
-      actorId,
-      action: "player.import_csv",
-      entityType: "player_batch",
-      payload: {
-        count: rows.length,
-        withSeedEvents: seedEvents.length,
-        sourceFile: file.name,
+    const player = byName.get(row.fullName);
+
+    if (!player) {
+      return [];
+    }
+
+    return [
+      {
+        playerId: player.id,
+        delta: row.initialPoints,
+        reason: "initial_seed" as const,
+        note: row.notes?.trim()
+          ? `Seed inicial CSV · ${row.notes.trim()}`
+          : "Seed inicial CSV",
+        registeredById: actorId,
       },
-    });
+    ];
+  });
+
+  if (seedEvents.length > 0) {
+    await dbClient.insert(rankingEvents).values(seedEvents);
+  }
+
+  await dbClient.insert(auditLog).values({
+    actorId,
+    action: "player.import_csv",
+    entityType: "player_batch",
+    payload: {
+      count: rows.length,
+      withSeedEvents: seedEvents.length,
+      sourceFile: file.name,
+    },
   });
 
   const categories = new Set(rows.map((row) => row.gender));
@@ -332,6 +333,7 @@ export async function updatePlayerAction(formData: FormData) {
     email: formData.get("email"),
     gender: formData.get("gender"),
     status: formData.get("status"),
+    level: formData.get("level") ?? "",
     initialPoints: formData.get("initialPoints") ?? 0,
     notes: formData.get("notes"),
   });
@@ -345,7 +347,10 @@ export async function updatePlayerAction(formData: FormData) {
     email: normalizeOptional(parsed.data.email),
     gender: parsed.data.gender,
     status: parsed.data.status,
-    level: parsed.data.level && parsed.data.level.length > 0 ? parsed.data.level : null,
+    level:
+      parsed.data.level && parsed.data.level.length > 0
+        ? parsed.data.level
+        : null,
     initialPoints: parsed.data.initialPoints,
     notes: normalizeOptional(parsed.data.notes),
     updatedAt: new Date(),

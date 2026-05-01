@@ -11,6 +11,21 @@ import { players, users } from "@/lib/db/schema"
 import { isAdminEmail } from "@/lib/env"
 import { onboardingFullSchema } from "@/lib/validation/player"
 
+type ExistingPlayerCandidate = {
+  id: string
+  fullName: string
+  rut: string | null
+}
+
+function normalizeProfileName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
 export async function submitOnboarding(input: unknown) {
   const session = await auth()
 
@@ -33,29 +48,101 @@ export async function submitOnboarding(input: unknown) {
 
   try {
     if (!user.playerId) {
-      const [created] = await db
-        .insert(players)
-        .values({
-          fullName,
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email,
-          gender: data.gender,
-          birthDate,
-          phone: data.phone,
-          rut: data.rut,
-          level: data.level,
-          dominantHand: data.dominantHand,
-          backhand: data.backhand,
-          yearsPlaying: data.yearsPlaying,
-          joinedLadderOn: today,
+      const [playerByRut] = await db
+        .select({
+          id: players.id,
+          fullName: players.fullName,
+          rut: players.rut,
         })
-        .returning({ id: players.id })
+        .from(players)
+        .where(eq(players.rut, data.rut))
+        .limit(1)
 
-      await db
-        .update(users)
-        .set({ playerId: created.id, role: isAdminEmail(email) ? "admin" : "player" })
-        .where(eq(users.id, user.id))
+      let existingPlayer: ExistingPlayerCandidate | undefined = playerByRut
+
+      if (!existingPlayer) {
+        const sameGenderPlayers = await db
+          .select({
+            id: players.id,
+            fullName: players.fullName,
+            rut: players.rut,
+          })
+          .from(players)
+          .where(eq(players.gender, data.gender))
+
+        const normalizedFullName = normalizeProfileName(fullName)
+        const nameMatches = sameGenderPlayers.filter(
+          (player) =>
+            !player.rut &&
+            normalizeProfileName(player.fullName) === normalizedFullName,
+        )
+
+        if (nameMatches.length === 1) {
+          existingPlayer = nameMatches[0]
+        }
+      }
+
+      if (existingPlayer) {
+        const [linkedUser] = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.playerId, existingPlayer.id))
+          .limit(1)
+
+        if (linkedUser && linkedUser.id !== user.id) {
+          return { error: "player_already_linked" as const }
+        }
+
+        await db
+          .update(players)
+          .set({
+            fullName,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            email,
+            gender: data.gender,
+            birthDate,
+            phone: data.phone,
+            rut: data.rut,
+            level: data.level,
+            dominantHand: data.dominantHand,
+            backhand: data.backhand,
+            yearsPlaying: data.yearsPlaying,
+          })
+          .where(eq(players.id, existingPlayer.id))
+
+        await db
+          .update(users)
+          .set({
+            playerId: existingPlayer.id,
+            role: isAdminEmail(email) ? "admin" : "player",
+          })
+          .where(eq(users.id, user.id))
+      } else {
+        const [created] = await db
+          .insert(players)
+          .values({
+            fullName,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            email,
+            gender: data.gender,
+            birthDate,
+            phone: data.phone,
+            rut: data.rut,
+            level: data.level,
+            dominantHand: data.dominantHand,
+            backhand: data.backhand,
+            yearsPlaying: data.yearsPlaying,
+            joinedLadderOn: today,
+          })
+          .returning({ id: players.id })
+
+        await db
+          .update(users)
+          .set({ playerId: created.id, role: isAdminEmail(email) ? "admin" : "player" })
+          .where(eq(users.id, user.id))
+      }
     } else {
       await db
         .update(players)

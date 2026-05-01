@@ -1,4 +1,5 @@
 import { asc } from "drizzle-orm";
+import { Pencil, Plus } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import {
@@ -11,6 +12,14 @@ import {
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { players } from "@/lib/db/schema";
 
 async function getPlayers() {
@@ -47,6 +56,159 @@ const csvExample = `full_name,email,gender,initial_points,notes
 Juan Pérez López,juan@gmail.com,M,420,Ranking 2025: 3º
 Pedro García,,M,380,
 María Torres,maria.t@gmail.com,F,310,Ranking 2025: 1º femenino`;
+
+type PlayerRow = Awaited<ReturnType<typeof getPlayers>>[number];
+
+const inputClass =
+  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-emerald-500";
+
+function PlayerFields({ player }: { player?: PlayerRow }) {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      <label className="space-y-2 text-sm text-slate-700 sm:col-span-2">
+        <span className="font-medium">Nombre completo</span>
+        <input
+          name="fullName"
+          defaultValue={player?.fullName ?? ""}
+          required
+          className={inputClass}
+        />
+      </label>
+
+      <label className="space-y-2 text-sm text-slate-700">
+        <span className="font-medium">Email</span>
+        <input
+          name="email"
+          type="email"
+          defaultValue={player?.email ?? ""}
+          className={inputClass}
+        />
+      </label>
+
+      <label className="space-y-2 text-sm text-slate-700">
+        <span className="font-medium">Categoría</span>
+        <select
+          name="gender"
+          defaultValue={player?.gender ?? "M"}
+          className={inputClass}
+        >
+          <option value="M">Hombres</option>
+          <option value="F">Mujeres</option>
+        </select>
+      </label>
+
+      <label className="space-y-2 text-sm text-slate-700">
+        <span className="font-medium">Puntos iniciales</span>
+        <input
+          name="initialPoints"
+          type="number"
+          min={0}
+          defaultValue={player?.initialPoints ?? 0}
+          className={inputClass}
+        />
+      </label>
+
+      <label className="space-y-2 text-sm text-slate-700">
+        <span className="font-medium">Nivel</span>
+        <select
+          name="level"
+          defaultValue={player?.level ?? ""}
+          className={inputClass}
+        >
+          <option value="">Sin definir</option>
+          <option value="principiante">Principiante</option>
+          <option value="intermedio_bajo">Intermedio bajo</option>
+          <option value="intermedio_alto">Intermedio alto</option>
+          <option value="avanzado">Avanzado</option>
+        </select>
+      </label>
+
+      <label className="space-y-2 text-sm text-slate-700">
+        <span className="font-medium">Estado</span>
+        <select
+          name="status"
+          defaultValue={player?.status ?? "activo"}
+          className={inputClass}
+        >
+          <option value="activo">Activo</option>
+          <option value="congelado">Congelado</option>
+          <option value="retirado">Retirado</option>
+        </select>
+      </label>
+
+      <label className="space-y-2 text-sm text-slate-700 sm:col-span-2">
+        <span className="font-medium">Notas</span>
+        <textarea
+          name="notes"
+          rows={3}
+          defaultValue={player?.notes ?? ""}
+          className={inputClass}
+        />
+      </label>
+    </div>
+  );
+}
+
+function CreatePlayerDialog() {
+  return (
+    <Dialog>
+      <DialogTrigger className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 text-white shadow-sm transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-slate-950/20">
+        <Plus className="size-5" />
+        <span className="sr-only">Agregar jugador</span>
+      </DialogTrigger>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Agregar jugador</DialogTitle>
+          <DialogDescription>
+            Crea un alta individual para el plantel.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form action={createPlayerAction} className="space-y-5">
+          <PlayerFields />
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+            >
+              Guardar jugador
+            </button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditPlayerDialog({ player }: { player: PlayerRow }) {
+  return (
+    <Dialog>
+      <DialogTrigger className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-slate-950/10">
+        <Pencil className="size-4" />
+        Editar
+      </DialogTrigger>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Editar jugador</DialogTitle>
+          <DialogDescription>{player.fullName}</DialogDescription>
+        </DialogHeader>
+
+        <form action={updatePlayerAction} className="space-y-5">
+          <input type="hidden" name="playerId" value={player.id} />
+          <PlayerFields player={player} />
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+            >
+              Guardar cambios
+            </button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default async function AdminPlayersPage() {
   const session = await auth();
