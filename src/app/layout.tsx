@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Escalerilla La Dehesa",
     description:
-      "Seguí el ranking, declaré disponibilidad y consultá la programación semanal.",
+      "Sigue el ranking, declara disponibilidad y consulta la programación semanal.",
     type: "website",
     locale: "es_CL",
   },

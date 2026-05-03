@@ -1,20 +1,23 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import {
   BarChart2Icon,
   CalendarIcon,
   Clock3Icon,
+  FlameIcon,
   HandIcon,
   IdCardIcon,
   MessageCircleIcon,
+  PercentIcon,
   ShieldIcon,
+  StarIcon,
   TrendingUpIcon,
   TrophyIcon,
   XIcon,
 } from "lucide-react"
 
 import { Avatar } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs"
 import { whatsappUrl } from "@/lib/validation/phone"
@@ -57,6 +60,12 @@ export function PlayerCardModal({
   open: boolean
   onClose: () => void
 }) {
+  const [activeTab, setActiveTab] = useState("info")
+
+  useEffect(() => {
+    if (open) setActiveTab("info")
+  }, [open])
+
   const p = data.player
   const level = levelLabel(p.level)
   const record = `${data.performance.matchesWon}–${data.performance.matchesLost}`
@@ -66,17 +75,16 @@ export function PlayerCardModal({
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="bottom-0 top-auto max-h-[90vh] translate-x-[-50%] translate-y-0 gap-0 overflow-y-auto rounded-t-2xl p-0 sm:top-1/2 sm:max-w-xl sm:-translate-y-1/2 sm:rounded-2xl"
+        className="bottom-0 top-auto !flex max-h-[calc(100dvh-1rem)] translate-x-[-50%] translate-y-0 flex-col gap-0 overflow-hidden rounded-t-2xl p-0 sm:bottom-auto sm:top-1/2 sm:max-h-[calc(100dvh-2rem)] sm:max-w-xl sm:-translate-y-1/2 sm:rounded-2xl"
       >
-        {/* ── Hero header (dark blue gradient) ── */}
+        {/* ── Hero header ── */}
         <div
-          className="relative overflow-hidden rounded-t-2xl"
+          className="relative shrink-0 overflow-hidden rounded-t-2xl"
           style={{
             background:
               "linear-gradient(140deg, #0b1d4f 0%, #1640a0 55%, #0d2460 100%)",
           }}
         >
-          {/* Court grid texture */}
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0 opacity-[0.07]"
@@ -87,13 +95,11 @@ export function PlayerCardModal({
             }}
           />
 
-          {/* Close button */}
           <DialogClose className="absolute right-3 top-3 z-10 rounded-full p-2 text-white/50 transition hover:bg-white/15 hover:text-white">
             <XIcon className="size-5" />
             <span className="sr-only">Cerrar</span>
           </DialogClose>
 
-          {/* Player identity */}
           <div className="relative flex items-center gap-5 px-6 pb-5 pt-6">
             <div className="relative shrink-0">
               <div className="rounded-full ring-2 ring-blue-400 ring-offset-2 ring-offset-[#0b1d4f]">
@@ -124,7 +130,6 @@ export function PlayerCardModal({
             </div>
           </div>
 
-          {/* Stat cards row */}
           <div className="relative grid grid-cols-4 gap-2 px-5 pb-5">
             <HeroStat
               icon={<BarChart2Icon className="size-3.5" />}
@@ -138,26 +143,43 @@ export function PlayerCardModal({
             />
             <HeroStat
               icon={<TrophyIcon className="size-3.5" />}
-              label="Récord"
-              value={record}
+              label="Modalidad"
+              value="Singles"
             />
             <HeroStat
-              icon={<BarChart2Icon className="size-3.5" />}
-              label="Jugados"
-              value={String(data.performance.matchesPlayed)}
+              icon={<TrophyIcon className="size-3.5" />}
+              label="Récord"
+              value={record}
             />
           </div>
         </div>
 
-        {/* ── Tabs ── */}
-        <Tabs defaultValue="info">
-          <TabsList className="mx-5 mt-4">
-            <TabsTab value="info">Info</TabsTab>
-            <TabsTab value="performance">Rendimiento</TabsTab>
+        {/* ── Tabs – underline style ── */}
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          <TabsList className="flex h-12 w-full rounded-none border-b border-border bg-background p-0 px-2 gap-0">
+            <TabsTab
+              value="info"
+              className="h-full min-w-0 rounded-none border-b-2 border-transparent px-5 py-0 -mb-px font-medium text-muted-foreground transition-colors data-[selected]:border-court data-[selected]:bg-transparent data-[selected]:text-court"
+            >
+              Info
+            </TabsTab>
+            <TabsTab
+              value="performance"
+              className="h-full min-w-0 rounded-none border-b-2 border-transparent px-5 py-0 -mb-px font-medium text-muted-foreground transition-colors data-[selected]:border-court data-[selected]:bg-transparent data-[selected]:text-court"
+            >
+              Rendimiento
+            </TabsTab>
           </TabsList>
 
           {/* INFO tab */}
-          <TabsPanel value="info" className="p-5">
+          <TabsPanel
+            value="info"
+            className="min-h-0 flex-1 overflow-y-auto bg-background p-5"
+          >
             <div className="flex flex-col gap-4 sm:flex-row">
               {/* Left: info rows */}
               <div className="min-w-0 flex-1 space-y-2">
@@ -195,9 +217,7 @@ export function PlayerCardModal({
                   <InfoRow
                     icon={<TrophyIcon className="size-4" />}
                     label="En la escalerilla"
-                    value={
-                      formatDate(p.joinedLadderOn) ?? p.joinedLadderOn
-                    }
+                    value={formatDate(p.joinedLadderOn) ?? p.joinedLadderOn}
                   />
                 )}
                 {p.phone ? (
@@ -221,7 +241,7 @@ export function PlayerCardModal({
               </div>
 
               {/* Right: compact performance panel */}
-              <div className="shrink-0 rounded-xl border border-border bg-muted/30 p-4 sm:w-48">
+              <div className="shrink-0 rounded-xl border border-border bg-muted/30 p-4 sm:w-52">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold text-foreground">
                     Rendimiento
@@ -279,10 +299,18 @@ export function PlayerCardModal({
                     </span>
                   </div>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("performance")}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-court px-3 py-2 text-xs font-medium text-court transition hover:bg-court/5"
+                >
+                  <BarChart2Icon className="size-3.5" />
+                  Ver rendimiento completo
+                </button>
               </div>
             </div>
 
-            {/* Footer note */}
             <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-court/20 bg-court/5 px-4 py-3">
               <ShieldIcon className="mt-0.5 size-4 shrink-0 text-court" />
               <p className="text-xs italic text-muted-foreground">
@@ -292,103 +320,126 @@ export function PlayerCardModal({
             </div>
           </TabsPanel>
 
-          {/* PERFORMANCE tab */}
-          <TabsPanel value="performance" className="space-y-5 p-5">
-            <div className="grid grid-cols-3 gap-3">
-              <Stat label="Jugados" value={String(data.performance.matchesPlayed)} />
-              <Stat
-                label="Ganados"
-                value={String(data.performance.matchesWon)}
-                tone="grass"
-              />
-              <Stat
-                label="% Win"
-                value={`${data.performance.winRate.toFixed(0)}%`}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Stat label="Ranking actual" value={`#${data.ranking.position}`} />
-              <Stat
-                label="Mejor ranking"
-                value={
-                  data.ranking.bestPosition != null
-                    ? `#${data.ranking.bestPosition}`
-                    : "—"
-                }
-                tone="grass"
-              />
-            </div>
+          {/* PERFORMANCE tab – dark theme */}
+          <TabsPanel
+            value="performance"
+            className="min-h-0 flex-1 overflow-y-auto bg-[#080e2a] sm:rounded-b-2xl"
+          >
+            <div className="space-y-4 p-5">
+              {/* 5 stat cards with icons */}
+              <div className="grid grid-cols-5 gap-2">
+                <DarkStat
+                  icon={<CalendarIcon className="size-4" />}
+                  label="Partidos jugados"
+                  value={String(data.performance.matchesPlayed)}
+                />
+                <DarkStat
+                  icon={<TrophyIcon className="size-4" />}
+                  label="Ganados"
+                  value={String(data.performance.matchesWon)}
+                  tone="grass"
+                />
+                <DarkStat
+                  icon={<PercentIcon className="size-4" />}
+                  label="% Win"
+                  value={`${data.performance.winRate.toFixed(0)}%`}
+                />
+                <DarkStat
+                  icon={<BarChart2Icon className="size-4" />}
+                  label="Ranking actual"
+                  value={`#${data.ranking.position}`}
+                />
+                <DarkStat
+                  icon={<StarIcon className="size-4" />}
+                  label="Mejor ranking"
+                  value={
+                    data.ranking.bestPosition != null
+                      ? `#${data.ranking.bestPosition}`
+                      : "—"
+                  }
+                  tone="grass"
+                />
+              </div>
 
-            {/* Streak */}
-            <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Racha reciente
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {data.performance.streak.length > 0 ? (
-                  data.performance.streak.map((r, i) => (
-                    <span
-                      key={i}
-                      className={`flex size-9 items-center justify-center rounded-full text-xs font-bold ${
-                        r === "W"
-                          ? "bg-grass/15 text-grass ring-1 ring-grass/30"
-                          : "bg-clay/15 text-clay ring-1 ring-clay/30"
-                      }`}
-                    >
-                      {r}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-sm text-muted-foreground">
-                    Sin partidos aún
+              {/* Racha */}
+              <div className="flex flex-wrap items-center gap-3 rounded-xl bg-white/[0.06] px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <FlameIcon className="size-4 text-orange-400" />
+                  <span className="text-sm font-semibold text-white">
+                    Racha
                   </span>
-                )}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {data.performance.streak.length > 0 ? (
+                    data.performance.streak.map((r, i) => (
+                      <span
+                        key={i}
+                        className={`flex size-8 items-center justify-center rounded-full text-xs font-bold ${
+                          r === "W"
+                            ? "bg-green-900/70 text-green-400 ring-1 ring-green-600/30"
+                            : "bg-orange-950/70 text-orange-400 ring-1 ring-orange-700/30"
+                        }`}
+                      >
+                        {r}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-sm text-white/40">Sin partidos</span>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* Recent matches */}
-            {data.recentMatches.length > 0 && (
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Últimos partidos
-                </p>
-                <ul className="space-y-2">
-                  {data.recentMatches.map((match) => (
-                    <li
-                      key={match.id}
-                      className="rounded-xl border border-border p-3 transition hover:bg-muted/30"
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-medium text-foreground">
-                            vs {match.opponentName}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatDate(match.playedOn) ?? match.playedOn}
-                          </p>
-                        </div>
-                        <Badge
-                          variant={
-                            match.result === "W" || match.result === "WO_W"
-                              ? "success"
-                              : match.result === "D"
-                                ? "muted"
-                                : "warning"
-                          }
+              {/* Recent matches */}
+              {data.recentMatches.length > 0 && (
+                <div>
+                  <div className="mb-3 flex items-center gap-2">
+                    <Clock3Icon className="size-4 text-white/40" />
+                    <p className="text-sm font-semibold text-white">
+                      Últimos partidos
+                    </p>
+                  </div>
+                  <ul className="space-y-2">
+                    {data.recentMatches.map((match) => {
+                      const won =
+                        match.result === "W" || match.result === "WO_W"
+                      const lost =
+                        match.result === "L" || match.result === "WO_L"
+                      return (
+                        <li
+                          key={match.id}
+                          className="flex items-center gap-3 rounded-xl bg-white/[0.06] px-4 py-3"
                         >
-                          {match.result}
-                        </Badge>
-                      </div>
-                      {match.score && (
-                        <p className="mt-2 text-sm text-muted-foreground">
-                          {match.score}
-                        </p>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+                          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/50">
+                            <RacketIcon />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-white">
+                              vs {match.opponentName}
+                            </p>
+                            {match.score && (
+                              <p className="text-xs text-white/35">
+                                {match.score}
+                              </p>
+                            )}
+                          </div>
+                          <span
+                            className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                              won
+                                ? "bg-green-900/60 text-green-400"
+                                : lost
+                                  ? "bg-orange-950/60 text-orange-400"
+                                  : "bg-white/10 text-white/60"
+                            }`}
+                          >
+                            {won ? "W" : lost ? "L" : "D"}
+                          </span>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              )}
+            </div>
           </TabsPanel>
         </Tabs>
       </DialogContent>
@@ -436,25 +487,55 @@ function InfoRow({
   )
 }
 
-function Stat({
+function DarkStat({
+  icon,
   label,
   value,
   tone = "default",
 }: {
+  icon: React.ReactNode
   label: string
   value: string
   tone?: "default" | "grass"
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4 text-center">
+    <div className="flex flex-col items-center gap-1.5 rounded-xl bg-white/[0.08] p-3 text-center">
+      <div
+        className={`flex size-8 items-center justify-center rounded-full ${
+          tone === "grass"
+            ? "bg-green-900/60 text-green-400"
+            : "bg-blue-900/60 text-blue-300"
+        }`}
+      >
+        {icon}
+      </div>
       <p
-        className={`text-xl font-bold tabular-nums ${
-          tone === "grass" ? "text-grass" : "text-foreground"
+        className={`text-base font-bold tabular-nums leading-none ${
+          tone === "grass" ? "text-green-400" : "text-white"
         }`}
       >
         {value}
       </p>
-      <p className="mt-1 text-xs text-muted-foreground">{label}</p>
+      <p className="text-[9px] leading-tight text-white/45">{label}</p>
     </div>
+  )
+}
+
+function RacketIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      className="size-4"
+    >
+      <ellipse cx="9.5" cy="9.5" rx="6" ry="6" />
+      <line x1="14" y1="14" x2="20" y2="20" />
+      <line x1="7" y1="9.5" x2="12" y2="9.5" />
+      <line x1="9.5" y1="7" x2="9.5" y2="12" />
+    </svg>
   )
 }

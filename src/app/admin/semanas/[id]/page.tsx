@@ -124,10 +124,10 @@ export default async function AdminSemanaDetailPage({
     "",
     `Semana ${weekLabel} — recordatorio de disponibilidad.`,
     "",
-    "✅ Declará tus días y cuántos partidos podés jugar en:",
+    "✅ Declara tus días y cuántos partidos puedes jugar en:",
     "https://escalerilla-mvp.vercel.app/disponibilidad",
     "",
-    "_La ventana cierra pronto. Si no declarás, no entrás a la programación._",
+    "_La ventana cierra pronto. Si no declaras, no entrarás a la programación._",
   ].join("\n");
 
   const statusStyles = {

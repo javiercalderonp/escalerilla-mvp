@@ -562,3 +562,96 @@ export function formatDelta(delta: number) {
 export function formatRankingReason(reason: string) {
   return rankingReasonLabels[reason] ?? reason;
 }
+
+export type RecentPublicMatch = {
+  id: string;
+  playedOn: string | null;
+  type: "sorteo" | "desafio" | "campeonato";
+  winnerId: string | null;
+  player1Id: string;
+  player2Id: string;
+  player1Name: string;
+  player2Name: string;
+  sets: Array<{
+    setNumber: number;
+    gamesP1: number;
+    gamesP2: number;
+    tiebreakP1: number | null;
+    tiebreakP2: number | null;
+  }>;
+};
+
+export async function getRecentPublicMatches(
+  limit = 10,
+): Promise<RecentPublicMatch[]> {
+  if (!db) return [];
+
+  const rows = await db
+    .select({
+      id: matches.id,
+      playedOn: matches.playedOn,
+      type: matches.type,
+      winnerId: matches.winnerId,
+      player1Id: matches.player1Id,
+      player2Id: matches.player2Id,
+      player1Name: players.fullName,
+      player2Name: sql<string>`players_p2.full_name`,
+    })
+    .from(matches)
+    .innerJoin(players, eq(matches.player1Id, players.id))
+    .innerJoin(
+      sql`players as players_p2`,
+      sql`${matches.player2Id} = players_p2.id`,
+    )
+    .where(sql`${matches.status} in ('confirmado', 'empate', 'wo')`)
+    .orderBy(
+      desc(matches.playedOn),
+      desc(matches.confirmedAt),
+      desc(matches.createdAt),
+    )
+    .limit(limit);
+
+  if (!rows.length) return [];
+
+  const matchIds = rows.map((r) => r.id);
+  const setRows = await db
+    .select({
+      matchId: matchSets.matchId,
+      setNumber: matchSets.setNumber,
+      gamesP1: matchSets.gamesP1,
+      gamesP2: matchSets.gamesP2,
+      tiebreakP1: matchSets.tiebreakP1,
+      tiebreakP2: matchSets.tiebreakP2,
+    })
+    .from(matchSets)
+    .where(
+      sql`${matchSets.matchId} in (${sql.join(
+        matchIds.map((id) => sql`${id}`),
+        sql`, `,
+      )})`,
+    );
+
+  const setsByMatch = new Map<string, typeof setRows>();
+  for (const set of setRows) {
+    const curr = setsByMatch.get(set.matchId) ?? [];
+    curr.push(set);
+    setsByMatch.set(set.matchId, curr);
+  }
+
+  return rows.map((row) => ({
+    id: row.id,
+    playedOn:
+      typeof row.playedOn === "string"
+        ? row.playedOn
+        : (row.playedOn as Date | null)?.toISOString().slice(0, 10) ?? null,
+    type: row.type as RecentPublicMatch["type"],
+    winnerId: row.winnerId,
+    player1Id: row.player1Id,
+    player2Id: row.player2Id,
+    player1Name: row.player1Name,
+    player2Name: row.player2Name,
+    sets: (setsByMatch.get(row.id) ?? []).sort(
+      (a, b) => a.setNumber - b.setNumber,
+    ),
+  }));
+}

@@ -70,32 +70,32 @@ a {
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --background: #f6f2ea;
+  --foreground: #0d1b2a;
+  --card: #fffdfa;
+  --card-foreground: #0d1b2a;
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --court: oklch(0.32 0.08 250);
-  --court-foreground: oklch(0.98 0 0);
+  --popover-foreground: #0d1b2a;
+  --court: #0d1b2a;
+  --court-foreground: #fffdfa;
   --grass: oklch(0.55 0.14 145);
   --grass-foreground: oklch(0.98 0 0);
-  --clay: oklch(0.62 0.16 50);
+  --clay: #b04d15;
   --clay-foreground: oklch(0.98 0 0);
   --gold: oklch(0.78 0.13 85);
   --silver: oklch(0.78 0.02 250);
   --bronze: oklch(0.62 0.1 50);
   --primary: var(--court);
   --primary-foreground: var(--court-foreground);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --secondary: #ede5d8;
+  --secondary-foreground: #17283a;
+  --muted: #ede5d8;
+  --muted-foreground: #776f66;
+  --accent: #f2dfcf;
+  --accent-foreground: #0d1b2a;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  --border: #ded6ca;
+  --input: #ded6ca;
   --ring: var(--court);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
@@ -114,17 +114,17 @@ a {
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --court: oklch(0.72 0.14 250);
-  --court-foreground: oklch(0.18 0.02 250);
+  --background: #0d1b2a;
+  --foreground: #fffdfa;
+  --card: #132539;
+  --card-foreground: #fffdfa;
+  --popover: #132539;
+  --popover-foreground: #fffdfa;
+  --court: #f6f2ea;
+  --court-foreground: #0d1b2a;
   --grass: oklch(0.65 0.16 145);
   --grass-foreground: oklch(0.98 0 0);
-  --clay: oklch(0.7 0.16 50);
+  --clay: #d66a2b;
   --clay-foreground: oklch(0.98 0 0);
   --gold: oklch(0.82 0.13 85);
   --silver: oklch(0.78 0.02 250);
@@ -170,4 +170,10 @@ a {
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
 }

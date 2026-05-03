@@ -64,6 +64,7 @@ function startOfCurrentWeekSantiago() {
 
 function formatScore(
   status: string,
+  viewedPlayerIsP1: boolean,
   sets: Array<{
     gamesP1: number
     gamesP2: number
@@ -77,9 +78,13 @@ function formatScore(
 
   return sets
     .map((set) => {
-      const base = `${set.gamesP1}-${set.gamesP2}`
+      const viewedGames = viewedPlayerIsP1 ? set.gamesP1 : set.gamesP2
+      const opponentGames = viewedPlayerIsP1 ? set.gamesP2 : set.gamesP1
+      const base = `${viewedGames}-${opponentGames}`
       if (set.tiebreakP1 != null && set.tiebreakP2 != null) {
-        return `${base} (${set.tiebreakP1}-${set.tiebreakP2})`
+        const viewedTiebreak = viewedPlayerIsP1 ? set.tiebreakP1 : set.tiebreakP2
+        const opponentTiebreak = viewedPlayerIsP1 ? set.tiebreakP2 : set.tiebreakP1
+        return `${base} (${viewedTiebreak}-${opponentTiebreak})`
       }
       return base
     })
@@ -231,7 +236,7 @@ export async function getPlayerCardData(
       id: match.id,
       opponentName: match.opponentName,
       opponentId: match.opponentId,
-      score: formatScore(match.status, sets),
+      score: formatScore(match.status, match.player1Id === playerId, sets),
       result,
       playedOn: toIsoDate(match.playedOn) ?? "",
     }

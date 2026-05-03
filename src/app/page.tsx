@@ -1,142 +1,116 @@
 import Link from "next/link";
 
-import { RankingTable } from "@/components/ranking/ranking-table";
-import { getRanking, getRankingSummary } from "@/lib/ranking";
-
-const steps = [
-  {
-    step: "01",
-    title: "Declarás disponibilidad",
-    description:
-      "Cada semana marcás los días que podés jugar y cuántos partidos querés. El admin abre y cierra la ventana.",
-  },
-  {
-    step: "02",
-    title: "El admin publica la programación",
-    description:
-      "El sistema propone cruces minimizando la diferencia de ranking y respetando el límite de 30 días entre rivales.",
-  },
-  {
-    step: "03",
-    title: "Jugás y el ranking se actualiza",
-    description:
-      "Reportan el resultado, el ganador suma 60 pts y el perdedor suma entre 10 y 30 según el formato. Todo queda auditado.",
-  },
-];
+import { HowItWorks } from "@/components/landing/how-it-works";
+import { MatchesCarousel } from "@/components/landing/matches-carousel";
+import { RankingPreviewCard } from "@/components/landing/ranking-preview-card";
+import { getRanking, getRecentPublicMatches } from "@/lib/ranking";
 
 export default async function Home() {
-  const [summary, featuredEntries] = await Promise.all([
-    getRankingSummary(),
+  const [hombresRanking, mujeresRanking, recentMatches] = await Promise.all([
     getRanking("hombres"),
+    getRanking("mujeres"),
+    getRecentPublicMatches(10),
   ]);
 
+  const topHombres = hombresRanking.slice(0, 10);
+  const topMujeres = mujeresRanking.slice(0, 10);
+
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-12 px-4 py-10 sm:px-6">
-      {/* Hero */}
-      <section className="grid gap-8 rounded-3xl bg-white p-8 shadow-sm ring-1 ring-black/5 lg:grid-cols-[1.3fr_0.7fr]">
-        <div className="space-y-6">
-          <div className="space-y-3">
-            <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
-              Escalerilla de Tenis Club La Dehesa
-            </h1>
-            <p className="max-w-2xl text-lg leading-8 text-slate-600">
-              Ranking, programación semanal y registro de resultados para los
-              socios del club. Declaré disponibilidad, jugá tus cruces y seguí
-              tu posición en tiempo real.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href="/ranking/hombres"
-              className="rounded-full bg-emerald-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-emerald-700"
-            >
-              Ver ranking hombres
-            </Link>
-            <Link
-              href="/ranking/mujeres"
-              className="rounded-full border border-slate-300 px-5 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:text-slate-950"
-            >
-              Ver ranking mujeres
-            </Link>
-          </div>
-        </div>
+    <div className="flex w-full flex-1 flex-col">
+      {/* ── Hero ── */}
+      <section className="relative -mt-2 min-h-[600px] w-full overflow-hidden lg:min-h-[680px]">
+        {/* Background photo */}
+        <div
+          className="absolute inset-0 bg-[#b04d15]"
+          style={{
+            backgroundImage: "url('/images/foto-landing.png')",
+            backgroundSize: "cover",
+            backgroundPosition: "center top",
+          }}
+        />
 
-        <div className="rounded-2xl bg-slate-950 p-6 text-slate-50">
-          <p className="text-sm font-medium text-emerald-300">Ranking live</p>
-          <div className="mt-4 space-y-4 rounded-2xl bg-white/5 p-4">
-            {summary.categories.map((category) => (
-              <div
-                key={category.category}
-                className="flex items-center justify-between gap-4 text-sm"
-              >
-                <div>
-                  <p className="font-medium text-white">{category.label}</p>
-                  <p className="text-slate-400">
-                    Líder: {category.leader?.fullName ?? "—"}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold text-emerald-300">
-                    {category.leader?.points ?? 0} pts
-                  </p>
-                  <p className="text-slate-400">{category.players} jugadores</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <p className="mt-3 text-xs text-slate-400">{summary.updatedLabel}</p>
-        </div>
-      </section>
+        {/* Dark gradient overlays */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0d1b2a] via-[#0d1b2a]/75 to-[#0d1b2a]/10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0d1b2a]/60 via-transparent to-transparent" />
 
-      {/* Cómo funciona */}
-      <section>
-        <div className="mb-6">
-          <p className="text-sm font-medium text-emerald-700">
-            ¿Cómo funciona?
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
-            El ciclo semanal de la escalerilla
-          </h2>
-        </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          {steps.map((s) => (
-            <article
-              key={s.step}
-              className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
-            >
-              <span className="text-xs font-semibold text-emerald-600">
-                Paso {s.step}
-              </span>
-              <h3 className="mt-3 text-lg font-semibold text-slate-950">
-                {s.title}
-              </h3>
-              <p className="mt-3 text-sm leading-6 text-slate-600">
-                {s.description}
+        {/* Content */}
+        <div className="relative mx-auto flex h-full min-h-[600px] max-w-6xl flex-col justify-center gap-8 px-4 py-16 sm:px-6 lg:min-h-[680px] lg:flex-row lg:items-center">
+          {/* Left: text + CTAs */}
+          <div className="flex-1 space-y-6 lg:max-w-xl">
+            <div className="space-y-3">
+              <p className="text-xs font-bold uppercase tracking-widest text-white/60">
+                Club La Dehesa · Tenis
               </p>
-            </article>
-          ))}
+              <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-white sm:text-5xl lg:text-6xl">
+                Escalerilla
+                <br />
+                <span className="text-clay">de Tenis</span>
+              </h1>
+              <p className="max-w-md text-base leading-7 text-white/70">
+                Ranking en vivo, programación semanal y registro de resultados
+                para los socios. Declara tu disponibilidad, juega tus cruces y
+                sigue tu posición en tiempo real.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/ranking/hombres"
+                className="rounded-full bg-clay px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-clay/90 hover:shadow-clay/30 hover:shadow-xl"
+              >
+                Ver ranking hombres
+              </Link>
+              <Link
+                href="/ranking/mujeres"
+                className="rounded-full border border-white/30 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20"
+              >
+                Ver ranking mujeres
+              </Link>
+            </div>
+
+            {/* Quick stats */}
+            <div className="flex flex-wrap gap-6 pt-2">
+              <div>
+                <p className="text-2xl font-bold text-white">
+                  {hombresRanking.length}
+                </p>
+                <p className="text-xs text-white/50">Jugadores hombres</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">
+                  {mujeresRanking.length}
+                </p>
+                <p className="text-xs text-white/50">Jugadoras mujeres</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Top 10 ranking card */}
+          <div className="w-full lg:translate-x-16 lg:w-96 xl:translate-x-28 xl:w-[28rem]">
+            <RankingPreviewCard hombres={topHombres} mujeres={topMujeres} />
+          </div>
         </div>
       </section>
 
-      {/* Ranking preview */}
-      <section className="space-y-5">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-emerald-700">
-              Ranking hombres
+      {/* ── Recent matches carousel ── */}
+      {recentMatches.length > 0 && (
+        <section className="bg-muted/60 py-12">
+          <div className="mx-auto mb-6 max-w-6xl px-4 sm:px-6">
+            <p className="text-xs font-bold uppercase tracking-widest text-clay">
+              Resultados
             </p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
-              Posiciones actuales
+            <h2 className="mt-1 text-2xl font-bold tracking-tight text-foreground">
+              Últimos partidos
             </h2>
           </div>
-          <Link
-            href="/ranking/hombres"
-            className="text-sm font-medium text-emerald-700 transition hover:text-emerald-800"
-          >
-            Ver completo →
-          </Link>
+          <MatchesCarousel matches={recentMatches} />
+        </section>
+      )}
+
+      {/* ── How it works ── */}
+      <section className="w-full bg-[#0d1b2a] py-16">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <HowItWorks />
         </div>
-        <RankingTable category="hombres" entries={featuredEntries} />
       </section>
     </div>
   );

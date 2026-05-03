@@ -2,9 +2,9 @@ import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
+import { requireCompleteProfile } from "@/lib/auth/require-complete-profile";
 import { db } from "@/lib/db";
 import { availability, players, weeks } from "@/lib/db/schema";
-import { requireCompleteProfile } from "@/lib/auth/require-complete-profile";
 import { upsertAvailabilityAction } from "./actions";
 
 const DAYS = [
@@ -27,6 +27,8 @@ export default async function DisponibilidadPage() {
   if (!session?.user) redirect("/login");
 
   await requireCompleteProfile();
+  const userEmail = session.user.email;
+  if (!userEmail) redirect("/login");
 
   if (!db) {
     return (
@@ -45,7 +47,7 @@ export default async function DisponibilidadPage() {
       status: players.status,
     })
     .from(players)
-    .where(eq(players.email, session.user.email!.toLowerCase()))
+    .where(eq(players.email, userEmail.toLowerCase()))
     .limit(1);
 
   if (!player) {
@@ -56,8 +58,8 @@ export default async function DisponibilidadPage() {
             Mi disponibilidad
           </h1>
           <p className="mt-3 text-sm text-slate-600">
-            Tu cuenta ({session.user.email}) no está vinculada a ningún
-            jugador. Pedile al administrador que te agregue con este email.
+            Tu cuenta ({userEmail}) no está vinculada a ningún jugador. Pide al
+            administrador que te agregue con este email.
           </p>
         </div>
       </main>
@@ -113,8 +115,8 @@ export default async function DisponibilidadPage() {
         </h1>
         {existing && (
           <p className="mt-2 rounded-2xl bg-emerald-50 px-4 py-2 text-sm text-emerald-700">
-            Ya declaraste disponibilidad. Podés actualizarla hasta que cierre
-            la ventana.
+            Ya declaraste tu disponibilidad. Puedes actualizarla hasta que
+            cierre la ventana.
           </p>
         )}
       </section>
@@ -125,7 +127,7 @@ export default async function DisponibilidadPage() {
 
           <div>
             <p className="text-sm font-semibold text-slate-950">
-              ¿Qué días podés jugar?
+              ¿Qué días puedes jugar?
             </p>
             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {DAYS.map(({ key, label }) => (
@@ -149,7 +151,7 @@ export default async function DisponibilidadPage() {
           <div>
             <label className="space-y-2 text-sm text-slate-700">
               <span className="font-semibold text-slate-950">
-                ¿Cuántos partidos podés jugar esta semana?
+                ¿Cuántos partidos puedes jugar esta semana?
               </span>
               <select
                 name="maxMatches"

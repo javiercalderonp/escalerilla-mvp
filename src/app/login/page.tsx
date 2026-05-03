@@ -6,11 +6,11 @@ export default function LoginPage() {
       <div className="w-full rounded-3xl bg-white p-8 shadow-sm ring-1 ring-black/5">
         <p className="text-sm font-medium text-emerald-700">Club La Dehesa</p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
-          Ingresá con tu cuenta
+          Ingresa con tu cuenta
         </h1>
         <p className="mt-3 text-sm leading-6 text-slate-600">
-          Accedé al ranking, declaré tu disponibilidad semanal, revisá la
-          programación y consultá tus partidos — todo en un lugar.
+          Accede al ranking, declara tu disponibilidad semanal, revisa la
+          programación y consulta tus partidos, todo en un solo lugar.
         </p>
         <div className="mt-6">
           <GoogleSignInButton />
@@ -18,7 +18,7 @@ export default function LoginPage() {
         <div className="mt-6 space-y-2 text-xs text-slate-400">
           <p>
             Solo socios con email registrado por el administrador pueden
-            acceder. Si tu cuenta no aparece vinculada, contactá al organizador.
+            acceder. Si tu cuenta no aparece vinculada, contacta al organizador.
           </p>
         </div>
       </div>

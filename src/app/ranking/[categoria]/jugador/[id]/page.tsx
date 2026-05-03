@@ -15,10 +15,52 @@ type PublicPlayerPageProps = {
   }>;
 };
 
+type PublicPlayerProfile = NonNullable<
+  Awaited<ReturnType<typeof getPublicPlayerProfile>>
+>;
+
+type PublicPlayerMatch = PublicPlayerProfile["recentMatches"][number];
+
+function addDays(dateStr: string, days: number) {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function getWeekStart(dateStr: string) {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  const jsDay = date.getUTCDay();
+  const diff = jsDay === 0 ? -6 : 1 - jsDay;
+  return addDays(dateStr, diff);
+}
+
+function getWeekEnd(weekStart: string) {
+  return addDays(weekStart, 6);
+}
+
 function formatDate(value: string | null) {
   if (!value) return "Sin fecha";
   const [year, month, day] = value.split("-");
   return `${day}/${month}/${year}`;
+}
+
+function getMatchWeekGroup(match: PublicPlayerMatch) {
+  if (!match.playedOn) {
+    return {
+      key: "sin-fecha",
+      label: "Sin semana asignada",
+    };
+  }
+
+  const startsOn = getWeekStart(match.playedOn);
+  const endsOn = getWeekEnd(startsOn);
+
+  return {
+    key: startsOn,
+    label: `Semana ${formatDate(startsOn)} al ${formatDate(endsOn)}`,
+  };
 }
 
 function formatMatchTypeLabel(type: "sorteo" | "desafio" | "campeonato") {
@@ -27,11 +69,7 @@ function formatMatchTypeLabel(type: "sorteo" | "desafio" | "campeonato") {
   return "Sorteo";
 }
 
-function formatScore(
-  match: NonNullable<
-    Awaited<ReturnType<typeof getPublicPlayerProfile>>
-  >["recentMatches"][number],
-) {
+function formatScore(match: PublicPlayerMatch, playerId: string) {
   if (match.status === "wo") {
     return "W.O.";
   }
@@ -42,21 +80,21 @@ function formatScore(
 
   return match.sets
     .map((set) => {
-      const base = `${set.gamesP1}-${set.gamesP2}`;
+      const isPlayer1 = match.player1Id === playerId;
+      const playerGames = isPlayer1 ? set.gamesP1 : set.gamesP2;
+      const opponentGames = isPlayer1 ? set.gamesP2 : set.gamesP1;
+      const base = `${playerGames}-${opponentGames}`;
       if (set.tiebreakP1 != null && set.tiebreakP2 != null) {
-        return `${base} (${set.tiebreakP1}-${set.tiebreakP2})`;
+        const playerTiebreak = isPlayer1 ? set.tiebreakP1 : set.tiebreakP2;
+        const opponentTiebreak = isPlayer1 ? set.tiebreakP2 : set.tiebreakP1;
+        return `${base} (${playerTiebreak}-${opponentTiebreak})`;
       }
       return base;
     })
     .join(" · ");
 }
 
-function getOutcomeLabel(
-  match: NonNullable<
-    Awaited<ReturnType<typeof getPublicPlayerProfile>>
-  >["recentMatches"][number],
-  playerId: string,
-) {
+function getOutcomeLabel(match: PublicPlayerMatch, playerId: string) {
   if (match.status === "empate") {
     return { label: "Empatado", tone: "text-blue-700 bg-blue-50" };
   }
@@ -88,6 +126,21 @@ export default async function PublicPlayerPage({
   if (!profile) {
     notFound();
   }
+
+  const matchGroups = profile.recentMatches.reduce<
+    Array<{ key: string; label: string; matches: PublicPlayerMatch[] }>
+  >((groups, match) => {
+    const week = getMatchWeekGroup(match);
+    const current = groups.at(-1);
+
+    if (current?.key === week.key) {
+      current.matches.push(match);
+    } else {
+      groups.push({ ...week, matches: [match] });
+    }
+
+    return groups;
+  }, []);
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6">
@@ -127,41 +180,52 @@ export default async function PublicPlayerPage({
             Este jugador todavía no registra partidos confirmados.
           </div>
         ) : (
-          <div className="mt-6 space-y-3">
-            {profile.recentMatches.map((match) => {
-              const isPlayer1 = match.player1Id === profile.player.id;
-              const opponentName = isPlayer1
-                ? match.player2Name
-                : match.player1Name;
-              const outcome = getOutcomeLabel(match, profile.player.id);
+          <div className="mt-6 space-y-6">
+            {matchGroups.map((group) => (
+              <div key={group.key} className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <h3 className="shrink-0 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                    {group.label}
+                  </h3>
+                  <div className="h-px flex-1 bg-slate-200" />
+                </div>
 
-              return (
-                <article
-                  key={match.id}
-                  className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4"
-                >
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <p className="text-sm text-slate-500">
-                        {formatDate(match.playedOn)} ·{" "}
-                        {formatMatchTypeLabel(match.type)}
-                      </p>
-                      <h3 className="mt-1 text-base font-semibold text-slate-950">
-                        vs {opponentName}
-                      </h3>
-                      <p className="mt-2 text-sm text-slate-600">
-                        {formatScore(match)}
-                      </p>
-                    </div>
-                    <span
-                      className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${outcome.tone}`}
+                {group.matches.map((match) => {
+                  const isPlayer1 = match.player1Id === profile.player.id;
+                  const opponentName = isPlayer1
+                    ? match.player2Name
+                    : match.player1Name;
+                  const outcome = getOutcomeLabel(match, profile.player.id);
+
+                  return (
+                    <article
+                      key={match.id}
+                      className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4"
                     >
-                      {outcome.label}
-                    </span>
-                  </div>
-                </article>
-              );
-            })}
+                      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                        <div>
+                          <p className="text-sm text-slate-500">
+                            {formatDate(match.playedOn)} ·{" "}
+                            {formatMatchTypeLabel(match.type)}
+                          </p>
+                          <h4 className="mt-1 text-base font-semibold text-slate-950">
+                            vs {opponentName}
+                          </h4>
+                          <p className="mt-2 text-sm text-slate-600">
+                            {formatScore(match, profile.player.id)}
+                          </p>
+                        </div>
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${outcome.tone}`}
+                        >
+                          {outcome.label}
+                        </span>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         )}
       </section>

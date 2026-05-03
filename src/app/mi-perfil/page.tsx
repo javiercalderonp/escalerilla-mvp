@@ -68,6 +68,23 @@ function getWeekEnd(weekStart: string) {
   return addDays(weekStart, 6);
 }
 
+function getMatchWeekGroup(match: MatchHistoryRow) {
+  if (!match.playedOn) {
+    return {
+      key: "sin-fecha",
+      label: "Sin semana asignada",
+    };
+  }
+
+  const startsOn = getWeekStart(match.playedOn);
+  const endsOn = getWeekEnd(startsOn);
+
+  return {
+    key: startsOn,
+    label: `Semana ${formatDate(startsOn)} al ${formatDate(endsOn)}`,
+  };
+}
+
 function formatDate(value: string | null) {
   if (!value) return "Sin fecha";
   const [year, month, day] = value.split("-");
@@ -88,7 +105,11 @@ function getCounterTone(current: number, target: number) {
   return "text-emerald-700 bg-emerald-50 border-emerald-200";
 }
 
-function formatScore(match: MatchHistoryRow, sets: MatchSetRow[]) {
+function formatScore(
+  match: MatchHistoryRow,
+  playerId: string,
+  sets: MatchSetRow[],
+) {
   if (match.status === "wo") {
     return "W.O.";
   }
@@ -101,9 +122,14 @@ function formatScore(match: MatchHistoryRow, sets: MatchSetRow[]) {
 
   return orderedSets
     .map((set) => {
-      const base = `${set.gamesP1}-${set.gamesP2}`;
+      const isPlayer1 = match.player1Id === playerId;
+      const playerGames = isPlayer1 ? set.gamesP1 : set.gamesP2;
+      const opponentGames = isPlayer1 ? set.gamesP2 : set.gamesP1;
+      const base = `${playerGames}-${opponentGames}`;
       if (set.tiebreakP1 != null && set.tiebreakP2 != null) {
-        return `${base} (${set.tiebreakP1}-${set.tiebreakP2})`;
+        const playerTiebreak = isPlayer1 ? set.tiebreakP1 : set.tiebreakP2;
+        const opponentTiebreak = isPlayer1 ? set.tiebreakP2 : set.tiebreakP1;
+        return `${base} (${playerTiebreak}-${opponentTiebreak})`;
       }
       return base;
     })
@@ -304,6 +330,21 @@ export default async function MiPerfilPage() {
     setsByMatch.set(set.matchId, existing);
   }
 
+  const historyGroups = historyRows.reduce<
+    Array<{ key: string; label: string; matches: MatchHistoryRow[] }>
+  >((groups, match) => {
+    const week = getMatchWeekGroup(match);
+    const current = groups.at(-1);
+
+    if (current?.key === week.key) {
+      current.matches.push(match);
+    } else {
+      groups.push({ ...week, matches: [match] });
+    }
+
+    return groups;
+  }, []);
+
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6">
       <section className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-black/5">
@@ -408,51 +449,68 @@ export default async function MiPerfilPage() {
             Todavía no registras partidos esta temporada.
           </div>
         ) : (
-          <div className="mt-6 space-y-3">
-            {historyRows.map((match) => {
-              const isPlayer1 = match.player1Id === player.id;
-              const opponentName = isPlayer1
-                ? match.player2Name
-                : match.player1Name;
-              const outcome = getOutcomeLabel(match, player.id);
-              const score = formatScore(match, setsByMatch.get(match.id) ?? []);
-              const typeLabel =
-                match.type === "desafio"
-                  ? "Desafío"
-                  : match.type === "campeonato"
-                    ? "Partido"
-                    : "Sorteo";
+          <div className="mt-6 space-y-6">
+            {historyGroups.map((group) => (
+              <div key={group.key} className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <h3 className="shrink-0 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                    {group.label}
+                  </h3>
+                  <div className="h-px flex-1 bg-slate-200" />
+                </div>
 
-              return (
-                <article
-                  key={match.id}
-                  className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4"
-                >
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <p className="text-sm text-slate-500">
-                        {formatDate(match.playedOn)} · {typeLabel}
-                      </p>
-                      <h3 className="mt-1 text-base font-semibold text-slate-950">
-                        vs {opponentName}
-                      </h3>
-                      <p className="mt-2 text-sm text-slate-600">{score}</p>
-                      <Link
-                        href={`/mi-perfil/partidos/${match.id}`}
-                        className="mt-3 inline-flex text-sm font-medium text-emerald-700 transition hover:text-emerald-800"
-                      >
-                        Ver detalle →
-                      </Link>
-                    </div>
-                    <span
-                      className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${outcome.tone}`}
+                {group.matches.map((match) => {
+                  const isPlayer1 = match.player1Id === player.id;
+                  const opponentName = isPlayer1
+                    ? match.player2Name
+                    : match.player1Name;
+                  const outcome = getOutcomeLabel(match, player.id);
+                  const score = formatScore(
+                    match,
+                    player.id,
+                    setsByMatch.get(match.id) ?? [],
+                  );
+                  const typeLabel =
+                    match.type === "desafio"
+                      ? "Desafío"
+                      : match.type === "campeonato"
+                        ? "Partido"
+                        : "Sorteo";
+
+                  return (
+                    <article
+                      key={match.id}
+                      className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4"
                     >
-                      {outcome.label}
-                    </span>
-                  </div>
-                </article>
-              );
-            })}
+                      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                        <div>
+                          <p className="text-sm text-slate-500">
+                            {formatDate(match.playedOn)} · {typeLabel}
+                          </p>
+                          <h4 className="mt-1 text-base font-semibold text-slate-950">
+                            vs {opponentName}
+                          </h4>
+                          <p className="mt-2 text-sm text-slate-600">
+                            {score}
+                          </p>
+                          <Link
+                            href={`/mi-perfil/partidos/${match.id}`}
+                            className="mt-3 inline-flex text-sm font-medium text-emerald-700 transition hover:text-emerald-800"
+                          >
+                            Ver detalle →
+                          </Link>
+                        </div>
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${outcome.tone}`}
+                        >
+                          {outcome.label}
+                        </span>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         )}
       </section>

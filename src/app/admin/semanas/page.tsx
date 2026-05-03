@@ -58,7 +58,7 @@ export default async function AdminSemanasPage() {
           Programación
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-          Abrí la disponibilidad, revisá respuestas y armá los cruces de la
+          Abre la disponibilidad, revisa respuestas y arma los cruces de la
           semana desde un solo lugar.
         </p>
       </section>
