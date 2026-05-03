@@ -1,6 +1,9 @@
 import { and, asc, desc, eq, gt, inArray, lt, or, sql } from "drizzle-orm";
-import { Check, Mars, Venus } from "lucide-react";
+import { Check } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
+import iconMan from "../../../icon-man.png";
+import iconWoman from "../../../icon-woman.png";
 import { FixtureAdminActions } from "@/app/fixture/fixture-admin-actions";
 import { EmptyState } from "@/components/ui/empty-state";
 import { WeekStepper } from "@/components/ui/week-stepper";
@@ -564,11 +567,21 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
         <section className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm ring-1 ring-court/5">
           <div className="flex items-center justify-between border-b border-border px-6 py-4">
             <div className="flex items-center gap-3">
-              <span className="flex size-7 items-center justify-center rounded-full bg-court text-xs font-bold text-court-foreground">
+              <span className="flex size-14 items-center justify-center rounded-full bg-court text-xs font-bold text-court-foreground">
                 {selectedCategory === "M" ? (
-                  <Mars className="size-4" aria-hidden="true" />
+                  <Image
+                    src={iconMan}
+                    alt=""
+                    aria-hidden="true"
+                    className="size-10 object-contain"
+                  />
                 ) : (
-                  <Venus className="size-4" aria-hidden="true" />
+                  <Image
+                    src={iconWoman}
+                    alt=""
+                    aria-hidden="true"
+                    className="size-10 object-contain"
+                  />
                 )}
               </span>
               <h2 className="font-semibold text-foreground">

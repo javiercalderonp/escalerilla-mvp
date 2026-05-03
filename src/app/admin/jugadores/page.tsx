@@ -1,10 +1,11 @@
-import { asc } from "drizzle-orm";
-import { Check, Pencil, Plus, Trash2, Undo2 } from "lucide-react";
+import { asc, eq, sql } from "drizzle-orm";
+import { Check, Pencil, Plus, Trash2, Undo2, UserMinus } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import {
   approvePlayerAction,
   createPlayerAction,
+  deletePlayerAction,
   toggleRetiredPlayerAction,
   updatePlayerAction,
 } from "@/app/admin/jugadores/actions";
@@ -13,6 +14,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -27,16 +29,30 @@ import {
 } from "@/components/ui/table";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { players } from "@/lib/db/schema";
+import { players, rankingEvents } from "@/lib/db/schema";
 
 async function getPlayers() {
   if (!db) {
     return [];
   }
 
+  const pointTotals = db.$with("point_totals").as(
+    db
+      .select({
+        playerId: rankingEvents.playerId,
+        points: sql<number>`coalesce(sum(${rankingEvents.delta}), 0)`.as(
+          "points",
+        ),
+      })
+      .from(rankingEvents)
+      .groupBy(rankingEvents.playerId),
+  );
+
   return db
+    .with(pointTotals)
     .select()
     .from(players)
+    .leftJoin(pointTotals, eq(pointTotals.playerId, players.id))
     .orderBy(asc(players.gender), asc(players.fullName));
 }
 
@@ -63,17 +79,59 @@ function levelBadge(level: string | null) {
 
 type PlayerRow = Awaited<ReturnType<typeof getPlayers>>[number];
 
+function getCurrentPoints(player: PlayerRow) {
+  return Number(player.point_totals?.points ?? 0);
+}
+
+function getDominantHandInitial(hand: PlayerRow["players"]["dominantHand"]) {
+  if (hand === "diestro") {
+    return "D";
+  }
+
+  if (hand === "zurdo") {
+    return "Z";
+  }
+
+  return "—";
+}
+
+function calculateAge(birthDate: PlayerRow["players"]["birthDate"]) {
+  if (!birthDate) {
+    return null;
+  }
+
+  const [year, month, day] = birthDate.split("-").map(Number);
+
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  const today = new Date();
+  let age = today.getFullYear() - year;
+  const hasHadBirthday =
+    today.getMonth() + 1 > month ||
+    (today.getMonth() + 1 === month && today.getDate() >= day);
+
+  if (!hasHadBirthday) {
+    age -= 1;
+  }
+
+  return age;
+}
+
 const inputClass =
   "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-emerald-500";
 
 function PlayerFields({ player }: { player?: PlayerRow }) {
+  const playerData = player?.players;
+
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <label className="space-y-2 text-sm text-slate-700 sm:col-span-2">
         <span className="font-medium">Nombre completo</span>
         <input
           name="fullName"
-          defaultValue={player?.fullName ?? ""}
+          defaultValue={playerData?.fullName ?? ""}
           required
           className={inputClass}
         />
@@ -84,7 +142,7 @@ function PlayerFields({ player }: { player?: PlayerRow }) {
         <input
           name="email"
           type="email"
-          defaultValue={player?.email ?? ""}
+          defaultValue={playerData?.email ?? ""}
           className={inputClass}
         />
       </label>
@@ -93,7 +151,7 @@ function PlayerFields({ player }: { player?: PlayerRow }) {
         <span className="font-medium">Categoría</span>
         <select
           name="gender"
-          defaultValue={player?.gender ?? "M"}
+          defaultValue={playerData?.gender ?? "M"}
           className={inputClass}
         >
           <option value="M">Hombres</option>
@@ -107,7 +165,7 @@ function PlayerFields({ player }: { player?: PlayerRow }) {
           name="initialPoints"
           type="number"
           min={0}
-          defaultValue={player?.initialPoints ?? 0}
+          defaultValue={playerData?.initialPoints ?? 0}
           className={inputClass}
         />
       </label>
@@ -116,7 +174,7 @@ function PlayerFields({ player }: { player?: PlayerRow }) {
         <span className="font-medium">Nivel</span>
         <select
           name="level"
-          defaultValue={player?.level ?? ""}
+          defaultValue={playerData?.level ?? ""}
           className={inputClass}
         >
           <option value="">Sin definir</option>
@@ -131,10 +189,10 @@ function PlayerFields({ player }: { player?: PlayerRow }) {
         <span className="font-medium">Estado</span>
         <select
           name="status"
-          defaultValue={player?.status ?? "activo"}
+          defaultValue={playerData?.status ?? "activo"}
           className={inputClass}
         >
-          {player?.status === "pendiente" ? (
+          {playerData?.status === "pendiente" ? (
             <option value="pendiente">Pendiente</option>
           ) : null}
           <option value="activo">Activo</option>
@@ -148,7 +206,7 @@ function PlayerFields({ player }: { player?: PlayerRow }) {
         <textarea
           name="notes"
           rows={3}
-          defaultValue={player?.notes ?? ""}
+          defaultValue={playerData?.notes ?? ""}
           className={inputClass}
         />
       </label>
@@ -188,11 +246,13 @@ function CreatePlayerDialog() {
 }
 
 function EditPlayerDialog({ player }: { player: PlayerRow }) {
+  const playerData = player.players;
+
   return (
     <Dialog>
       <DialogTrigger
-        aria-label={`Editar ${player.fullName}`}
-        title={`Editar ${player.fullName}`}
+        aria-label={`Editar ${playerData.fullName}`}
+        title={`Editar ${playerData.fullName}`}
         className="inline-flex size-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition hover:border-slate-400 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-slate-950/10"
       >
         <Pencil className="size-4" />
@@ -200,11 +260,11 @@ function EditPlayerDialog({ player }: { player: PlayerRow }) {
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Editar jugador</DialogTitle>
-          <DialogDescription>{player.fullName}</DialogDescription>
+          <DialogDescription>{playerData.fullName}</DialogDescription>
         </DialogHeader>
 
         <form action={updatePlayerAction} className="space-y-5">
-          <input type="hidden" name="playerId" value={player.id} />
+          <input type="hidden" name="playerId" value={playerData.id} />
           <PlayerFields player={player} />
           <div className="flex justify-end">
             <button
@@ -214,6 +274,41 @@ function EditPlayerDialog({ player }: { player: PlayerRow }) {
               Guardar cambios
             </button>
           </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DeletePlayerDialog({ player }: { player: PlayerRow["players"] }) {
+  return (
+    <Dialog>
+      <DialogTrigger
+        aria-label={`Eliminar definitivamente ${player.fullName}`}
+        title={`Eliminar definitivamente ${player.fullName}`}
+        className="inline-flex size-9 items-center justify-center rounded-lg border border-red-200 bg-white text-red-700 transition hover:bg-red-50 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-red-600/20"
+      >
+        <Trash2 className="size-4" />
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Eliminar jugador</DialogTitle>
+          <DialogDescription>
+            Esto borra definitivamente a {player.fullName}. Si el jugador ya
+            tiene historial, la acción se bloqueará y conviene retirarlo.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form action={deletePlayerAction}>
+          <input type="hidden" name="playerId" value={player.id} />
+          <DialogFooter>
+            <button
+              type="submit"
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-red-600/20"
+            >
+              Eliminar definitivamente
+            </button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
@@ -281,19 +376,23 @@ export default async function AdminPlayersPage() {
                     <TableHead>Email</TableHead>
                     <TableHead>Categoría</TableHead>
                     <TableHead>Nivel</TableHead>
+                    <TableHead className="text-center">Mano</TableHead>
+                    <TableHead>Teléfono</TableHead>
+                    <TableHead className="text-right">Edad</TableHead>
                     <TableHead className="text-right">Puntos</TableHead>
                     <TableHead>Estado</TableHead>
-                    <TableHead>Notas</TableHead>
                     <TableHead className="pr-4 text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.map((player) => {
+                  {rows.map((row) => {
+                    const player = row.players;
+                    const age = calculateAge(player.birthDate);
                     const isRetired = player.status === "retirado";
                     const nextStatus = isRetired ? "activo" : "retirado";
-                    const deleteLabel = isRetired
+                    const retireLabel = isRetired
                       ? `Reactivar ${player.fullName}`
-                      : `Eliminar ${player.fullName}`;
+                      : `Retirar ${player.fullName}`;
 
                     return (
                       <TableRow key={player.id}>
@@ -307,13 +406,19 @@ export default async function AdminPlayersPage() {
                           {player.gender === "M" ? "Hombres" : "Mujeres"}
                         </TableCell>
                         <TableCell>{levelBadge(player.level)}</TableCell>
+                        <TableCell className="text-center font-medium text-slate-700">
+                          {getDominantHandInitial(player.dominantHand)}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-slate-600">
+                          {player.phone ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums text-slate-700">
+                          {age === null ? "—" : age}
+                        </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {player.initialPoints}
+                          {getCurrentPoints(row)}
                         </TableCell>
                         <TableCell>{statusBadge(player.status)}</TableCell>
-                        <TableCell className="max-w-56 truncate text-slate-600">
-                          {player.notes ?? "—"}
-                        </TableCell>
                         <TableCell className="pr-4">
                           <div className="flex justify-end gap-2">
                             {player.status === "pendiente" ? (
@@ -333,7 +438,7 @@ export default async function AdminPlayersPage() {
                                 </button>
                               </form>
                             ) : null}
-                            <EditPlayerDialog player={player} />
+                            <EditPlayerDialog player={row} />
                             <form action={toggleRetiredPlayerAction}>
                               <input
                                 type="hidden"
@@ -347,17 +452,18 @@ export default async function AdminPlayersPage() {
                               />
                               <button
                                 type="submit"
-                                aria-label={deleteLabel}
-                                title={deleteLabel}
-                                className="inline-flex size-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-red-600/20"
+                                aria-label={retireLabel}
+                                title={retireLabel}
+                                className="inline-flex size-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-amber-600/20"
                               >
                                 {isRetired ? (
                                   <Undo2 className="size-4" />
                                 ) : (
-                                  <Trash2 className="size-4" />
+                                  <UserMinus className="size-4" />
                                 )}
                               </button>
                             </form>
+                            <DeletePlayerDialog player={player} />
                           </div>
                         </TableCell>
                       </TableRow>

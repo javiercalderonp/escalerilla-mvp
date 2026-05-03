@@ -1,13 +1,23 @@
 "use server";
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { ensureAppUser } from "@/lib/auth/ensure-app-user";
 import { db } from "@/lib/db";
-import { auditLog, players, rankingEvents } from "@/lib/db/schema";
+import {
+  auditLog,
+  availability,
+  championshipPlacements,
+  freezes,
+  matches,
+  playerScheduleSlots,
+  players,
+  rankingEvents,
+  users,
+} from "@/lib/db/schema";
 import { refreshHistoricalBestRanking } from "@/lib/ranking";
 
 const playerSchema = z.object({
@@ -416,5 +426,86 @@ export async function toggleRetiredPlayerAction(formData: FormData) {
     payload: { status: nextStatus },
   });
 
+  revalidatePath("/admin/jugadores");
+}
+
+export async function deletePlayerAction(formData: FormData) {
+  const { actorId, dbClient } = await requireAdminActor();
+
+  const playerId = z.string().uuid().parse(formData.get("playerId"));
+
+  const [player] = await dbClient
+    .select({
+      id: players.id,
+      fullName: players.fullName,
+      gender: players.gender,
+    })
+    .from(players)
+    .where(eq(players.id, playerId))
+    .limit(1);
+
+  if (!player) {
+    throw new Error("Jugador no encontrado");
+  }
+
+  const [existingMatch, existingFreeze, existingChampionshipPlacement] =
+    await Promise.all([
+      dbClient
+        .select({ id: matches.id })
+        .from(matches)
+        .where(
+          or(eq(matches.player1Id, playerId), eq(matches.player2Id, playerId)),
+        )
+        .limit(1),
+      dbClient
+        .select({ id: freezes.id })
+        .from(freezes)
+        .where(eq(freezes.playerId, playerId))
+        .limit(1),
+      dbClient
+        .select({ id: championshipPlacements.id })
+        .from(championshipPlacements)
+        .where(eq(championshipPlacements.playerId, playerId))
+        .limit(1),
+    ]);
+
+  if (
+    existingMatch.length > 0 ||
+    existingFreeze.length > 0 ||
+    existingChampionshipPlacement.length > 0
+  ) {
+    throw new Error(
+      "No se puede eliminar definitivamente un jugador con historial. Retíralo para sacarlo del listado activo.",
+    );
+  }
+
+  await dbClient
+    .update(users)
+    .set({ playerId: null })
+    .where(eq(users.playerId, playerId));
+  await dbClient
+    .delete(availability)
+    .where(eq(availability.playerId, playerId));
+  await dbClient
+    .delete(playerScheduleSlots)
+    .where(eq(playerScheduleSlots.playerId, playerId));
+  await dbClient
+    .delete(rankingEvents)
+    .where(eq(rankingEvents.playerId, playerId));
+  await dbClient.delete(players).where(eq(players.id, playerId));
+
+  await dbClient.insert(auditLog).values({
+    actorId,
+    action: "player.delete",
+    entityType: "player",
+    entityId: playerId,
+    payload: {
+      fullName: player.fullName,
+      gender: player.gender,
+    },
+  });
+
+  await refreshHistoricalBestRanking(player.gender);
+  revalidateTag("ranking", "max");
   revalidatePath("/admin/jugadores");
 }

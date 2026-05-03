@@ -93,8 +93,16 @@ export default async function Home() {
 
       {/* ── Recent matches carousel ── */}
       {recentMatches.length > 0 && (
-        <section className="bg-muted/60 py-12">
-          <div className="mx-auto mb-6 max-w-6xl px-4 sm:px-6">
+        <section className="relative overflow-hidden bg-muted/60 pb-24 pt-24">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#0d1b2a] via-[#0d1b2a]/35 to-transparent"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent via-[#0d1b2a]/25 to-[#0d1b2a]"
+          />
+          <div className="relative mx-auto mb-6 max-w-6xl px-4 sm:px-6">
             <p className="text-xs font-bold uppercase tracking-widest text-clay">
               Resultados
             </p>
@@ -102,7 +110,9 @@ export default async function Home() {
               Últimos partidos
             </h2>
           </div>
-          <MatchesCarousel matches={recentMatches} />
+          <div className="relative">
+            <MatchesCarousel matches={recentMatches} />
+          </div>
         </section>
       )}
 

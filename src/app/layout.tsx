@@ -21,9 +21,9 @@ export const metadata: Metadata = {
   description:
     "Ranking, programación semanal y resultados de la escalerilla de tenis del Club La Dehesa.",
   icons: {
-    icon: "/logo.png",
-    shortcut: "/logo.png",
-    apple: "/logo.png",
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
   },
   openGraph: {
     title: "Escalerilla La Dehesa",
