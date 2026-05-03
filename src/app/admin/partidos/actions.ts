@@ -1,6 +1,6 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 
@@ -303,6 +303,7 @@ async function insertCompensationEvents(args: {
 function revalidateMatchSurfaces() {
   revalidateTag("ranking", "max");
   revalidatePath("/admin/partidos");
+  revalidatePath("/fixture");
   revalidatePath("/ranking/hombres");
   revalidatePath("/ranking/mujeres");
 }
@@ -351,6 +352,47 @@ export async function createMatchAction(formData: FormData) {
   });
 
   revalidatePath("/admin/partidos");
+  revalidatePath("/fixture");
+}
+
+export async function deleteMatchAction(formData: FormData) {
+  const { actorId, dbClient } = await requireAdminActor();
+  const matchId = z.string().uuid().parse(formData.get("matchId"));
+  const [match] = await dbClient
+    .select({
+      id: matches.id,
+      category: matches.category,
+      player1Id: matches.player1Id,
+      player2Id: matches.player2Id,
+      status: matches.status,
+      type: matches.type,
+      weekId: matches.weekId,
+    })
+    .from(matches)
+    .where(eq(matches.id, matchId))
+    .limit(1);
+
+  if (!match) {
+    throw new Error("Partido no encontrado");
+  }
+
+  await dbClient
+    .delete(rankingEvents)
+    .where(
+      and(eq(rankingEvents.refType, "match"), eq(rankingEvents.refId, matchId)),
+    );
+
+  await dbClient.delete(matches).where(eq(matches.id, matchId));
+
+  await dbClient.insert(auditLog).values({
+    actorId,
+    action: "match.delete",
+    entityType: "match",
+    entityId: matchId,
+    payload: match,
+  });
+
+  await refreshRankingAfterResult(match.category);
 }
 
 function parseResultForm(formData: FormData) {

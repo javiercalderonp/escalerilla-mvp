@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, gt, inArray, lt, or, sql } from "drizzle-orm";
-import { Check } from "lucide-react";
+import { Check, Mars, Venus } from "lucide-react";
 import Link from "next/link";
+import { FixtureAdminActions } from "@/app/fixture/fixture-admin-actions";
 import { EmptyState } from "@/components/ui/empty-state";
 import { WeekStepper } from "@/components/ui/week-stepper";
 import { auth } from "@/lib/auth";
@@ -13,9 +14,11 @@ import {
   rankingEvents,
   weeks,
 } from "@/lib/db/schema";
+import { getRanking } from "@/lib/ranking";
 
 type FixturePageProps = {
   searchParams?: Promise<{
+    categoria?: string;
     week?: string;
   }>;
 };
@@ -29,6 +32,38 @@ function getInitials(fullName: string) {
 function formatDate(dateStr: string) {
   const [year, month, day] = dateStr.split("-");
   return `${day}/${month}/${year}`;
+}
+
+function formatWeekHeading(dateStr: string) {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  const formatted = new Intl.DateTimeFormat("es-CL", {
+    timeZone: "UTC",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+
+  return `Semana ${formatted}`;
+}
+
+function addDays(dateStr: string, days: number) {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function getWeekStart(dateStr: string) {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  const jsDay = date.getUTCDay();
+  const diff = jsDay === 0 ? -6 : 1 - jsDay;
+  return addDays(dateStr, diff);
+}
+
+function getWeekEnd(weekStart: string) {
+  return addDays(weekStart, 6);
 }
 
 function formatPoints(points: number) {
@@ -53,8 +88,7 @@ function MatchStatusBadge({
   if (status === "confirmado") {
     const first = winnerName ? winnerName.split(" ")[0] : null;
     return (
-      <span className="flex items-center gap-1 text-xs font-medium text-grass">
-      </span>
+      <span className="flex items-center gap-1 text-xs font-medium text-grass"></span>
     );
   }
   const map: Record<string, { label: string; cls: string }> = {
@@ -83,6 +117,7 @@ function PlayerScoreLine({
   isWinner,
   hasWinner,
   points,
+  rankingPosition,
   sets,
   playerIndex,
 }: {
@@ -90,6 +125,7 @@ function PlayerScoreLine({
   isWinner: boolean;
   hasWinner: boolean;
   points: number | null;
+  rankingPosition: number | null;
   sets: SetRow[];
   playerIndex: 1 | 2;
 }) {
@@ -103,6 +139,10 @@ function PlayerScoreLine({
           isWinner ? "bg-foreground" : "bg-border"
         }`}
       />
+
+      <span className="w-7 shrink-0 text-center text-xs font-semibold tabular-nums text-muted-foreground">
+        {rankingPosition ? `#${rankingPosition}` : "—"}
+      </span>
 
       {/* Avatar circle */}
       <span
@@ -119,9 +159,7 @@ function PlayerScoreLine({
       <div className="min-w-0 flex-1">
         <p
           className={`truncate text-sm leading-tight ${
-            isLoser
-              ? "text-muted-foreground"
-              : "font-semibold text-foreground"
+            isLoser ? "text-muted-foreground" : "font-semibold text-foreground"
           }`}
         >
           {name}
@@ -155,9 +193,7 @@ function PlayerScoreLine({
             <span
               key={set.setNumber}
               className={`w-4 text-center text-sm tabular-nums ${
-                isLoser
-                  ? "text-muted-foreground"
-                  : "font-bold text-foreground"
+                isLoser ? "text-muted-foreground" : "font-bold text-foreground"
               }`}
             >
               {playerIndex === 1 ? set.gamesP1 : set.gamesP2}
@@ -175,6 +211,11 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
   const session = await auth();
   const query = searchParams ? await searchParams : undefined;
   const requestedWeekId = query?.week;
+  const selectedCategory = query?.categoria === "mujeres" ? "F" : "M";
+  const selectedCategoryLabel =
+    selectedCategory === "M" ? "Hombres" : "Mujeres";
+  const selectedRankingCategory =
+    selectedCategory === "M" ? "hombres" : "mujeres";
 
   if (session?.user?.role !== "admin" && session?.user) {
     await requireCompleteProfile();
@@ -288,6 +329,7 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
       player1Name: players.fullName,
       player2Name: sql<string>`players_p2.full_name`,
       status: matches.status,
+      format: matches.format,
       winnerId: matches.winnerId,
       winnerName: sql<string | null>`players_winner.full_name`,
       playedOn: matches.playedOn,
@@ -317,7 +359,39 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
 
   const matchesM = weekMatches.filter((m) => m.category === "M");
   const matchesF = weekMatches.filter((m) => m.category === "F");
-  const matchIds = weekMatches.map((m) => m.id);
+  const selectedMatches = selectedCategory === "M" ? matchesM : matchesF;
+  const matchIds = selectedMatches.map((m) => m.id);
+
+  const buildWeekGroups = (rows: typeof weekMatches) =>
+    rows.reduce<
+      Array<{
+        key: string;
+        label: string;
+        matches: typeof weekMatches;
+      }>
+    >((groups, match) => {
+      const startsOn =
+        match.weekStartsOn ??
+        (match.playedOn ? getWeekStart(match.playedOn) : null);
+      const endsOn =
+        match.weekEndsOn ?? (startsOn ? getWeekEnd(startsOn) : null);
+      const week = {
+        key: startsOn ?? "sin-semana",
+        label:
+          startsOn && endsOn
+            ? formatWeekHeading(startsOn)
+            : "Sin semana asignada",
+      };
+      const current = groups.at(-1);
+
+      if (current?.key === week.key) {
+        current.matches.push(match);
+      } else {
+        groups.push({ ...week, matches: [match] });
+      }
+
+      return groups;
+    }, []);
 
   const [allSets, pointRows] = matchIds.length
     ? await Promise.all([
@@ -357,6 +431,10 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
           .groupBy(rankingEvents.refId, rankingEvents.playerId),
       ])
     : [[], []];
+  const selectedRanking = await getRanking(selectedRankingCategory);
+  const rankingByPlayer = new Map(
+    selectedRanking.map((entry) => [entry.id, entry.position]),
+  );
 
   const setsByMatch = new Map<string, SetRow[]>();
   for (const set of allSets) {
@@ -375,11 +453,28 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
     ? `${formatDate(currentWeek.startsOn)}–${formatDate(currentWeek.endsOn)}`
     : null;
   const isClosedWeek = currentWeek?.status === "cerrada";
+  const selectedWeekGroups = buildWeekGroups(selectedMatches);
+  const selectedCategoryHref = (category: "hombres" | "mujeres") => {
+    const params = new URLSearchParams();
+
+    if (requestedWeekId) {
+      params.set("week", requestedWeekId);
+    }
+
+    if (category === "mujeres") {
+      params.set("categoria", "mujeres");
+    }
+
+    const queryString = params.toString();
+    return queryString ? `/fixture?${queryString}` : "/fixture";
+  };
+  const weekCategoryQuery =
+    selectedCategory === "F" ? "&categoria=mujeres" : "";
+  const isAdmin = session?.user?.role === "admin";
 
   return (
     <div className="flex w-full flex-1 bg-background">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6">
-
         {/* ── Hero header ── */}
         <div
           className="relative overflow-hidden rounded-3xl shadow-md"
@@ -418,10 +513,7 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
               </p>
               {!session?.user && !isHistoryView && (
                 <p className="mt-1.5 text-sm text-white/50">
-                  <Link
-                    href="/login"
-                    className="text-blue-300 hover:underline"
-                  >
+                  <Link href="/login" className="text-blue-300 hover:underline">
                     Ingresá
                   </Link>{" "}
                   para ver tus partidos resaltados.
@@ -433,12 +525,12 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
                 label={weekLabel}
                 previousHref={
                   prevWeekRows[0]
-                    ? `/fixture?week=${prevWeekRows[0].id}`
+                    ? `/fixture?week=${prevWeekRows[0].id}${weekCategoryQuery}`
                     : null
                 }
                 nextHref={
                   nextWeekRows[0]
-                    ? `/fixture?week=${nextWeekRows[0].id}`
+                    ? `/fixture?week=${nextWeekRows[0].id}${weekCategoryQuery}`
                     : null
                 }
               />
@@ -446,130 +538,184 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
           </div>
         </div>
 
-        {/* ── Category sections ── */}
-        {(
-          [
-            { cat: "M", label: "Hombres", rows: matchesM },
-            { cat: "F", label: "Mujeres", rows: matchesF },
-          ] as const
-        ).map(({ cat, label, rows }) => (
-          <section
-            key={cat}
-            className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm ring-1 ring-court/5"
+        <div className="flex rounded-xl border border-border bg-card p-1 shadow-sm sm:w-fit">
+          <Link
+            href={selectedCategoryHref("hombres")}
+            className={`flex flex-1 items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition sm:flex-none ${
+              selectedCategory === "M"
+                ? "bg-court text-court-foreground"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            }`}
           >
-            {/* Section header */}
-            <div className="flex items-center justify-between border-b border-border px-6 py-4">
-              <div className="flex items-center gap-3">
-                <span className="flex size-7 items-center justify-center rounded-full bg-court text-xs font-bold text-court-foreground">
-                  {cat}
-                </span>
-                <h2 className="font-semibold text-foreground">{label}</h2>
-              </div>
-              {rows.length > 0 && (
-                <span className="text-xs text-muted-foreground">
-                  {rows.length}{" "}
-                  {rows.length === 1 ? "partido" : "partidos"}
-                </span>
-              )}
+            Hombres
+          </Link>
+          <Link
+            href={selectedCategoryHref("mujeres")}
+            className={`flex flex-1 items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition sm:flex-none ${
+              selectedCategory === "F"
+                ? "bg-court text-court-foreground"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            }`}
+          >
+            Mujeres
+          </Link>
+        </div>
+
+        <section className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm ring-1 ring-court/5">
+          <div className="flex items-center justify-between border-b border-border px-6 py-4">
+            <div className="flex items-center gap-3">
+              <span className="flex size-7 items-center justify-center rounded-full bg-court text-xs font-bold text-court-foreground">
+                {selectedCategory === "M" ? (
+                  <Mars className="size-4" aria-hidden="true" />
+                ) : (
+                  <Venus className="size-4" aria-hidden="true" />
+                )}
+              </span>
+              <h2 className="font-semibold text-foreground">
+                {selectedCategoryLabel}
+              </h2>
             </div>
+            {selectedMatches.length > 0 && (
+              <span className="text-xs text-muted-foreground">
+                {selectedMatches.length}{" "}
+                {selectedMatches.length === 1 ? "partido" : "partidos"}
+              </span>
+            )}
+          </div>
 
-            <div className="p-6">
-              {rows.length === 0 ? (
-                <EmptyState
-                  title="Sin partidos"
-                  description={
-                    isHistoryView
-                      ? "Todavía no hay partidos registrados."
-                      : "Esta semana no tiene partidos publicados."
-                  }
-                />
-              ) : (
-                <div className="grid gap-3 md:grid-cols-2">
-                  {rows.map((match) => {
-                    const isMyMatch =
-                      myPlayerId !== null &&
-                      (match.player1Id === myPlayerId ||
-                        match.player2Id === myPlayerId);
-                    const sets = setsByMatch.get(match.id) ?? [];
-                    const hasWinner = match.winnerId !== null;
+          <div className="p-6">
+            {selectedMatches.length === 0 ? (
+              <EmptyState
+                title="Sin partidos"
+                description={
+                  isHistoryView
+                    ? "Todavía no hay partidos registrados."
+                    : "Esta semana no tiene partidos publicados."
+                }
+              />
+            ) : (
+              <div className="space-y-12">
+                {selectedWeekGroups.map((group) => (
+                  <div key={group.key} className="space-y-5">
+                    <div className="flex items-center gap-3">
+                      <h3 className="shrink-0 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                        {group.label}
+                      </h3>
+                      <div className="h-px flex-1 bg-border" />
+                    </div>
 
-                    const typeColor =
-                      match.type === "desafio"
-                        ? "text-clay"
-                        : match.type === "campeonato"
-                          ? "text-gold"
-                          : "text-white/50";
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {group.matches.map((match) => {
+                        const isMyMatch =
+                          myPlayerId !== null &&
+                          (match.player1Id === myPlayerId ||
+                            match.player2Id === myPlayerId);
+                        const sets = setsByMatch.get(match.id) ?? [];
+                        const hasWinner = match.winnerId !== null;
 
-                    const dateLabel = match.playedOn
-                      ? formatDate(match.playedOn)
-                      : match.weekStartsOn && match.weekEndsOn
-                        ? `${formatDate(match.weekStartsOn)}–${formatDate(match.weekEndsOn)}`
-                        : "Sin fecha";
+                        const typeColor =
+                          match.type === "desafio"
+                            ? "text-clay"
+                            : match.type === "campeonato"
+                              ? "text-gold"
+                              : "text-white/50";
 
-                    return (
-                      <div
-                        key={match.id}
-                        className={`overflow-hidden rounded-2xl border shadow-sm ${
-                          isMyMatch
-                            ? "border-clay/40 ring-1 ring-clay/15"
-                            : "border-border"
-                        }`}
-                      >
-                        {/* Dark card header */}
-                        <div className="flex items-center justify-between bg-court px-4 py-2.5">
-                          <div className="flex items-center gap-1.5">
-                            <span
-                              className={`text-xs font-semibold ${typeColor}`}
-                            >
-                              {getTypeLabel(match.type)}
-                            </span>
-                            <span className="text-white/20">·</span>
-                            <span className="text-xs text-white/40">
-                              {dateLabel}
-                            </span>
+                        const dateLabel = match.playedOn
+                          ? formatDate(match.playedOn)
+                          : match.weekStartsOn && match.weekEndsOn
+                            ? `${formatDate(match.weekStartsOn)}–${formatDate(match.weekEndsOn)}`
+                            : "Sin fecha";
+
+                        return (
+                          <div
+                            key={match.id}
+                            className={`overflow-hidden rounded-2xl border shadow-sm ${
+                              isMyMatch
+                                ? "border-clay/40 ring-1 ring-clay/15"
+                                : "border-border"
+                            }`}
+                          >
+                            {/* Dark card header */}
+                            <div className="flex items-center justify-between bg-court px-4 py-2.5">
+                              <div className="flex items-center gap-1.5">
+                                <span
+                                  className={`text-xs font-semibold ${typeColor}`}
+                                >
+                                  {getTypeLabel(match.type)}
+                                </span>
+                                <span className="text-white/20">·</span>
+                                <span className="text-xs font-medium text-white/90">
+                                  {dateLabel}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <MatchStatusBadge
+                                  status={match.status}
+                                  winnerName={match.winnerName}
+                                />
+                                {isAdmin ? (
+                                  <FixtureAdminActions
+                                    match={{
+                                      id: match.id,
+                                      status: match.status,
+                                      format: match.format,
+                                      playedOn: match.playedOn,
+                                      winnerId: match.winnerId,
+                                      player1Id: match.player1Id,
+                                      player2Id: match.player2Id,
+                                      player1Name: match.player1Name,
+                                      player2Name: match.player2Name,
+                                    }}
+                                    sets={sets}
+                                  />
+                                ) : null}
+                              </div>
+                            </div>
+
+                            {/* Players */}
+                            <div className="space-y-1 bg-card px-4 py-3">
+                              <PlayerScoreLine
+                                name={match.player1Name}
+                                isWinner={match.winnerId === match.player1Id}
+                                hasWinner={hasWinner}
+                                points={
+                                  pointsByMatchPlayer.get(
+                                    `${match.id}:${match.player1Id}`,
+                                  ) ?? null
+                                }
+                                rankingPosition={
+                                  rankingByPlayer.get(match.player1Id) ?? null
+                                }
+                                sets={sets}
+                                playerIndex={1}
+                              />
+                              <div className="my-0.5 border-t border-border/50" />
+                              <PlayerScoreLine
+                                name={match.player2Name}
+                                isWinner={match.winnerId === match.player2Id}
+                                hasWinner={hasWinner}
+                                points={
+                                  pointsByMatchPlayer.get(
+                                    `${match.id}:${match.player2Id}`,
+                                  ) ?? null
+                                }
+                                rankingPosition={
+                                  rankingByPlayer.get(match.player2Id) ?? null
+                                }
+                                sets={sets}
+                                playerIndex={2}
+                              />
+                            </div>
                           </div>
-                          <MatchStatusBadge
-                            status={match.status}
-                            winnerName={match.winnerName}
-                          />
-                        </div>
-
-                        {/* Players */}
-                        <div className="space-y-1 bg-card px-4 py-3">
-                          <PlayerScoreLine
-                            name={match.player1Name}
-                            isWinner={match.winnerId === match.player1Id}
-                            hasWinner={hasWinner}
-                            points={
-                              pointsByMatchPlayer.get(
-                                `${match.id}:${match.player1Id}`,
-                              ) ?? null
-                            }
-                            sets={sets}
-                            playerIndex={1}
-                          />
-                          <div className="border-t border-border/50 my-0.5" />
-                          <PlayerScoreLine
-                            name={match.player2Name}
-                            isWinner={match.winnerId === match.player2Id}
-                            hasWinner={hasWinner}
-                            points={
-                              pointsByMatchPlayer.get(
-                                `${match.id}:${match.player2Id}`,
-                              ) ?? null
-                            }
-                            sets={sets}
-                            playerIndex={2}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </section>
-        ))}
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
       </div>
     </div>
   );

@@ -10,7 +10,6 @@ export default auth((req) => {
 
   const isLoggedIn = !!session?.user;
   const isAdmin = session?.user?.role === "admin";
-  const hasPlayer = !!session?.user?.playerId;
 
   if (pathname.startsWith("/admin")) {
     if (!isAdmin) {
@@ -24,18 +23,12 @@ export default auth((req) => {
     if (!isLoggedIn) {
       return Response.redirect(new URL("/login", req.nextUrl));
     }
-    if (!hasPlayer) {
-      return Response.redirect(new URL("/onboarding", req.nextUrl));
-    }
     return;
   }
 
   if (pathname === "/onboarding" || pathname.startsWith("/onboarding/")) {
     if (!isLoggedIn) {
       return Response.redirect(new URL("/login", req.nextUrl));
-    }
-    if (hasPlayer) {
-      return Response.redirect(new URL("/mi-perfil", req.nextUrl));
     }
     return;
   }

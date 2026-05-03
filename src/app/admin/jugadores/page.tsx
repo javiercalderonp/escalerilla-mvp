@@ -1,16 +1,13 @@
 import { asc } from "drizzle-orm";
-import { Pencil, Plus } from "lucide-react";
+import { Check, Pencil, Plus, Trash2, Undo2 } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import {
   approvePlayerAction,
   createPlayerAction,
-  importPlayersCsvAction,
   toggleRetiredPlayerAction,
   updatePlayerAction,
 } from "@/app/admin/jugadores/actions";
-import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -20,6 +17,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { players } from "@/lib/db/schema";
 
 async function getPlayers() {
@@ -33,7 +40,9 @@ async function getPlayers() {
     .orderBy(asc(players.gender), asc(players.fullName));
 }
 
-function statusBadge(status: "pendiente" | "activo" | "congelado" | "retirado") {
+function statusBadge(
+  status: "pendiente" | "activo" | "congelado" | "retirado",
+) {
   const styles = {
     pendiente: "bg-orange-100 text-orange-800",
     activo: "bg-emerald-100 text-emerald-800",
@@ -51,11 +60,6 @@ function levelBadge(level: string | null) {
 
   return <Badge variant="court">{level.replaceAll("_", " ")}</Badge>;
 }
-
-const csvExample = `full_name,email,gender,initial_points,notes
-Juan Pérez López,juan@gmail.com,M,420,Ranking 2025: 3º
-Pedro García,,M,380,
-María Torres,maria.t@gmail.com,F,310,Ranking 2025: 1º femenino`;
 
 type PlayerRow = Awaited<ReturnType<typeof getPlayers>>[number];
 
@@ -130,6 +134,9 @@ function PlayerFields({ player }: { player?: PlayerRow }) {
           defaultValue={player?.status ?? "activo"}
           className={inputClass}
         >
+          {player?.status === "pendiente" ? (
+            <option value="pendiente">Pendiente</option>
+          ) : null}
           <option value="activo">Activo</option>
           <option value="congelado">Congelado</option>
           <option value="retirado">Retirado</option>
@@ -152,9 +159,9 @@ function PlayerFields({ player }: { player?: PlayerRow }) {
 function CreatePlayerDialog() {
   return (
     <Dialog>
-      <DialogTrigger className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 text-white shadow-sm transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-slate-950/20">
+      <DialogTrigger className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-slate-950/20">
         <Plus className="size-5" />
-        <span className="sr-only">Agregar jugador</span>
+        Nuevo jugador
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
@@ -183,9 +190,12 @@ function CreatePlayerDialog() {
 function EditPlayerDialog({ player }: { player: PlayerRow }) {
   return (
     <Dialog>
-      <DialogTrigger className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-slate-950/10">
+      <DialogTrigger
+        aria-label={`Editar ${player.fullName}`}
+        title={`Editar ${player.fullName}`}
+        className="inline-flex size-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition hover:border-slate-400 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-slate-950/10"
+      >
         <Pencil className="size-4" />
-        Editar
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
@@ -222,8 +232,6 @@ export default async function AdminPlayersPage() {
   }
 
   const rows = await getPlayers();
-  const pending = rows.filter((p) => p.status === "pendiente");
-  const active = rows.filter((p) => p.status !== "pendiente");
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6">
@@ -235,410 +243,131 @@ export default async function AdminPlayersPage() {
               Jugadores
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-              Alta manual, import CSV, edición rápida y retiro lógico de
-              jugadores.
+              Revisa el plantel completo, edita datos en una ventana emergente y
+              elimina jugadores del listado activo.
             </p>
           </div>
-          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
-            {rows.length} jugadores cargados
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              {rows.length} jugadores cargados
+            </div>
+            <CreatePlayerDialog />
           </div>
         </div>
       </section>
-
-      <section className="grid gap-8 lg:grid-cols-2">
-        <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">
-            Importar seed CSV
-          </h2>
-          <p className="mt-2 text-sm text-slate-600">
-            Carga masiva inicial con columnas{" "}
-            <code>full_name, email, gender, initial_points, notes</code>. Si una
-            fila falla, se aborta todo.
-          </p>
-
-          <form action={importPlayersCsvAction} className="mt-6 space-y-4">
-            <label className="block space-y-2 text-sm text-slate-700">
-              <span className="font-medium">Archivo CSV</span>
-              <input
-                name="csvFile"
-                type="file"
-                accept=".csv,text/csv"
-                required
-                className="block w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm file:mr-4 file:rounded-full file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:font-medium file:text-emerald-700"
-              />
-            </label>
-
-            <button
-              type="submit"
-              className="rounded-full bg-emerald-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-emerald-700"
-            >
-              Importar CSV
-            </button>
-          </form>
-
-          <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-sm font-semibold text-slate-900">
-              Ejemplo esperado
-            </p>
-            <pre className="mt-3 overflow-x-auto rounded-xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">
-              {csvExample}
-            </pre>
-          </div>
-        </article>
-
-        <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">
-            Crear jugador manual
-          </h2>
-          <p className="mt-2 text-sm text-slate-600">
-            Útil para ajustes puntuales o altas individuales.
-          </p>
-
-          <form action={createPlayerAction} className="mt-6 space-y-4">
-            <div className="space-y-2">
-              <label
-                htmlFor="fullName"
-                className="text-sm font-medium text-slate-700"
-              >
-                Nombre completo
-              </label>
-              <input
-                id="fullName"
-                name="fullName"
-                required
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-500"
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label
-                  htmlFor="email"
-                  className="text-sm font-medium text-slate-700"
-                >
-                  Email
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-500"
-                />
-              </div>
-              <div className="space-y-2">
-                <label
-                  htmlFor="gender"
-                  className="text-sm font-medium text-slate-700"
-                >
-                  Categoría
-                </label>
-                <select
-                  id="gender"
-                  name="gender"
-                  defaultValue="M"
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-500"
-                >
-                  <option value="M">Hombres</option>
-                  <option value="F">Mujeres</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-2">
-                <label
-                  htmlFor="initialPoints"
-                  className="text-sm font-medium text-slate-700"
-                >
-                  Puntos iniciales
-                </label>
-                <input
-                  id="initialPoints"
-                  name="initialPoints"
-                  type="number"
-                  min={0}
-                  defaultValue={0}
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-500"
-                />
-              </div>
-              <div className="space-y-2">
-                <label
-                  htmlFor="level"
-                  className="text-sm font-medium text-slate-700"
-                >
-                  Nivel
-                </label>
-                <select
-                  id="level"
-                  name="level"
-                  defaultValue=""
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-500"
-                >
-                  <option value="">Sin definir</option>
-                  <option value="principiante">Principiante</option>
-                  <option value="intermedio_bajo">Intermedio bajo</option>
-                  <option value="intermedio_alto">Intermedio alto</option>
-                  <option value="avanzado">Avanzado</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label
-                  htmlFor="status"
-                  className="text-sm font-medium text-slate-700"
-                >
-                  Estado
-                </label>
-                <select
-                  id="status"
-                  name="status"
-                  defaultValue="activo"
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-500"
-                >
-                  <option value="activo">Activo</option>
-                  <option value="congelado">Congelado</option>
-                  <option value="retirado">Retirado</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label
-                htmlFor="notes"
-                className="text-sm font-medium text-slate-700"
-              >
-                Notas
-              </label>
-              <textarea
-                id="notes"
-                name="notes"
-                rows={4}
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-500"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="rounded-full bg-slate-950 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800"
-            >
-              Guardar jugador
-            </button>
-          </form>
-        </article>
-      </section>
-
-      {pending.length > 0 && (
-        <section className="rounded-3xl border border-orange-200 bg-orange-50 p-6 shadow-sm">
-          <div className="flex items-center gap-3">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-lg">
-              ⏳
-            </span>
-            <div>
-              <h2 className="text-lg font-semibold text-slate-950">
-                Pendientes de aprobación
-              </h2>
-              <p className="text-sm text-slate-600">
-                Se registraron con un nombre que no coincidió con ningún
-                jugador existente.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-5 space-y-3">
-            {pending.map((player) => (
-              <div
-                key={player.id}
-                className="flex flex-col gap-3 rounded-2xl border border-orange-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="space-y-0.5">
-                  <p className="font-semibold text-slate-950">
-                    {player.fullName}
-                  </p>
-                  <p className="text-sm text-slate-500">
-                    {player.email ?? "Sin email"} ·{" "}
-                    {player.gender === "M" ? "Hombres" : "Mujeres"}
-                  </p>
-                </div>
-                <form action={approvePlayerAction}>
-                  <input type="hidden" name="playerId" value={player.id} />
-                  <button
-                    type="submit"
-                    className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
-                  >
-                    Aprobar
-                  </button>
-                </form>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-slate-950">
-              Plantel actual
-            </h2>
+            <h2 className="text-lg font-semibold text-slate-950">Jugadores</h2>
             <p className="mt-2 text-sm text-slate-600">
-              Puedes ajustar nombre, email, categoría, nivel, estado, puntos base y
-              notas.
+              Todos los jugadores registrados, con edición y eliminación por
+              fila.
             </p>
           </div>
         </div>
 
-        <div className="mt-6 space-y-4">
-          {active.length === 0 ? (
+        <div className="mt-6">
+          {rows.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center text-sm text-slate-500">
               Aún no hay jugadores cargados en la base.
             </div>
           ) : (
-            active.map((player) => (
-              <form
-                key={player.id}
-                action={updatePlayerAction}
-                className="rounded-2xl border border-slate-200 p-4"
-              >
-                <input type="hidden" name="playerId" value={player.id} />
+            <div className="overflow-hidden rounded-2xl border border-slate-200">
+              <Table>
+                <TableHeader className="bg-slate-50">
+                  <TableRow>
+                    <TableHead className="px-4">Jugador</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Categoría</TableHead>
+                    <TableHead>Nivel</TableHead>
+                    <TableHead className="text-right">Puntos</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Notas</TableHead>
+                    <TableHead className="pr-4 text-right">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((player) => {
+                    const isRetired = player.status === "retirado";
+                    const nextStatus = isRetired ? "activo" : "retirado";
+                    const deleteLabel = isRetired
+                      ? `Reactivar ${player.fullName}`
+                      : `Eliminar ${player.fullName}`;
 
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-base font-semibold text-slate-950">
-                      {player.fullName}
-                    </h3>
-                    {statusBadge(player.status)}
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <span>{player.gender === "M" ? "Hombres" : "Mujeres"}</span>
-                    {levelBadge(player.level)}
-                  </div>
-                </div>
-
-                <div className="mt-4 grid gap-4 md:grid-cols-2">
-                  <label className="space-y-2 text-sm text-slate-700">
-                    <span className="font-medium">Nombre completo</span>
-                    <input
-                      name="fullName"
-                      defaultValue={player.fullName}
-                      required
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-emerald-500"
-                    />
-                  </label>
-                  <label className="space-y-2 text-sm text-slate-700">
-                    <span className="font-medium">Email</span>
-                    <input
-                      name="email"
-                      type="email"
-                      defaultValue={player.email ?? ""}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-emerald-500"
-                    />
-                  </label>
-                  <label className="space-y-2 text-sm text-slate-700">
-                    <span className="font-medium">Categoría</span>
-                    <select
-                      name="gender"
-                      defaultValue={player.gender}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-emerald-500"
-                    >
-                      <option value="M">Hombres</option>
-                      <option value="F">Mujeres</option>
-                    </select>
-                  </label>
-                  <label className="space-y-2 text-sm text-slate-700">
-                    <span className="font-medium">Estado</span>
-                    <select
-                      name="status"
-                      defaultValue={player.status}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-emerald-500"
-                    >
-                      <option value="activo">Activo</option>
-                      <option value="congelado">Congelado</option>
-                      <option value="retirado">Retirado</option>
-                    </select>
-                  </label>
-                  <label className="space-y-2 text-sm text-slate-700">
-                    <span className="font-medium">Puntos iniciales</span>
-                    <input
-                      name="initialPoints"
-                      type="number"
-                      min={0}
-                      defaultValue={player.initialPoints}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-emerald-500"
-                    />
-                  </label>
-                  <label className="space-y-2 text-sm text-slate-700">
-                    <span className="font-medium">Nivel</span>
-                    <select
-                      name="level"
-                      defaultValue={player.level ?? ""}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-emerald-500"
-                    >
-                      <option value="">Sin definir</option>
-                      <option value="principiante">Principiante</option>
-                      <option value="intermedio_bajo">Intermedio bajo</option>
-                      <option value="intermedio_alto">Intermedio alto</option>
-                      <option value="avanzado">Avanzado</option>
-                    </select>
-                  </label>
-                  <label className="space-y-2 text-sm text-slate-700 md:col-span-2">
-                    <span className="font-medium">Notas</span>
-                    <textarea
-                      name="notes"
-                      rows={3}
-                      defaultValue={player.notes ?? ""}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-emerald-500"
-                    />
-                  </label>
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <button
-                    type="submit"
-                    className="rounded-full bg-slate-950 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
-                  >
-                    Guardar cambios
-                  </button>
-                </div>
-              </form>
-            ))
+                    return (
+                      <TableRow key={player.id}>
+                        <TableCell className="px-4 font-medium text-slate-950">
+                          {player.fullName}
+                        </TableCell>
+                        <TableCell className="text-slate-600">
+                          {player.email ?? "Sin email"}
+                        </TableCell>
+                        <TableCell>
+                          {player.gender === "M" ? "Hombres" : "Mujeres"}
+                        </TableCell>
+                        <TableCell>{levelBadge(player.level)}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {player.initialPoints}
+                        </TableCell>
+                        <TableCell>{statusBadge(player.status)}</TableCell>
+                        <TableCell className="max-w-56 truncate text-slate-600">
+                          {player.notes ?? "—"}
+                        </TableCell>
+                        <TableCell className="pr-4">
+                          <div className="flex justify-end gap-2">
+                            {player.status === "pendiente" ? (
+                              <form action={approvePlayerAction}>
+                                <input
+                                  type="hidden"
+                                  name="playerId"
+                                  value={player.id}
+                                />
+                                <button
+                                  type="submit"
+                                  aria-label={`Aprobar ${player.fullName}`}
+                                  title={`Aprobar ${player.fullName}`}
+                                  className="inline-flex size-9 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-emerald-600/20"
+                                >
+                                  <Check className="size-4" />
+                                </button>
+                              </form>
+                            ) : null}
+                            <EditPlayerDialog player={player} />
+                            <form action={toggleRetiredPlayerAction}>
+                              <input
+                                type="hidden"
+                                name="playerId"
+                                value={player.id}
+                              />
+                              <input
+                                type="hidden"
+                                name="nextStatus"
+                                value={nextStatus}
+                              />
+                              <button
+                                type="submit"
+                                aria-label={deleteLabel}
+                                title={deleteLabel}
+                                className="inline-flex size-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-red-600/20"
+                              >
+                                {isRetired ? (
+                                  <Undo2 className="size-4" />
+                                ) : (
+                                  <Trash2 className="size-4" />
+                                )}
+                              </button>
+                            </form>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </div>
-
-        {active.length > 0 ? (
-          <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <h3 className="text-sm font-semibold text-slate-900">
-              Retiro rápido
-            </h3>
-            <p className="mt-1 text-sm text-slate-600">
-              Marca retirado o reactiva sin tocar el resto de los datos.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-3">
-              {active.map((player) => {
-                const nextStatus =
-                  player.status === "retirado" ? "activo" : "retirado";
-                const label =
-                  player.status === "retirado"
-                    ? `Reactivar ${player.fullName}`
-                    : `Retirar ${player.fullName}`;
-
-                return (
-                  <form
-                    key={`${player.id}-toggle`}
-                    action={toggleRetiredPlayerAction}
-                  >
-                    <input type="hidden" name="playerId" value={player.id} />
-                    <input type="hidden" name="nextStatus" value={nextStatus} />
-                    <button
-                      type="submit"
-                      className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 transition hover:border-slate-400 hover:text-slate-950"
-                    >
-                      {label}
-                    </button>
-                  </form>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
       </section>
     </div>
   );
