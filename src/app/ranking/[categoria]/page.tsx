@@ -70,15 +70,15 @@ export default async function RankingCategoryPage({
           }}
         />
 
-        <div className="relative flex flex-col gap-6 p-8 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative flex flex-col gap-3 p-4 sm:gap-6 sm:p-8 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-blue-300/80">
               Escalerilla · {categoryLabel}
             </p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:mt-2 sm:text-3xl">
               Ranking {categoryLabel}
             </h1>
-            <p className="mt-2 text-sm text-white/50">
+            <p className="mt-1 text-sm text-white/50 sm:mt-2">
               {entries.length} jugadores · Actualizado en tiempo real
             </p>
           </div>

@@ -1,20 +1,14 @@
 import { asc, eq, sql } from "drizzle-orm";
-import { Check, Pencil, Plus, Trash2, Undo2, UserMinus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { redirect } from "next/navigation";
 
-import {
-  approvePlayerAction,
-  createPlayerAction,
-  deletePlayerAction,
-  toggleRetiredPlayerAction,
-  updatePlayerAction,
-} from "@/app/admin/jugadores/actions";
+import { createPlayerAction } from "@/app/admin/jugadores/actions";
+import { PlayerRowActions } from "@/app/admin/jugadores/player-row-actions";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -81,18 +75,6 @@ type PlayerRow = Awaited<ReturnType<typeof getPlayers>>[number];
 
 function getCurrentPoints(player: PlayerRow) {
   return Number(player.point_totals?.points ?? 0);
-}
-
-function getDominantHandInitial(hand: PlayerRow["players"]["dominantHand"]) {
-  if (hand === "diestro") {
-    return "D";
-  }
-
-  if (hand === "zurdo") {
-    return "Z";
-  }
-
-  return "—";
 }
 
 function calculateAge(birthDate: PlayerRow["players"]["birthDate"]) {
@@ -245,76 +227,6 @@ function CreatePlayerDialog() {
   );
 }
 
-function EditPlayerDialog({ player }: { player: PlayerRow }) {
-  const playerData = player.players;
-
-  return (
-    <Dialog>
-      <DialogTrigger
-        aria-label={`Editar ${playerData.fullName}`}
-        title={`Editar ${playerData.fullName}`}
-        className="inline-flex size-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition hover:border-slate-400 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-slate-950/10"
-      >
-        <Pencil className="size-4" />
-      </DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Editar jugador</DialogTitle>
-          <DialogDescription>{playerData.fullName}</DialogDescription>
-        </DialogHeader>
-
-        <form action={updatePlayerAction} className="space-y-5">
-          <input type="hidden" name="playerId" value={playerData.id} />
-          <PlayerFields player={player} />
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
-            >
-              Guardar cambios
-            </button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function DeletePlayerDialog({ player }: { player: PlayerRow["players"] }) {
-  return (
-    <Dialog>
-      <DialogTrigger
-        aria-label={`Eliminar definitivamente ${player.fullName}`}
-        title={`Eliminar definitivamente ${player.fullName}`}
-        className="inline-flex size-9 items-center justify-center rounded-lg border border-red-200 bg-white text-red-700 transition hover:bg-red-50 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-red-600/20"
-      >
-        <Trash2 className="size-4" />
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Eliminar jugador</DialogTitle>
-          <DialogDescription>
-            Esto borra definitivamente a {player.fullName}. Si el jugador ya
-            tiene historial, la acción se bloqueará y conviene retirarlo.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form action={deletePlayerAction}>
-          <input type="hidden" name="playerId" value={player.id} />
-          <DialogFooter>
-            <button
-              type="submit"
-              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-red-600/20"
-            >
-              Eliminar definitivamente
-            </button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 export default async function AdminPlayersPage() {
   const session = await auth();
 
@@ -368,103 +280,91 @@ export default async function AdminPlayersPage() {
               Aún no hay jugadores cargados en la base.
             </div>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-slate-200">
-              <Table>
+            <div className="rounded-2xl border border-slate-200">
+              <Table className="table-fixed text-xs sm:text-sm">
+                <colgroup>
+                  <col className="w-[19%]" />
+                  <col className="w-[22%]" />
+                  <col className="w-[9%]" />
+                  <col className="w-[12%]" />
+                  <col className="w-[13%]" />
+                  <col className="w-[6%]" />
+                  <col className="w-[7%]" />
+                  <col className="w-[8%]" />
+                  <col className="w-[4%]" />
+                </colgroup>
                 <TableHeader className="bg-slate-50">
                   <TableRow>
-                    <TableHead className="px-4">Jugador</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Categoría</TableHead>
-                    <TableHead>Nivel</TableHead>
-                    <TableHead className="text-center">Mano</TableHead>
-                    <TableHead>Teléfono</TableHead>
-                    <TableHead className="text-right">Edad</TableHead>
-                    <TableHead className="text-right">Puntos</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead className="pr-4 text-right">Acciones</TableHead>
+                    <TableHead className="px-2">Jugador</TableHead>
+                    <TableHead className="px-1.5">Email</TableHead>
+                    <TableHead className="px-1.5">Cat.</TableHead>
+                    <TableHead className="px-1.5">Nivel</TableHead>
+                    <TableHead className="px-1.5">Teléfono</TableHead>
+                    <TableHead className="px-1.5 text-right">Edad</TableHead>
+                    <TableHead className="px-1.5 text-right">Pts.</TableHead>
+                    <TableHead className="px-1.5">Estado</TableHead>
+                    <TableHead className="px-2 text-right">
+                      <span className="sr-only">Opciones</span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.map((row) => {
                     const player = row.players;
                     const age = calculateAge(player.birthDate);
-                    const isRetired = player.status === "retirado";
-                    const nextStatus = isRetired ? "activo" : "retirado";
-                    const retireLabel = isRetired
-                      ? `Reactivar ${player.fullName}`
-                      : `Retirar ${player.fullName}`;
 
                     return (
                       <TableRow key={player.id}>
-                        <TableCell className="px-4 font-medium text-slate-950">
-                          {player.fullName}
+                        <TableCell className="px-2 font-medium text-slate-950">
+                          <div className="truncate" title={player.fullName}>
+                            {player.fullName}
+                          </div>
                         </TableCell>
-                        <TableCell className="text-slate-600">
-                          {player.email ?? "Sin email"}
+                        <TableCell className="px-1.5 text-slate-600">
+                          <div
+                            className="truncate"
+                            title={player.email ?? "Sin email"}
+                          >
+                            {player.email ?? "Sin email"}
+                          </div>
                         </TableCell>
-                        <TableCell>
-                          {player.gender === "M" ? "Hombres" : "Mujeres"}
+                        <TableCell className="px-1.5">
+                          {player.gender === "M" ? "H" : "M"}
                         </TableCell>
-                        <TableCell>{levelBadge(player.level)}</TableCell>
-                        <TableCell className="text-center font-medium text-slate-700">
-                          {getDominantHandInitial(player.dominantHand)}
+                        <TableCell className="px-1.5">
+                          <div className="truncate">
+                            {levelBadge(player.level)}
+                          </div>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap text-slate-600">
-                          {player.phone ?? "—"}
+                        <TableCell className="px-1.5 text-slate-600">
+                          <div className="truncate" title={player.phone ?? "—"}>
+                            {player.phone ?? "—"}
+                          </div>
                         </TableCell>
-                        <TableCell className="text-right tabular-nums text-slate-700">
+                        <TableCell className="px-1.5 text-right tabular-nums text-slate-700">
                           {age === null ? "—" : age}
                         </TableCell>
-                        <TableCell className="text-right tabular-nums">
+                        <TableCell className="px-1.5 text-right tabular-nums">
                           {getCurrentPoints(row)}
                         </TableCell>
-                        <TableCell>{statusBadge(player.status)}</TableCell>
-                        <TableCell className="pr-4">
-                          <div className="flex justify-end gap-2">
-                            {player.status === "pendiente" ? (
-                              <form action={approvePlayerAction}>
-                                <input
-                                  type="hidden"
-                                  name="playerId"
-                                  value={player.id}
-                                />
-                                <button
-                                  type="submit"
-                                  aria-label={`Aprobar ${player.fullName}`}
-                                  title={`Aprobar ${player.fullName}`}
-                                  className="inline-flex size-9 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-emerald-600/20"
-                                >
-                                  <Check className="size-4" />
-                                </button>
-                              </form>
-                            ) : null}
-                            <EditPlayerDialog player={row} />
-                            <form action={toggleRetiredPlayerAction}>
-                              <input
-                                type="hidden"
-                                name="playerId"
-                                value={player.id}
-                              />
-                              <input
-                                type="hidden"
-                                name="nextStatus"
-                                value={nextStatus}
-                              />
-                              <button
-                                type="submit"
-                                aria-label={retireLabel}
-                                title={retireLabel}
-                                className="inline-flex size-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-amber-600/20"
-                              >
-                                {isRetired ? (
-                                  <Undo2 className="size-4" />
-                                ) : (
-                                  <UserMinus className="size-4" />
-                                )}
-                              </button>
-                            </form>
-                            <DeletePlayerDialog player={player} />
+                        <TableCell className="px-1.5">
+                          <div className="truncate">
+                            {statusBadge(player.status)}
                           </div>
+                        </TableCell>
+                        <TableCell className="px-2">
+                          <PlayerRowActions
+                            player={{
+                              id: player.id,
+                              fullName: player.fullName,
+                              email: player.email,
+                              gender: player.gender,
+                              initialPoints: player.initialPoints,
+                              level: player.level,
+                              status: player.status,
+                              notes: player.notes,
+                            }}
+                          />
                         </TableCell>
                       </TableRow>
                     );
