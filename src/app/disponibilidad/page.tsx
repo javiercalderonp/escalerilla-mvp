@@ -79,21 +79,25 @@ export default async function DisponibilidadPage() {
     : null;
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 py-8 sm:px-6 lg:py-10">
-      <section className="rounded-3xl bg-card p-6 shadow-xl shadow-court/5 ring-1 ring-court/10 sm:p-8">
-        <div className="flex items-start gap-5">
-          <div className="inline-flex size-14 shrink-0 items-center justify-center rounded-2xl bg-court/10 text-court">
-            <CalendarDays className="size-7" aria-hidden="true" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-clay">{player.fullName}</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
-              Mi disponibilidad
-            </h1>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Indica los días en que normalmente puedes jugar. Tu rival lo verá
-              para coordinar el partido.
-            </p>
+    <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-3 py-5 sm:px-6 lg:py-9">
+      <section className="rounded-3xl border border-white/70 bg-card/95 p-5 shadow-2xl shadow-court/10 ring-1 ring-border/70 sm:p-7 lg:p-9">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex items-start gap-5">
+            <div className="inline-flex size-16 shrink-0 items-center justify-center rounded-2xl bg-grass/10 text-grass ring-1 ring-grass/10">
+              <CalendarDays className="size-8" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-grass">
+                {player.fullName}
+              </p>
+              <h1 className="mt-1 text-3xl font-bold tracking-tight text-foreground">
+                Mi disponibilidad semanal
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
+                Define los horarios en que normalmente puedes jugar. Luego el
+                club podrá usarlos para coordinar tus partidos.
+              </p>
+            </div>
           </div>
         </div>
 
