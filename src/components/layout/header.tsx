@@ -8,11 +8,16 @@ import { NavLinks } from "./nav-links";
 export async function Header() {
   const session = await auth();
   const isAdmin = session?.user?.role === "admin";
+  const isPlayer =
+    session?.user?.role === "player" || session?.user?.role === "admin";
 
   const navItems = [
     { href: "/", label: "Inicio" },
     { href: "/ranking/hombres", label: "Ranking" },
     { href: "/fixture", label: "Partidos" },
+    ...(isPlayer
+      ? [{ href: "/ingresar-resultado", label: "Ingresar resultado" }]
+      : []),
     ...(isAdmin
       ? [
           { href: "/admin/semanas", label: "Programación" },
