@@ -133,6 +133,13 @@ export const players = pgTable(
     bestRankingAchievedAt: timestamp("best_ranking_achieved_at", {
       withTimezone: true,
     }),
+    availMonday: boolean("avail_monday"),
+    availTuesday: boolean("avail_tuesday"),
+    availWednesday: boolean("avail_wednesday"),
+    availThursday: boolean("avail_thursday"),
+    availFriday: boolean("avail_friday"),
+    availSaturday: boolean("avail_saturday"),
+    availSunday: boolean("avail_sunday"),
     notes: text("notes"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

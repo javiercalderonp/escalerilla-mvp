@@ -64,8 +64,18 @@ const backhandLabels: Record<string, string> = {
 };
 
 const monthNames = [
-  "ENE","FEB","MAR","ABR","MAY","JUN",
-  "JUL","AGO","SEP","OCT","NOV","DIC",
+  "ENE",
+  "FEB",
+  "MAR",
+  "ABR",
+  "MAY",
+  "JUN",
+  "JUL",
+  "AGO",
+  "SEP",
+  "OCT",
+  "NOV",
+  "DIC",
 ];
 
 function getTodayInSantiago() {
@@ -84,10 +94,6 @@ function addDays(dateStr: string, days: number) {
   return date.toISOString().slice(0, 10);
 }
 
-function getMonthStart(dateStr: string) {
-  return `${dateStr.slice(0, 7)}-01`;
-}
-
 function getWeekStart(dateStr: string) {
   const [year, month, day] = dateStr.split("-").map(Number);
   const date = new Date(Date.UTC(year, month - 1, day));
@@ -98,12 +104,6 @@ function getWeekStart(dateStr: string) {
 
 function getWeekEnd(weekStart: string) {
   return addDays(weekStart, 6);
-}
-
-function formatDate(value: string | null) {
-  if (!value) return "Sin fecha";
-  const [year, month, day] = value.split("-");
-  return `${day}/${month}/${year}`;
 }
 
 function formatDateParts(value: string | null) {
@@ -176,7 +176,10 @@ function formatScore(
 
 function getOutcome(match: MatchHistoryRow, playerId: string) {
   if (match.status === "empate") {
-    return { label: "Empate", classes: "text-blue-700 bg-blue-50 border-blue-200" };
+    return {
+      label: "Empate",
+      classes: "text-blue-700 bg-blue-50 border-blue-200",
+    };
   }
   if (match.winnerId === playerId) {
     return {
@@ -239,11 +242,12 @@ export default async function MiPerfilPage() {
     );
   }
 
-  const category: RankingCategory = player.gender === "M" ? "hombres" : "mujeres";
+  const category: RankingCategory =
+    player.gender === "M" ? "hombres" : "mujeres";
   const today = getTodayInSantiago();
   const weekStart = getWeekStart(today);
   const weekEnd = getWeekEnd(weekStart);
-  const monthStart = getMonthStart(today);
+  const rollingMonthStart = addDays(today, -29);
 
   const [
     ranking,
@@ -258,7 +262,10 @@ export default async function MiPerfilPage() {
       .from(matches)
       .where(
         and(
-          or(eq(matches.player1Id, player.id), eq(matches.player2Id, player.id)),
+          or(
+            eq(matches.player1Id, player.id),
+            eq(matches.player2Id, player.id),
+          ),
           sql`${matches.status} in ('confirmado', 'empate', 'wo')`,
           sql`${matches.playedOn} is not null`,
           sql`${matches.playedOn} between ${weekStart} and ${weekEnd}`,
@@ -270,10 +277,13 @@ export default async function MiPerfilPage() {
       .from(matches)
       .where(
         and(
-          or(eq(matches.player1Id, player.id), eq(matches.player2Id, player.id)),
+          or(
+            eq(matches.player1Id, player.id),
+            eq(matches.player2Id, player.id),
+          ),
           sql`${matches.status} in ('confirmado', 'empate', 'wo')`,
           sql`${matches.playedOn} is not null`,
-          sql`${matches.playedOn} between ${monthStart} and ${today}`,
+          sql`${matches.playedOn} between ${rollingMonthStart} and ${today}`,
           sql`${matches.type} <> 'campeonato'`,
         ),
       ),
@@ -282,11 +292,14 @@ export default async function MiPerfilPage() {
       .from(matches)
       .where(
         and(
-          or(eq(matches.player1Id, player.id), eq(matches.player2Id, player.id)),
+          or(
+            eq(matches.player1Id, player.id),
+            eq(matches.player2Id, player.id),
+          ),
           eq(matches.type, "desafio"),
           sql`${matches.status} in ('confirmado', 'empate', 'wo')`,
           sql`${matches.playedOn} is not null`,
-          sql`${matches.playedOn} between ${monthStart} and ${today}`,
+          sql`${matches.playedOn} between ${rollingMonthStart} and ${today}`,
         ),
       ),
     db
@@ -310,11 +323,18 @@ export default async function MiPerfilPage() {
       )
       .where(
         and(
-          or(eq(matches.player1Id, player.id), eq(matches.player2Id, player.id)),
+          or(
+            eq(matches.player1Id, player.id),
+            eq(matches.player2Id, player.id),
+          ),
           sql`${matches.status} in ('confirmado', 'empate', 'wo')`,
         ),
       )
-      .orderBy(desc(matches.playedOn), desc(matches.confirmedAt), desc(matches.createdAt))
+      .orderBy(
+        desc(matches.playedOn),
+        desc(matches.confirmedAt),
+        desc(matches.createdAt),
+      )
       .limit(10) as Promise<MatchHistoryRow[]>,
   ]);
 
@@ -353,7 +373,16 @@ export default async function MiPerfilPage() {
   const monthCount = monthCountRow?.value ?? 0;
   const challengeCount = challengeMonthRow?.value ?? 0;
 
-  const recentForm = rankingEntry?.recentForm ?? [];
+  const recentResults = historyRows.map((match) => ({
+    key: match.id,
+    result:
+      match.status === "empate" || !match.winnerId
+        ? ("D" as const)
+        : match.winnerId === player.id
+          ? ("W" as const)
+          : ("L" as const),
+  }));
+  const recentForm = recentResults.map(({ result }) => result);
   const last4 = recentForm.slice(0, 4);
   const winRateValue =
     last4.length > 0
@@ -361,11 +390,14 @@ export default async function MiPerfilPage() {
       : null;
 
   const typeLabel = (type: string) =>
-    type === "desafio" ? "Desafío" : type === "campeonato" ? "Partido" : "Sorteo";
+    type === "desafio"
+      ? "Desafío"
+      : type === "campeonato"
+        ? "Partido"
+        : "Sorteo";
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-4 py-8 sm:px-6">
-
       {/* ── Hero ── */}
       <section className="rounded-2xl border border-[#ded6ca] bg-[#fffdfa] p-6 shadow-sm">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
@@ -378,7 +410,8 @@ export default async function MiPerfilPage() {
                 {player.fullName}
               </h1>
               <p className="mt-1 text-sm text-[#776f66]">
-                Categoría {rankingCategoryLabels[category]} · Estado {player.status}
+                Categoría {rankingCategoryLabels[category]} · Estado{" "}
+                {player.status}
                 {rankingEntry
                   ? ` · #${rankingEntry.position} · ${rankingEntry.points} pts`
                   : ""}
@@ -432,7 +465,9 @@ export default async function MiPerfilPage() {
           <p className="mt-2 text-3xl font-semibold text-[#0d1b2a]">
             {weekCount} <span className="text-xl text-[#776f66]">/ 3</span>
           </p>
-          <span className={`mt-2 inline-block rounded-full border px-2.5 py-0.5 text-xs font-medium ${getCounterTone(weekCount, 3)}`}>
+          <span
+            className={`mt-2 inline-block rounded-full border px-2.5 py-0.5 text-xs font-medium ${getCounterTone(weekCount, 3)}`}
+          >
             límite semanal
           </span>
         </article>
@@ -440,12 +475,14 @@ export default async function MiPerfilPage() {
         <article className="rounded-2xl border border-[#ded6ca] bg-[#fffdfa] p-4 shadow-sm">
           <div className="flex items-center gap-2 text-[#776f66]">
             <CalendarDays className="h-4 w-4" />
-            <p className="text-xs font-medium">Partidos este mes</p>
+            <p className="text-xs font-medium">Partidos últimos 30 días</p>
           </div>
           <p className="mt-2 text-3xl font-semibold text-[#0d1b2a]">
             {monthCount} <span className="text-xl text-[#776f66]">/ 4</span>
           </p>
-          <span className={`mt-2 inline-block rounded-full border px-2.5 py-0.5 text-xs font-medium ${getCounterTone(monthCount, 4)}`}>
+          <span
+            className={`mt-2 inline-block rounded-full border px-2.5 py-0.5 text-xs font-medium ${getCounterTone(monthCount, 4)}`}
+          >
             límite mensual
           </span>
         </article>
@@ -453,12 +490,14 @@ export default async function MiPerfilPage() {
         <article className="rounded-2xl border border-[#ded6ca] bg-[#fffdfa] p-4 shadow-sm">
           <div className="flex items-center gap-2 text-[#776f66]">
             <Shield className="h-4 w-4" />
-            <p className="text-xs font-medium">Desafíos este mes</p>
+            <p className="text-xs font-medium">Desafíos últimos 30 días</p>
           </div>
           <p className="mt-2 text-3xl font-semibold text-[#0d1b2a]">
             {challengeCount} <span className="text-xl text-[#776f66]">/ 2</span>
           </p>
-          <span className={`mt-2 inline-block rounded-full border px-2.5 py-0.5 text-xs font-medium ${getCounterTone(challengeCount, 2)}`}>
+          <span
+            className={`mt-2 inline-block rounded-full border px-2.5 py-0.5 text-xs font-medium ${getCounterTone(challengeCount, 2)}`}
+          >
             mínimo sugerido
           </span>
         </article>
@@ -473,9 +512,9 @@ export default async function MiPerfilPage() {
           </p>
           {recentForm.length > 0 && (
             <div className="mt-2 flex gap-1">
-              {recentForm.slice(0, 5).map((r, i) => (
+              {recentResults.slice(0, 5).map(({ key, result: r }) => (
                 <span
-                  key={i}
+                  key={key}
                   className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
                     r === "W"
                       ? "bg-emerald-100 text-emerald-700"
@@ -497,41 +536,50 @@ export default async function MiPerfilPage() {
 
       {/* ── Main content ── */}
       <div className="grid gap-5 lg:grid-cols-5">
-
         {/* Left column */}
         <div className="flex flex-col gap-5 lg:col-span-2">
-
           {/* Datos del jugador */}
           <section className="rounded-2xl border border-[#ded6ca] bg-[#fffdfa] p-5 shadow-sm">
             <div className="flex items-center gap-2">
               <User className="h-4 w-4 text-[#776f66]" />
-              <h2 className="text-sm font-semibold text-[#0d1b2a]">Datos del jugador</h2>
+              <h2 className="text-sm font-semibold text-[#0d1b2a]">
+                Datos del jugador
+              </h2>
             </div>
             <dl className="mt-4 space-y-0 divide-y divide-[#ede5d8]">
               {age !== null && (
                 <div className="flex items-center justify-between py-2.5">
                   <dt className="text-sm text-[#776f66]">Edad</dt>
-                  <dd className="text-sm font-medium text-[#0d1b2a]">{age} años</dd>
+                  <dd className="text-sm font-medium text-[#0d1b2a]">
+                    {age} años
+                  </dd>
                 </div>
               )}
               {player.dominantHand && (
                 <div className="flex items-center justify-between py-2.5">
                   <dt className="text-sm text-[#776f66]">Mano dominante</dt>
-                  <dd className="text-sm font-medium text-[#0d1b2a]">{handLabels[player.dominantHand]}</dd>
+                  <dd className="text-sm font-medium text-[#0d1b2a]">
+                    {handLabels[player.dominantHand]}
+                  </dd>
                 </div>
               )}
               {player.backhand && (
                 <div className="flex items-center justify-between py-2.5">
                   <dt className="text-sm text-[#776f66]">Revés</dt>
-                  <dd className="text-sm font-medium text-[#0d1b2a]">{backhandLabels[player.backhand]}</dd>
+                  <dd className="text-sm font-medium text-[#0d1b2a]">
+                    {backhandLabels[player.backhand]}
+                  </dd>
                 </div>
               )}
-              {player.yearsPlaying !== null && player.yearsPlaying !== undefined && (
-                <div className="flex items-center justify-between py-2.5">
-                  <dt className="text-sm text-[#776f66]">Años jugando</dt>
-                  <dd className="text-sm font-medium text-[#0d1b2a]">{player.yearsPlaying}</dd>
-                </div>
-              )}
+              {player.yearsPlaying !== null &&
+                player.yearsPlaying !== undefined && (
+                  <div className="flex items-center justify-between py-2.5">
+                    <dt className="text-sm text-[#776f66]">Años jugando</dt>
+                    <dd className="text-sm font-medium text-[#0d1b2a]">
+                      {player.yearsPlaying}
+                    </dd>
+                  </div>
+                )}
               {player.level && (
                 <div className="flex items-center justify-between py-2.5">
                   <dt className="text-sm text-[#776f66]">Nivel</dt>
@@ -545,20 +593,31 @@ export default async function MiPerfilPage() {
               {player.phone && (
                 <div className="flex items-center justify-between py-2.5">
                   <dt className="text-sm text-[#776f66]">Teléfono</dt>
-                  <dd className="text-sm font-medium text-[#0d1b2a]">{player.phone}</dd>
+                  <dd className="text-sm font-medium text-[#0d1b2a]">
+                    {player.phone}
+                  </dd>
                 </div>
               )}
             </dl>
-            {!age && !player.dominantHand && !player.backhand && !player.yearsPlaying && !player.level && !player.phone && (
-              <p className="mt-4 text-sm text-[#776f66]">Sin datos de perfil registrados.</p>
-            )}
+            {!age &&
+              !player.dominantHand &&
+              !player.backhand &&
+              !player.yearsPlaying &&
+              !player.level &&
+              !player.phone && (
+                <p className="mt-4 text-sm text-[#776f66]">
+                  Sin datos de perfil registrados.
+                </p>
+              )}
           </section>
 
           {/* Acciones rápidas */}
           <section className="rounded-2xl border border-[#ded6ca] bg-[#fffdfa] p-5 shadow-sm">
             <div className="flex items-center gap-2">
               <Trophy className="h-4 w-4 text-[#776f66]" />
-              <h2 className="text-sm font-semibold text-[#0d1b2a]">Acciones rápidas</h2>
+              <h2 className="text-sm font-semibold text-[#0d1b2a]">
+                Acciones rápidas
+              </h2>
             </div>
             <div className="mt-4 grid grid-cols-3 gap-3">
               <Link
@@ -566,21 +625,27 @@ export default async function MiPerfilPage() {
                 className="flex flex-col items-center gap-2 rounded-xl border border-[#ded6ca] bg-[#f6f2ea] p-3 text-center transition hover:bg-[#ede5d8]"
               >
                 <BarChart3 className="h-6 w-6 text-[#0d1b2a]" />
-                <span className="text-xs font-medium text-[#0d1b2a]">Ver ranking</span>
+                <span className="text-xs font-medium text-[#0d1b2a]">
+                  Ver ranking
+                </span>
               </Link>
               <Link
                 href="/disponibilidad"
                 className="flex flex-col items-center gap-2 rounded-xl border border-[#ded6ca] bg-[#f6f2ea] p-3 text-center transition hover:bg-[#ede5d8]"
               >
                 <Clock className="h-6 w-6 text-[#0d1b2a]" />
-                <span className="text-xs font-medium text-[#0d1b2a]">Disponibilidad</span>
+                <span className="text-xs font-medium text-[#0d1b2a]">
+                  Disponibilidad
+                </span>
               </Link>
               <Link
                 href="/fixture"
                 className="flex flex-col items-center gap-2 rounded-xl border border-[#ded6ca] bg-[#f6f2ea] p-3 text-center transition hover:bg-[#ede5d8]"
               >
                 <CalendarDays className="h-6 w-6 text-[#0d1b2a]" />
-                <span className="text-xs font-medium text-[#0d1b2a]">Ver fixture</span>
+                <span className="text-xs font-medium text-[#0d1b2a]">
+                  Ver fixture
+                </span>
               </Link>
             </div>
           </section>
@@ -588,13 +653,14 @@ export default async function MiPerfilPage() {
 
         {/* Right column */}
         <div className="flex flex-col gap-5 lg:col-span-3">
-
           {/* Resumen competitivo */}
           <section className="rounded-2xl border border-[#ded6ca] bg-[#fffdfa] p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Trophy className="h-4 w-4 text-[#776f66]" />
-                <h2 className="text-sm font-semibold text-[#0d1b2a]">Resumen competitivo</h2>
+                <h2 className="text-sm font-semibold text-[#0d1b2a]">
+                  Resumen competitivo
+                </h2>
               </div>
               <Link
                 href={`/ranking/${category}?player=${player.id}`}
@@ -642,9 +708,9 @@ export default async function MiPerfilPage() {
               <div className="mt-4">
                 <p className="text-xs text-[#776f66]">Racha reciente</p>
                 <div className="mt-2 flex items-center gap-1.5">
-                  {recentForm.slice(0, 8).map((r, i) => (
+                  {recentResults.slice(0, 8).map(({ key, result: r }) => (
                     <span
-                      key={i}
+                      key={key}
                       className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
                         r === "W"
                           ? "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200"
@@ -675,7 +741,9 @@ export default async function MiPerfilPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <CalendarDays className="h-4 w-4 text-[#776f66]" />
-                <h2 className="text-sm font-semibold text-[#0d1b2a]">Últimos resultados registrados</h2>
+                <h2 className="text-sm font-semibold text-[#0d1b2a]">
+                  Últimos resultados registrados
+                </h2>
               </div>
               {historyRows.length > 0 && (
                 <Link
@@ -695,19 +763,34 @@ export default async function MiPerfilPage() {
               <div className="mt-4 divide-y divide-[#ede5d8]">
                 {historyRows.slice(0, 6).map((match) => {
                   const isPlayer1 = match.player1Id === player.id;
-                  const opponentName = isPlayer1 ? match.player2Name : match.player1Name;
+                  const opponentName = isPlayer1
+                    ? match.player2Name
+                    : match.player1Name;
                   const outcome = getOutcome(match, player.id);
-                  const score = formatScore(match, player.id, setsByMatch.get(match.id) ?? []);
+                  const score = formatScore(
+                    match,
+                    player.id,
+                    setsByMatch.get(match.id) ?? [],
+                  );
                   const dateParts = formatDateParts(match.playedOn);
 
                   return (
-                    <article key={match.id} className="flex items-start gap-4 py-3 first:pt-0 last:pb-0">
+                    <article
+                      key={match.id}
+                      className="flex items-start gap-4 py-3 first:pt-0 last:pb-0"
+                    >
                       {/* Date block */}
                       {dateParts ? (
                         <div className="flex w-10 shrink-0 flex-col items-center rounded-lg bg-[#f6f2ea] px-1 py-1.5 text-center">
-                          <span className="text-sm font-bold leading-none text-[#0d1b2a]">{dateParts.day}</span>
-                          <span className="mt-0.5 text-[10px] font-semibold uppercase text-[#b04d15]">{dateParts.month}</span>
-                          <span className="text-[10px] text-[#776f66]">{dateParts.year}</span>
+                          <span className="text-sm font-bold leading-none text-[#0d1b2a]">
+                            {dateParts.day}
+                          </span>
+                          <span className="mt-0.5 text-[10px] font-semibold uppercase text-[#b04d15]">
+                            {dateParts.month}
+                          </span>
+                          <span className="text-[10px] text-[#776f66]">
+                            {dateParts.year}
+                          </span>
                         </div>
                       ) : (
                         <div className="w-10 shrink-0" />
@@ -715,8 +798,12 @@ export default async function MiPerfilPage() {
 
                       {/* Match info */}
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs text-[#776f66]">{typeLabel(match.type)}</p>
-                        <p className="mt-0.5 text-sm font-semibold text-[#0d1b2a]">vs {opponentName}</p>
+                        <p className="text-xs text-[#776f66]">
+                          {typeLabel(match.type)}
+                        </p>
+                        <p className="mt-0.5 text-sm font-semibold text-[#0d1b2a]">
+                          vs {opponentName}
+                        </p>
                         <p className="text-xs text-[#776f66]">{score}</p>
                         <Link
                           href={`/mi-perfil/partidos/${match.id}`}
@@ -728,7 +815,9 @@ export default async function MiPerfilPage() {
 
                       {/* Outcome badge + chevron */}
                       <div className="flex shrink-0 items-center gap-1">
-                        <span className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${outcome.classes}`}>
+                        <span
+                          className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${outcome.classes}`}
+                        >
                           {outcome.label}
                         </span>
                         <Link href={`/mi-perfil/partidos/${match.id}`}>

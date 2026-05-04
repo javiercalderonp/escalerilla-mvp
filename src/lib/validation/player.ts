@@ -29,10 +29,21 @@ export const onboardingStep2Schema = z.object({
   yearsPlaying: z.coerce.number().int().min(0).max(80),
 });
 
-export const onboardingFullSchema = onboardingStep1Schema.merge(
-  onboardingStep2Schema,
-);
+export const onboardingStep3Schema = z.object({
+  availMonday: z.boolean(),
+  availTuesday: z.boolean(),
+  availWednesday: z.boolean(),
+  availThursday: z.boolean(),
+  availFriday: z.boolean(),
+  availSaturday: z.boolean(),
+  availSunday: z.boolean(),
+});
+
+export const onboardingFullSchema = onboardingStep1Schema
+  .merge(onboardingStep2Schema)
+  .merge(onboardingStep3Schema);
 
 export type OnboardingStep1 = z.infer<typeof onboardingStep1Schema>;
 export type OnboardingStep2 = z.infer<typeof onboardingStep2Schema>;
+export type OnboardingStep3 = z.infer<typeof onboardingStep3Schema>;
 export type OnboardingFull = z.infer<typeof onboardingFullSchema>;
