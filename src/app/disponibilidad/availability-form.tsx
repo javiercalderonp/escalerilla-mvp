@@ -57,7 +57,6 @@ const DEFAULT_RANGES: Record<DayKey, Array<[number, number]>> = {
 const WEEK_TABS = [
   { label: "Disponibilidad base", active: true },
   { label: "Esta semana", active: false },
-  { label: "Próxima semana", active: false },
 ] as const;
 
 function emptySlots() {
@@ -187,7 +186,7 @@ export function AvailabilityForm({ existing }: AvailabilityFormProps) {
         />
       ))}
 
-      <div className="grid overflow-hidden rounded-2xl border border-border bg-background/70 shadow-sm md:grid-cols-3">
+      <div className="grid overflow-hidden rounded-2xl border border-border bg-background/70 shadow-sm md:grid-cols-2">
         {WEEK_TABS.map(({ label, active }) => (
           <button
             key={label}
@@ -196,7 +195,7 @@ export function AvailabilityForm({ existing }: AvailabilityFormProps) {
             className={[
               "inline-flex h-12 items-center justify-center gap-2 border-border px-4 text-sm font-semibold transition md:border-l md:first:border-l-0",
               active
-                ? "bg-card text-grass shadow-inner"
+                ? "bg-card text-clay shadow-inner"
                 : "bg-background/40 text-muted-foreground hover:bg-card",
             ].join(" ")}
           >
@@ -206,7 +205,7 @@ export function AvailabilityForm({ existing }: AvailabilityFormProps) {
         ))}
       </div>
 
-      <div className="rounded-xl border border-grass/15 bg-grass/5 px-4 py-3 text-sm font-medium text-grass">
+      <div className="rounded-xl border border-clay/15 bg-clay/5 px-4 py-3 text-sm font-medium text-clay">
         <span className="inline-flex items-center gap-2">
           <Hand className="size-4" aria-hidden="true" />
           Haz clic y arrastra sobre los horarios para marcar disponibilidad.
@@ -270,11 +269,11 @@ export function AvailabilityForm({ existing }: AvailabilityFormProps) {
                         handleSlotKeyDown(event, key, slotIndex)
                       }
                       className={[
-                        "border-b border-dashed border-border/60 transition focus-visible:relative focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grass/50",
+                        "border-b border-dashed border-border/60 transition focus-visible:relative focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay/50",
                         slotIndex % 2 === 0 ? "bg-background/35" : "bg-card",
                         isSelected
-                          ? "mx-1 border-b-grass/35 bg-grass/85 shadow-sm hover:bg-grass"
-                          : "hover:bg-grass/10",
+                          ? "mx-1 border-b-clay/35 bg-clay/85 shadow-sm hover:bg-clay"
+                          : "hover:bg-clay/10",
                         isFirst ? "mt-1 rounded-t-md" : "",
                         isLast ? "mb-1 rounded-b-md" : "",
                       ].join(" ")}
@@ -289,7 +288,7 @@ export function AvailabilityForm({ existing }: AvailabilityFormProps) {
 
       <div className="flex flex-wrap items-center justify-end gap-5 text-sm text-muted-foreground">
         <span className="inline-flex items-center gap-2">
-          <span className="size-5 rounded-md bg-grass" />
+          <span className="size-5 rounded-md bg-clay" />
           Disponible
         </span>
         <span className="inline-flex items-center gap-2">
@@ -300,7 +299,7 @@ export function AvailabilityForm({ existing }: AvailabilityFormProps) {
 
       <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-          <div className="inline-flex size-12 shrink-0 items-center justify-center rounded-xl bg-grass/10 text-grass">
+          <div className="inline-flex size-12 shrink-0 items-center justify-center rounded-xl bg-clay/10 text-clay">
             <CalendarCheck className="size-6" aria-hidden="true" />
           </div>
           <div className="min-w-0 flex-1">
@@ -311,7 +310,7 @@ export function AvailabilityForm({ existing }: AvailabilityFormProps) {
               <div className="mt-3 grid gap-3 text-sm text-muted-foreground lg:grid-cols-2 xl:grid-cols-4">
                 {selectedDays.map(({ key, label }) => (
                   <p key={key} className="flex min-w-0 items-center gap-2">
-                    <span className="size-2 shrink-0 rounded-full bg-grass" />
+                    <span className="size-2 shrink-0 rounded-full bg-clay" />
                     <span className="truncate">
                       <span className="font-semibold text-foreground">
                         {label}:
@@ -333,7 +332,7 @@ export function AvailabilityForm({ existing }: AvailabilityFormProps) {
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <button
           type="submit"
-          className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-grass px-7 text-sm font-bold text-grass-foreground shadow-lg shadow-grass/20 transition hover:bg-grass/90 sm:min-w-64"
+          className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-clay px-7 text-sm font-bold text-clay-foreground shadow-lg shadow-clay/20 transition hover:bg-clay/90 sm:min-w-64"
         >
           {hasExisting ? (
             <Check className="size-4" aria-hidden="true" />
@@ -345,7 +344,7 @@ export function AvailabilityForm({ existing }: AvailabilityFormProps) {
         <button
           type="button"
           onClick={clearSelection}
-          className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-border bg-card px-7 text-sm font-semibold text-muted-foreground shadow-sm transition hover:border-grass/30 hover:text-foreground sm:min-w-52"
+          className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-border bg-card px-7 text-sm font-semibold text-muted-foreground shadow-sm transition hover:border-clay/30 hover:text-foreground sm:min-w-52"
         >
           <Eraser className="size-4" aria-hidden="true" />
           Limpiar selección

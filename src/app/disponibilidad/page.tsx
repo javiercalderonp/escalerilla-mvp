@@ -83,13 +83,11 @@ export default async function DisponibilidadPage() {
       <section className="rounded-3xl border border-white/70 bg-card/95 p-5 shadow-2xl shadow-court/10 ring-1 ring-border/70 sm:p-7 lg:p-9">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-start gap-5">
-            <div className="inline-flex size-16 shrink-0 items-center justify-center rounded-2xl bg-grass/10 text-grass ring-1 ring-grass/10">
+            <div className="inline-flex size-16 shrink-0 items-center justify-center rounded-2xl bg-clay/10 text-clay ring-1 ring-clay/15">
               <CalendarDays className="size-8" aria-hidden="true" />
             </div>
             <div>
-              <p className="text-sm font-medium text-grass">
-                {player.fullName}
-              </p>
+              <p className="text-sm font-medium text-clay">{player.fullName}</p>
               <h1 className="mt-1 text-3xl font-bold tracking-tight text-foreground">
                 Mi disponibilidad semanal
               </h1>
