@@ -54,16 +54,9 @@ export default async function Home() {
                 <span className="text-clay">de Tenis</span>
               </h1>
               <p className="hidden sm:block max-w-md text-base leading-7 text-white/70">
-                <span className="inline-flex items-center gap-2">
-                  <span className="relative flex size-2.5" aria-hidden="true">
-                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex size-2.5 rounded-full bg-emerald-400" />
-                  </span>
-                  Ranking
-                </span>{" "}
-                en vivo, programación semanal y registro de resultados para los
-                socios. Declara tu disponibilidad, juega tus cruces y sigue tu
-                posición en tiempo real.
+                Ranking en vivo, programación semanal y registro de resultados
+                para los socios. Declara tu disponibilidad, juega tus cruces y
+                sigue tu posición en tiempo real.
               </p>
             </div>
 

@@ -36,7 +36,11 @@ export function RankingPreviewCard({
         <p className="text-[10px] font-bold uppercase tracking-widest text-clay">
           Club La Dehesa
         </p>
-        <p className="mt-0.5 text-sm font-bold tracking-tight text-white">
+        <p className="mt-0.5 inline-flex items-center gap-2 text-sm font-bold tracking-tight text-white">
+          <span className="relative flex size-2.5" aria-hidden="true">
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex size-2.5 rounded-full bg-emerald-400" />
+          </span>
           Rankings en vivo
         </p>
       </div>
