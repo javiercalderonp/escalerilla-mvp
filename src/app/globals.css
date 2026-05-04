@@ -184,6 +184,6 @@ a {
 
 @media (max-width: 768px) {
   :root {
-    --marquee-duration: 13.3s;
+    --marquee-duration: 6.65s;
   }
 }

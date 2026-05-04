@@ -217,13 +217,13 @@ function CategoryEditor({
           className="gap-2"
         >
           <RefreshCw className={isPending ? "animate-spin" : ""} />
-          {isPending ? "Generando" : "Regenerar"}
+          {isPending ? "Generando" : "Nuevo sorteo"}
         </Button>
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-4">
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <p className="text-xs font-medium text-slate-500">Disponibles</p>
+          <p className="text-xs font-medium text-slate-500">Jugadores</p>
           <p className="mt-1 text-2xl font-semibold text-slate-950">
             {availableCount}
           </p>
@@ -378,7 +378,7 @@ function CategoryEditor({
                   )}
                   {unavailable && (
                     <span className="rounded-md bg-red-100 px-2 py-1 font-medium text-red-800">
-                      Sin disponibilidad
+                      Sin cupos
                     </span>
                   )}
                 </div>
@@ -507,12 +507,12 @@ export function FixtureEditor({
               Salida
             </p>
             <h2 className="mt-1 text-xl font-semibold text-slate-950">
-              Publicar programación
+              Publicar cruces
             </h2>
             <p className="mt-1 text-sm text-slate-500">
               {totalPairs} partido{totalPairs !== 1 ? "s" : ""} en total
               {isPublished
-                ? " · Ya publicado: republicar actualiza la programación"
+                ? " · Ya publicado — republicar actualiza los cruces"
                 : ""}
             </p>
           </div>

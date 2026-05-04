@@ -160,7 +160,7 @@ export async function publishFixtureAction(
 
     if (!p1 || !p2) {
       throw new Error(
-        "Todos los jugadores publicados deben tener disponibilidad",
+        "Todos los jugadores publicados deben estar en la programación de la semana",
       );
     }
 

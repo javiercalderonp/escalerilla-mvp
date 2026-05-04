@@ -1,3 +1,4 @@
+import { ArrowRight } from "lucide-react";
 import { Oswald } from "next/font/google";
 import Link from "next/link";
 
@@ -75,7 +76,6 @@ export default async function Home() {
                   Ver ranking mujeres
                 </Link>
               </div>
-
             </div>
           </div>
 
@@ -102,13 +102,22 @@ export default async function Home() {
             aria-hidden="true"
             className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent via-[#0d1b2a]/25 to-[#0d1b2a]"
           />
-          <div className="relative mx-auto mb-6 max-w-6xl px-4 sm:px-6">
-            <p className="text-xs font-bold uppercase tracking-widest text-clay">
-              Resultados
-            </p>
-            <h2 className="mt-1 text-2xl font-bold tracking-tight text-foreground">
-              Últimos partidos
-            </h2>
+          <div className="relative mx-auto mb-6 flex max-w-6xl flex-col gap-4 px-4 sm:flex-row sm:items-end sm:justify-between sm:px-6">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-clay">
+                Resultados
+              </p>
+              <h2 className="mt-1 text-2xl font-bold tracking-tight text-foreground">
+                Últimos partidos
+              </h2>
+            </div>
+            <Link
+              href="/fixture"
+              className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
+            >
+              Ver todos
+              <ArrowRight className="size-4" aria-hidden="true" />
+            </Link>
           </div>
           <div className="relative">
             <MatchesCarousel matches={recentMatches} />

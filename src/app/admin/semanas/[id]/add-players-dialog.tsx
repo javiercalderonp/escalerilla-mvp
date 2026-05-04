@@ -119,7 +119,7 @@ export function AddPlayersDialog({
         <div className="space-y-4">
           <label className="block space-y-2 text-sm">
             <span className="font-medium text-slate-700">
-              Cupos por jugador seleccionado
+              Partidos por jugador
             </span>
             <select
               value={maxMatches}
@@ -130,10 +130,6 @@ export function AddPlayersDialog({
               <option value="2">2 partidos</option>
               <option value="3">3 partidos</option>
             </select>
-            <span className="block text-xs text-slate-500">
-              El sorteo podrá usar esos cupos si hay número impar o jugadores
-              que pidieron jugar más.
-            </span>
           </label>
 
           <div className="relative">

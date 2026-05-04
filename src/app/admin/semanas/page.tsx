@@ -4,12 +4,8 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { availability, matches, players, weeks } from "@/lib/db/schema";
-import {
-  closeAvailabilityAction,
-  createWeekAction,
-  openAvailabilityAction,
-} from "./actions";
+import { matches, players, weeks } from "@/lib/db/schema";
+import { createWeekAction } from "./actions";
 import { DeleteWeekButton } from "./delete-week-button";
 
 type WeekRow = typeof weeks.$inferSelect;
@@ -22,7 +18,7 @@ function statusBadge(status: WeekRow["status"]) {
   };
   const labels = {
     borrador: "Borrador",
-    abierta: "Disponibilidad abierta",
+    abierta: "Activa",
     cerrada: "Cerrada",
   };
 
@@ -62,36 +58,6 @@ function getFocusWeek(rows: WeekRow[]) {
   );
 }
 
-function getNextAction(week: WeekRow, matchCount: number) {
-  if (week.status === "borrador") {
-    return {
-      title: "Prepara la lista de jugadores",
-      body: "Agrega jugadores manualmente o abre la disponibilidad cuando quieras pedir respuestas.",
-      href: `/admin/semanas/${week.id}`,
-      label: "Revisar jugadores",
-    };
-  }
-
-  if (week.status === "abierta") {
-    return {
-      title: "Revisa respuestas y cierra la ventana",
-      body: "Cuando tengas suficientes respuestas, cierra disponibilidad y pasa a armar los cruces.",
-      href: `/admin/semanas/${week.id}`,
-      label: "Ver disponibilidad",
-    };
-  }
-
-  return {
-    title: matchCount > 0 ? "Programación publicada" : "Arma los cruces",
-    body:
-      matchCount > 0
-        ? "Los partidos de esta semana ya están creados. Puedes republicar si necesitas ajustar algo."
-        : "La disponibilidad ya está cerrada. El siguiente paso es generar y publicar los partidos.",
-    href: `/admin/semanas/${week.id}/fixture`,
-    label: matchCount > 0 ? "Editar programación" : "Armar cruces",
-  };
-}
-
 export default async function AdminSemanasPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
@@ -104,20 +70,6 @@ export default async function AdminSemanasPage() {
   const historyRows = focusWeek
     ? rows.filter((week) => week.id !== focusWeek.id)
     : rows;
-
-  const responseRows =
-    db && rows.length > 0
-      ? await db
-          .select({
-            weekId: availability.weekId,
-            value: count(),
-          })
-          .from(availability)
-          .groupBy(availability.weekId)
-      : [];
-  const responseCounts = new Map(
-    responseRows.map((row) => [row.weekId, row.value]),
-  );
 
   const focusMatches =
     db && focusWeek
@@ -138,9 +90,17 @@ export default async function AdminSemanasPage() {
           .where(eq(matches.weekId, focusWeek.id))
           .orderBy(matches.category, players.fullName)
       : [];
-  const nextAction = focusWeek
-    ? getNextAction(focusWeek, focusMatches.length)
-    : null;
+
+  const matchCountsByWeek =
+    db && historyRows.length > 0
+      ? await db
+          .select({ weekId: matches.weekId, value: count() })
+          .from(matches)
+          .groupBy(matches.weekId)
+      : [];
+  const matchCountMap = new Map(
+    matchCountsByWeek.map((row) => [row.weekId, row.value]),
+  );
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6">
@@ -150,8 +110,7 @@ export default async function AdminSemanasPage() {
           Programación
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-          Opera la semana activa desde un solo lugar. El historial queda abajo,
-          cerrado, para que no distraiga cuando toca crear la programación.
+          Creá la semana, seleccioná los jugadores y generá los cruces.
         </p>
       </section>
 
@@ -168,9 +127,9 @@ export default async function AdminSemanasPage() {
               {focusWeek ? statusBadge(focusWeek.status) : null}
               {focusWeek ? (
                 <span className="text-sm text-slate-600">
-                  {responseCounts.get(focusWeek.id) ?? 0} jugador
-                  {(responseCounts.get(focusWeek.id) ?? 0) !== 1 ? "es" : ""} en
-                  disponibilidad
+                  {focusMatches.length} partido
+                  {focusMatches.length !== 1 ? "s" : ""} creado
+                  {focusMatches.length !== 1 ? "s" : ""}
                 </span>
               ) : (
                 <span className="text-sm text-slate-600">
@@ -203,50 +162,26 @@ export default async function AdminSemanasPage() {
           </form>
         </div>
 
-        {focusWeek && nextAction ? (
+        {focusWeek ? (
           <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,380px)]">
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5">
               <h3 className="text-lg font-semibold text-emerald-950">
-                {nextAction.title}
+                {focusMatches.length > 0
+                  ? "Programación publicada"
+                  : "Seleccioná jugadores y generá los cruces"}
               </h3>
               <p className="mt-2 text-sm leading-6 text-emerald-900">
-                {nextAction.body}
+                {focusMatches.length > 0
+                  ? "Los partidos ya están creados. Podés editar si necesitas ajustar algo."
+                  : "Agregá los jugadores de esta semana y hacé el sorteo desde la gestión de cruces."}
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link
-                  href={nextAction.href}
+                  href={`/admin/semanas/${focusWeek.id}/fixture`}
                   className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
                 >
-                  {nextAction.label}
+                  {focusMatches.length > 0 ? "Editar programación" : "Gestionar cruces"}
                 </Link>
-                <Link
-                  href={`/admin/semanas/${focusWeek.id}/fixture`}
-                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400"
-                >
-                  Cruces
-                </Link>
-                {focusWeek.status === "borrador" && (
-                  <form action={openAvailabilityAction}>
-                    <input type="hidden" name="weekId" value={focusWeek.id} />
-                    <button
-                      type="submit"
-                      className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
-                    >
-                      Abrir disponibilidad
-                    </button>
-                  </form>
-                )}
-                {focusWeek.status === "abierta" && (
-                  <form action={closeAvailabilityAction}>
-                    <input type="hidden" name="weekId" value={focusWeek.id} />
-                    <button
-                      type="submit"
-                      className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
-                    >
-                      Cerrar disponibilidad
-                    </button>
-                  </form>
-                )}
               </div>
             </div>
 
@@ -298,7 +233,7 @@ export default async function AdminSemanasPage() {
               Historial de programaciones
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Ver semanas anteriores y acciones secundarias.
+              Ver semanas anteriores.
             </p>
           </div>
           <span className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition group-open:bg-slate-100">
@@ -323,48 +258,18 @@ export default async function AdminSemanasPage() {
                   </span>
                   {statusBadge(week.status)}
                   <span className="text-sm text-slate-500">
-                    {responseCounts.get(week.id) ?? 0} jugador
-                    {(responseCounts.get(week.id) ?? 0) !== 1 ? "es" : ""}
+                    {matchCountMap.get(week.id) ?? 0} partido
+                    {(matchCountMap.get(week.id) ?? 0) !== 1 ? "s" : ""}
                   </span>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
                   <Link
-                    href={`/admin/semanas/${week.id}`}
-                    className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 transition hover:border-slate-400"
-                  >
-                    Ver disponibilidad
-                  </Link>
-                  <Link
                     href={`/admin/semanas/${week.id}/fixture`}
                     className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 transition hover:border-slate-400"
                   >
-                    Ver cruces
+                    Gestionar cruces
                   </Link>
-
-                  {week.status === "borrador" && (
-                    <form action={openAvailabilityAction}>
-                      <input type="hidden" name="weekId" value={week.id} />
-                      <button
-                        type="submit"
-                        className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
-                      >
-                        Abrir disponibilidad
-                      </button>
-                    </form>
-                  )}
-
-                  {week.status === "abierta" && (
-                    <form action={closeAvailabilityAction}>
-                      <input type="hidden" name="weekId" value={week.id} />
-                      <button
-                        type="submit"
-                        className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
-                      >
-                        Cerrar disponibilidad
-                      </button>
-                    </form>
-                  )}
 
                   <DeleteWeekButton
                     weekId={week.id}

@@ -80,7 +80,7 @@ export async function createWeekAction(formData: FormData) {
   });
 
   revalidatePath("/admin/semanas");
-  redirect(`/admin/semanas/${week.id}?agregarJugadores=1`);
+  redirect(`/admin/semanas/${week.id}/fixture?agregarJugadores=1`);
 }
 
 export async function deleteWeekAction(formData: FormData) {
