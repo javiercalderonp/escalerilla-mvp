@@ -2,9 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { signIn } from "@/lib/auth";
-import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
+import { registerWithEmail } from "@/lib/auth/register";
 
-export default async function LoginPage({
+export default async function RegisterPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string }>;
@@ -16,38 +16,45 @@ export default async function LoginPage({
       <div className="w-full rounded-3xl bg-white p-8 shadow-sm ring-1 ring-black/5">
         <p className="text-sm font-medium text-emerald-700">Club La Dehesa</p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
-          Ingresá con tu cuenta
+          Crear cuenta
         </h1>
         <p className="mt-3 text-sm leading-6 text-slate-600">
-          Accede al ranking, declara tu disponibilidad semanal, revisa la
-          programación y consulta tus partidos, todo en un solo lugar.
+          Registrate con tu email para acceder al ranking y la programación.
         </p>
-
-        {error && (
-          <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error === "CredentialsSignin"
-              ? "Email o contraseña incorrectos."
-              : "Error al ingresar. Intentá de nuevo."}
-          </p>
-        )}
 
         <form
           className="mt-6 space-y-4"
           action={async (formData) => {
             "use server";
-            try {
-              await signIn("credentials", {
-                email: formData.get("email"),
-                password: formData.get("password"),
-                redirectTo: "/onboarding",
-              });
-            } catch (e) {
-              const msg = e instanceof Error ? e.message : String(e);
-              if (msg.includes("NEXT_REDIRECT")) throw e;
-              redirect("/login?error=CredentialsSignin");
+            const result = await registerWithEmail(formData);
+            if (!result.success) {
+              redirect(`/register?error=${encodeURIComponent(result.error)}`);
             }
+            await signIn("credentials", {
+              email: formData.get("email"),
+              password: formData.get("password"),
+              redirectTo: "/onboarding",
+            });
           }}
         >
+          <div>
+            <label
+              htmlFor="name"
+              className="block text-sm font-medium text-slate-700"
+            >
+              Nombre completo
+            </label>
+            <input
+              id="name"
+              name="name"
+              type="text"
+              required
+              autoComplete="name"
+              className="mt-1 block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              placeholder="Tu nombre"
+            />
+          </div>
+
           <div>
             <label
               htmlFor="email"
@@ -78,40 +85,36 @@ export default async function LoginPage({
               name="password"
               type="password"
               required
-              autoComplete="current-password"
+              autoComplete="new-password"
+              minLength={8}
               className="mt-1 block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              placeholder="Tu contraseña"
+              placeholder="Mínimo 8 caracteres"
             />
           </div>
 
+          {error && (
+            <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </p>
+          )}
+
           <button
             type="submit"
-            className="mt-2 inline-flex w-full items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800"
+            className="mt-2 inline-flex w-full items-center justify-center rounded-full bg-emerald-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-emerald-700"
           >
-            Ingresar
+            Crear cuenta
           </button>
         </form>
 
-        <p className="mt-4 text-center text-sm text-slate-500">
-          ¿No tenés cuenta?{" "}
+        <p className="mt-6 text-center text-sm text-slate-500">
+          ¿Ya tenés cuenta?{" "}
           <Link
-            href="/register"
+            href="/login"
             className="font-medium text-emerald-700 hover:underline"
           >
-            Creá una acá
+            Ingresá acá
           </Link>
         </p>
-
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-200" />
-          </div>
-          <div className="relative flex justify-center text-xs text-slate-400">
-            <span className="bg-white px-3">o también podés</span>
-          </div>
-        </div>
-
-        <GoogleSignInButton />
       </div>
     </div>
   );

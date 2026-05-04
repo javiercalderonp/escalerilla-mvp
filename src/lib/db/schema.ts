@@ -88,6 +88,7 @@ export const users = pgTable(
       .notNull()
       .defaultNow(),
     lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+    passwordHash: text("password_hash"),
   },
   (table) => ({
     emailIdx: index("users_email_idx").on(table.email),
