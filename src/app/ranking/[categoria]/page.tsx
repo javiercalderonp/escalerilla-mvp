@@ -51,9 +51,9 @@ export default async function RankingCategoryPage({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-10 sm:px-6">
-      {/* ── Hero header ── */}
+      {/* ── Hero header — hidden on mobile ── */}
       <div
-        className="relative overflow-hidden rounded-3xl shadow-md"
+        className="relative hidden overflow-hidden rounded-3xl shadow-md sm:block"
         style={{
           background:
             "linear-gradient(140deg, #0b1d4f 0%, #1640a0 55%, #0d2460 100%)",
@@ -70,7 +70,7 @@ export default async function RankingCategoryPage({
           }}
         />
 
-        <div className="relative flex flex-col gap-3 p-4 sm:gap-6 sm:p-8 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-8">
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-blue-300/80">
               Escalerilla · {categoryLabel}
@@ -83,7 +83,7 @@ export default async function RankingCategoryPage({
             </p>
           </div>
 
-          {/* Category switcher */}
+          {/* Category switcher inside hero (desktop) */}
           <div className="inline-flex self-start rounded-full bg-white/10 p-1 text-sm sm:self-auto">
             <Link
               href="/ranking/hombres"
@@ -107,6 +107,30 @@ export default async function RankingCategoryPage({
             </Link>
           </div>
         </div>
+      </div>
+
+      {/* Category switcher — mobile only */}
+      <div className="flex sm:hidden rounded-full border border-border bg-card p-1 shadow-sm self-start">
+        <Link
+          href="/ranking/hombres"
+          className={`rounded-full px-5 py-2 text-sm font-medium transition ${
+            categoria === "hombres"
+              ? "bg-[#0b1d4f] text-white"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Hombres
+        </Link>
+        <Link
+          href="/ranking/mujeres"
+          className={`rounded-full px-5 py-2 text-sm font-medium transition ${
+            categoria === "mujeres"
+              ? "bg-[#0b1d4f] text-white"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Mujeres
+        </Link>
       </div>
 
       <RankingTable category={categoria} entries={entries} />

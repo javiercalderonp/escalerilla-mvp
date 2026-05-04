@@ -1,9 +1,12 @@
+import { Oswald } from "next/font/google";
 import Link from "next/link";
 
 import { HowItWorks } from "@/components/landing/how-it-works";
 import { MatchesCarousel } from "@/components/landing/matches-carousel";
 import { RankingPreviewCard } from "@/components/landing/ranking-preview-card";
 import { getRanking, getRecentPublicMatches } from "@/lib/ranking";
+
+const oswald = Oswald({ subsets: ["latin"], weight: ["700"] });
 
 export default async function Home() {
   const [hombresRanking, mujeresRanking, recentMatches] = await Promise.all([
@@ -18,7 +21,7 @@ export default async function Home() {
   return (
     <div className="flex w-full flex-1 flex-col">
       {/* ── Hero ── */}
-      <section className="relative -mt-2 min-h-[600px] w-full overflow-hidden lg:min-h-[680px]">
+      <section className="relative -mt-2 min-h-screen w-full overflow-hidden lg:min-h-[680px]">
         {/* Background photo */}
         <div
           className="absolute inset-0 bg-[#b04d15]"
@@ -34,62 +37,59 @@ export default async function Home() {
         <div className="absolute inset-0 bg-gradient-to-t from-[#0d1b2a]/60 via-transparent to-transparent" />
 
         {/* Content */}
-        <div className="relative mx-auto flex h-full min-h-[600px] max-w-6xl flex-col justify-center gap-8 px-4 py-16 sm:px-6 lg:min-h-[680px] lg:flex-row lg:items-center">
+        <div className="relative mx-auto flex h-full min-h-screen max-w-6xl flex-col justify-center gap-8 px-4 py-16 sm:px-6 lg:min-h-[680px] lg:flex-row lg:items-center">
           {/* Left: text + CTAs */}
-          <div className="flex-1 space-y-6 lg:max-w-xl">
+          <div className="flex flex-1 flex-col lg:max-w-xl lg:gap-6">
+            {/* Title — stays near top */}
             <div className="space-y-3">
               <p className="text-xs font-bold uppercase tracking-widest text-white/60">
                 Club La Dehesa · Tenis
               </p>
-              <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-white sm:text-5xl lg:text-6xl">
+              <h1
+                className={`${oswald.className} text-5xl uppercase leading-none tracking-wide text-white sm:text-[3.375rem] lg:text-6xl`}
+              >
                 Escalerilla
                 <br />
                 <span className="text-clay">de Tenis</span>
               </h1>
-              <p className="max-w-md text-base leading-7 text-white/70">
+              <p className="hidden sm:block max-w-md text-base leading-7 text-white/70">
                 Ranking en vivo, programación semanal y registro de resultados
                 para los socios. Declara tu disponibilidad, juega tus cruces y
                 sigue tu posición en tiempo real.
               </p>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/ranking/hombres"
-                className="rounded-full bg-clay px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-clay/90 hover:shadow-clay/30 hover:shadow-xl"
-              >
-                Ver ranking hombres
-              </Link>
-              <Link
-                href="/ranking/mujeres"
-                className="rounded-full border border-white/30 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20"
-              >
-                Ver ranking mujeres
-              </Link>
-            </div>
 
-            {/* Quick stats */}
-            <div className="flex flex-wrap gap-6 pt-2">
-              <div>
-                <p className="text-2xl font-bold text-white">
-                  {hombresRanking.length}
-                </p>
-                <p className="text-xs text-white/50">Jugadores hombres</p>
+            {/* Buttons + stats — pushed to bottom on mobile */}
+            <div className="mt-auto space-y-6 pb-8 lg:mt-0 lg:pb-0">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <Link
+                  href="/ranking/hombres"
+                  className="rounded-full bg-clay px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition hover:bg-clay/90 hover:shadow-clay/30 hover:shadow-xl"
+                >
+                  Ver ranking hombres
+                </Link>
+                <Link
+                  href="/ranking/mujeres"
+                  className="rounded-full border border-white/30 bg-white/10 px-6 py-3 text-center text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20"
+                >
+                  Ver ranking mujeres
+                </Link>
               </div>
-              <div>
-                <p className="text-2xl font-bold text-white">
-                  {mujeresRanking.length}
-                </p>
-                <p className="text-xs text-white/50">Jugadoras mujeres</p>
-              </div>
+
             </div>
           </div>
 
-          {/* Right: Top 10 ranking card */}
-          <div className="w-full lg:translate-x-16 lg:w-96 xl:translate-x-28 xl:w-[28rem]">
+          {/* Right: Top 10 ranking card — desktop only inside hero */}
+          <div className="hidden lg:block lg:translate-x-16 lg:w-96 xl:translate-x-28 xl:w-[28rem]">
             <RankingPreviewCard hombres={topHombres} mujeres={topMujeres} />
           </div>
         </div>
       </section>
+
+      {/* Ranking card — mobile only, below hero so it requires scrolling */}
+      <div className="bg-[#0d1b2a] px-4 pb-8 pt-6 lg:hidden">
+        <RankingPreviewCard hombres={topHombres} mujeres={topMujeres} />
+      </div>
 
       {/* ── Recent matches carousel ── */}
       {recentMatches.length > 0 && (

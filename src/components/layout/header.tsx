@@ -21,10 +21,49 @@ export async function Header() {
       : []),
   ];
 
+  const mobileNavItems = [
+    ...navItems,
+    ...(session?.user ? [] : [{ href: "/login", label: "Ingresar" }]),
+  ];
+
+  const profileItem = session?.user
+    ? {
+        href: "/mi-perfil",
+        label: session.user.name ?? session.user.email ?? "Mi perfil",
+      }
+    : null;
+
   return (
-    <header className="relative z-10 bg-[#0d1b2a]">
-      <div className="mx-auto flex w-full max-w-6xl items-center px-4 py-3 sm:px-6">
-        {/* Logo + club name */}
+    <header className="sticky top-0 z-50 bg-[#0d1b2a]">
+      {/* Mobile layout: hamburger left | logo center | spacer right */}
+      <div className="flex items-center px-4 py-3 md:hidden">
+        <MobileNav items={mobileNavItems} profileItem={profileItem} />
+        <Link
+          href="/"
+          className="flex flex-1 items-center justify-center gap-3"
+        >
+          <Image
+            src="/logo.png"
+            alt="Club La Dehesa"
+            width={44}
+            height={44}
+            className="object-contain"
+          />
+          <div className="flex flex-col leading-none">
+            <span className="text-sm font-bold tracking-wide text-white">
+              CLUB DE GOLF LA DEHESA
+            </span>
+            <span className="text-[11px] font-bold tracking-widest text-clay">
+              ESCALERILLA TENIS
+            </span>
+          </div>
+        </Link>
+        {/* Spacer matches hamburger button width */}
+        <div className="w-9 shrink-0" />
+      </div>
+
+      {/* Desktop layout */}
+      <div className="mx-auto hidden w-full max-w-6xl items-center px-6 py-3 md:flex">
         <Link href="/" className="flex shrink-0 items-center gap-3">
           <Image
             src="/logo.png"
@@ -43,8 +82,7 @@ export async function Header() {
           </div>
         </Link>
 
-        {/* Nav centered */}
-        <nav className="hidden flex-1 items-center justify-center gap-7 text-sm md:flex">
+        <nav className="flex flex-1 items-center justify-center gap-7 text-sm">
           <NavLinks items={navItems} />
           {session?.user && (
             <div className="flex items-center gap-3">
@@ -61,8 +99,7 @@ export async function Header() {
           )}
         </nav>
 
-        {/* Right: Ingresar button */}
-        <div className="hidden shrink-0 md:flex">
+        <div className="shrink-0">
           {session?.user ? null : (
             <Link
               href="/login"
@@ -72,21 +109,6 @@ export async function Header() {
             </Link>
           )}
         </div>
-
-        <MobileNav
-          items={[
-            ...navItems,
-            ...(session?.user ? [] : [{ href: "/login", label: "Ingresar" }]),
-          ]}
-          profileItem={
-            session?.user
-              ? {
-                  href: "/mi-perfil",
-                  label: session.user.name ?? session.user.email ?? "Mi perfil",
-                }
-              : null
-          }
-        />
       </div>
     </header>
   );

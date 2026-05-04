@@ -478,9 +478,9 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
   return (
     <div className="flex w-full flex-1 bg-background">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6">
-        {/* ── Hero header ── */}
+        {/* ── Hero header — hidden on mobile ── */}
         <div
-          className="relative overflow-hidden rounded-3xl shadow-md"
+          className="relative hidden overflow-hidden rounded-3xl shadow-md sm:block"
           style={{
             background:
               "linear-gradient(140deg, #0b1d4f 0%, #1640a0 55%, #0d2460 100%)",
