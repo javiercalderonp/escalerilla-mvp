@@ -29,7 +29,13 @@ export const authConfig = {
         const email = (credentials.email as string).toLowerCase();
 
         const [user] = await db
-          .select()
+          .select({
+            id: users.id,
+            email: users.email,
+            name: users.name,
+            image: users.image,
+            passwordHash: users.passwordHash,
+          })
           .from(users)
           .where(eq(users.email, email))
           .limit(1);

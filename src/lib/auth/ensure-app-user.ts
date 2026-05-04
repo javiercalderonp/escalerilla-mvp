@@ -28,7 +28,16 @@ export async function ensureAppUser(sessionUser: SessionUserLike) {
     .limit(1);
 
   const [existingUser] = await db
-    .select()
+    .select({
+      id: users.id,
+      email: users.email,
+      name: users.name,
+      image: users.image,
+      role: users.role,
+      playerId: users.playerId,
+      createdAt: users.createdAt,
+      lastLoginAt: users.lastLoginAt,
+    })
     .from(users)
     .where(eq(users.email, email))
     .limit(1);
