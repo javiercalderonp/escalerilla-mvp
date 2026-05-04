@@ -572,6 +572,8 @@ export type RecentPublicMatch = {
   player2Id: string;
   player1Name: string;
   player2Name: string;
+  player1Ranking: number | null;
+  player2Ranking: number | null;
   sets: Array<{
     setNumber: number;
     gamesP1: number;
@@ -595,6 +597,7 @@ export async function getRecentPublicMatches(
       player1Id: matches.player1Id,
       player2Id: matches.player2Id,
       player1Name: players.fullName,
+      player1Gender: players.gender,
       player2Name: sql<string>`players_p2.full_name`,
     })
     .from(matches)
@@ -614,22 +617,31 @@ export async function getRecentPublicMatches(
   if (!rows.length) return [];
 
   const matchIds = rows.map((r) => r.id);
-  const setRows = await db
-    .select({
-      matchId: matchSets.matchId,
-      setNumber: matchSets.setNumber,
-      gamesP1: matchSets.gamesP1,
-      gamesP2: matchSets.gamesP2,
-      tiebreakP1: matchSets.tiebreakP1,
-      tiebreakP2: matchSets.tiebreakP2,
-    })
-    .from(matchSets)
-    .where(
-      sql`${matchSets.matchId} in (${sql.join(
-        matchIds.map((id) => sql`${id}`),
-        sql`, `,
-      )})`,
-    );
+  const [setRows, hombresRanking, mujeresRanking] = await Promise.all([
+    db
+      .select({
+        matchId: matchSets.matchId,
+        setNumber: matchSets.setNumber,
+        gamesP1: matchSets.gamesP1,
+        gamesP2: matchSets.gamesP2,
+        tiebreakP1: matchSets.tiebreakP1,
+        tiebreakP2: matchSets.tiebreakP2,
+      })
+      .from(matchSets)
+      .where(
+        sql`${matchSets.matchId} in (${sql.join(
+          matchIds.map((id) => sql`${id}`),
+          sql`, `,
+        )})`,
+      ),
+    getRanking("hombres"),
+    getRanking("mujeres"),
+  ]);
+
+  const positionById = new Map<string, number>();
+  for (const entry of [...hombresRanking, ...mujeresRanking]) {
+    positionById.set(entry.id, entry.position);
+  }
 
   const setsByMatch = new Map<string, typeof setRows>();
   for (const set of setRows) {
@@ -650,6 +662,8 @@ export async function getRecentPublicMatches(
     player2Id: row.player2Id,
     player1Name: row.player1Name,
     player2Name: row.player2Name,
+    player1Ranking: positionById.get(row.player1Id) ?? null,
+    player2Ranking: positionById.get(row.player2Id) ?? null,
     sets: (setsByMatch.get(row.id) ?? []).sort(
       (a, b) => a.setNumber - b.setNumber,
     ),

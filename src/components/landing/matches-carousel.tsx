@@ -9,12 +9,6 @@ function formatDate(value: string | null) {
   return `${day}/${month}/${year}`
 }
 
-function typeLabel(type: RecentPublicMatch["type"]) {
-  if (type === "desafio") return "Desafío"
-  if (type === "campeonato") return "Campeonato"
-  return "Sorteo"
-}
-
 function shortName(fullName: string) {
   const parts = fullName.trim().split(" ")
   if (parts.length === 1) return fullName
@@ -28,10 +22,7 @@ function MatchCard({ match }: { match: RecentPublicMatch }) {
   return (
     <div className="w-72 shrink-0 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
       {/* Card header */}
-      <div className="flex items-center justify-between border-b border-white/10 bg-[#0d1b2a] px-4 py-2.5">
-        <span className="text-xs font-semibold text-clay">
-          {typeLabel(match.type)}
-        </span>
+      <div className="flex items-center justify-end border-b border-white/10 bg-[#0d1b2a] px-4 py-2.5">
         <span className="text-xs text-white/40">
           {formatDate(match.playedOn)}
         </span>
@@ -41,6 +32,9 @@ function MatchCard({ match }: { match: RecentPublicMatch }) {
       <div className="space-y-1 px-4 py-3">
         {/* Player 1 row */}
         <div className="flex items-center gap-2">
+          <span className="w-6 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
+            {match.player1Ranking != null ? `#${match.player1Ranking}` : ""}
+          </span>
           <div
             className={`size-2.5 rounded-full shrink-0 ${p1Won ? "bg-court" : "bg-border"}`}
           />
@@ -66,6 +60,9 @@ function MatchCard({ match }: { match: RecentPublicMatch }) {
 
         {/* Player 2 row */}
         <div className="flex items-center gap-2">
+          <span className="w-6 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
+            {match.player2Ranking != null ? `#${match.player2Ranking}` : ""}
+          </span>
           <div
             className={`size-2.5 rounded-full shrink-0 ${p2Won ? "bg-court" : "bg-border"}`}
           />
@@ -114,7 +111,7 @@ export function MatchesCarousel({
     >
       <div
         className="flex gap-4 pr-4 will-change-transform"
-        style={{ animation: "marquee 40s linear infinite" }}
+        style={{ animation: "marquee var(--marquee-duration) linear infinite" }}
         onMouseEnter={(e) => {
           ;(e.currentTarget as HTMLElement).style.animationPlayState = "paused"
         }}

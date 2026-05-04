@@ -177,3 +177,13 @@ a {
     transform: translateX(-50%);
   }
 }
+
+:root {
+  --marquee-duration: 40s;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --marquee-duration: 13.3s;
+  }
+}
