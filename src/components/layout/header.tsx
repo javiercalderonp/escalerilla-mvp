@@ -1,3 +1,4 @@
+import { LogInIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -63,8 +64,17 @@ export async function Header() {
             </span>
           </div>
         </Link>
-        {/* Spacer matches hamburger button width */}
-        <div className="w-9 shrink-0" />
+        {session?.user ? (
+          <div className="w-9 shrink-0" />
+        ) : (
+          <Link
+            href="/login"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white/70 transition hover:border-clay/50 hover:text-white"
+            aria-label="Iniciar sesión"
+          >
+            <LogInIcon className="h-4 w-4" />
+          </Link>
+        )}
       </div>
 
       {/* Desktop layout */}

@@ -98,9 +98,6 @@ export function RankingTable({ category, entries }: RankingTableProps) {
                       {entry.matchesLost}
                     </span>
                   </p>
-                  <span className="shrink-0 text-xs font-medium text-muted-foreground">
-                    Ver perfil →
-                  </span>
                 </div>
               </div>
 

@@ -10,29 +10,24 @@ import {
 } from "lucide-react";
 import { type KeyboardEvent, useState } from "react";
 
+import {
+  AVAILABILITY_DAYS,
+  type AvailabilityDayKey,
+  type AvailabilitySlots,
+  buildSlots,
+  END_HOUR,
+  emptySlots,
+  formatAvailabilityTime,
+  SLOT_COUNT,
+  START_HOUR,
+  summarizeAvailabilityDay,
+} from "@/lib/availability";
 import { upsertAvailabilityAction } from "./actions";
 
-const DAYS = [
-  { key: "availMonday" as const, short: "Lun", label: "Lunes" },
-  { key: "availTuesday" as const, short: "Mar", label: "Martes" },
-  { key: "availWednesday" as const, short: "Mié", label: "Miércoles" },
-  { key: "availThursday" as const, short: "Jue", label: "Jueves" },
-  { key: "availFriday" as const, short: "Vie", label: "Viernes" },
-  { key: "availSaturday" as const, short: "Sáb", label: "Sábado" },
-  { key: "availSunday" as const, short: "Dom", label: "Domingo" },
-] as const;
-
-type DayKey = (typeof DAYS)[number]["key"];
-type AvailabilitySlots = Record<DayKey, boolean[]>;
-
 type AvailabilityFormProps = {
-  existing: Record<DayKey, boolean> | null;
+  existing: { slots: AvailabilitySlots } | null;
 };
 
-const START_HOUR = 8;
-const END_HOUR = 23;
-const SLOT_MINUTES = 30;
-const SLOT_COUNT = ((END_HOUR - START_HOUR) * 60) / SLOT_MINUTES;
 const HOURS = Array.from(
   { length: END_HOUR - START_HOUR + 1 },
   (_, index) => START_HOUR + index,
@@ -42,83 +37,20 @@ const SLOTS = Array.from({ length: SLOT_COUNT }, (_, index) => ({
   index,
 }));
 
-const DEFAULT_RANGES: Record<DayKey, Array<[number, number]>> = {
-  availMonday: [
-    [8, 10],
-    [16, 20],
-  ],
-  availTuesday: [[18, 20]],
-  availWednesday: [[18, 21]],
-  availThursday: [[18, 20]],
-  availFriday: [[17, 20]],
-  availSaturday: [[10, 13]],
-  availSunday: [[10, 12]],
-};
 const WEEK_TABS = [
   { label: "Disponibilidad base", active: true },
   { label: "Esta semana", active: false },
 ] as const;
 
-function emptySlots() {
-  return Array.from({ length: SLOT_COUNT }, () => false);
-}
+function buildInitialAvailability(
+  existing: { slots: AvailabilitySlots } | null,
+) {
+  if (existing) return existing.slots;
 
-function hourToSlot(hour: number) {
-  return (hour - START_HOUR) * (60 / SLOT_MINUTES);
-}
-
-function buildSlots(day: DayKey, isAvailable: boolean) {
-  const slots = emptySlots();
-
-  if (!isAvailable) return slots;
-
-  for (const [start, end] of DEFAULT_RANGES[day]) {
-    for (let index = hourToSlot(start); index < hourToSlot(end); index += 1) {
-      slots[index] = true;
-    }
-  }
-
-  return slots;
-}
-
-function buildInitialAvailability(existing: Record<DayKey, boolean> | null) {
-  return DAYS.reduce((acc, { key }) => {
-    acc[key] = buildSlots(key, existing?.[key] ?? false);
+  return AVAILABILITY_DAYS.reduce((acc, { key }) => {
+    acc[key] = buildSlots(key, false);
     return acc;
   }, {} as AvailabilitySlots);
-}
-
-function formatTime(slotIndex: number) {
-  const totalMinutes = START_HOUR * 60 + slotIndex * SLOT_MINUTES;
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-
-  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-}
-
-function getDayRanges(slots: boolean[]) {
-  const ranges: Array<[number, number]> = [];
-  let start: number | null = null;
-
-  slots.forEach((isSelected, index) => {
-    if (isSelected && start === null) {
-      start = index;
-    }
-
-    if ((!isSelected || index === slots.length - 1) && start !== null) {
-      const end = isSelected && index === slots.length - 1 ? index + 1 : index;
-      ranges.push([start, end]);
-      start = null;
-    }
-  });
-
-  return ranges;
-}
-
-function summarizeDay(slots: boolean[]) {
-  return getDayRanges(slots)
-    .map(([start, end]) => `${formatTime(start)}-${formatTime(end)}`)
-    .join(", ");
 }
 
 export function AvailabilityForm({ existing }: AvailabilityFormProps) {
@@ -126,11 +58,11 @@ export function AvailabilityForm({ existing }: AvailabilityFormProps) {
     buildInitialAvailability(existing),
   );
   const [dragMode, setDragMode] = useState<{
-    day: DayKey;
+    day: AvailabilityDayKey;
     value: boolean;
   } | null>(null);
 
-  function setSlot(day: DayKey, slotIndex: number, value: boolean) {
+  function setSlot(day: AvailabilityDayKey, slotIndex: number, value: boolean) {
     setAvailability((prev) => ({
       ...prev,
       [day]: prev[day].map((slot, index) =>
@@ -139,20 +71,20 @@ export function AvailabilityForm({ existing }: AvailabilityFormProps) {
     }));
   }
 
-  function handlePointerDown(day: DayKey, slotIndex: number) {
+  function handlePointerDown(day: AvailabilityDayKey, slotIndex: number) {
     const value = !availability[day][slotIndex];
     setDragMode({ day, value });
     setSlot(day, slotIndex, value);
   }
 
-  function handlePointerEnter(day: DayKey, slotIndex: number) {
+  function handlePointerEnter(day: AvailabilityDayKey, slotIndex: number) {
     if (!dragMode || dragMode.day !== day) return;
     setSlot(day, slotIndex, dragMode.value);
   }
 
   function handleSlotKeyDown(
     event: KeyboardEvent<HTMLButtonElement>,
-    day: DayKey,
+    day: AvailabilityDayKey,
     slotIndex: number,
   ) {
     if (event.key !== "Enter" && event.key !== " ") return;
@@ -163,21 +95,21 @@ export function AvailabilityForm({ existing }: AvailabilityFormProps) {
 
   function clearSelection() {
     setAvailability(
-      DAYS.reduce((acc, { key }) => {
+      AVAILABILITY_DAYS.reduce((acc, { key }) => {
         acc[key] = emptySlots();
         return acc;
       }, {} as AvailabilitySlots),
     );
   }
 
-  const selectedDays = DAYS.filter(({ key }) =>
+  const selectedDays = AVAILABILITY_DAYS.filter(({ key }) =>
     availability[key].some(Boolean),
   );
   const hasExisting = existing !== null;
 
   return (
     <form action={upsertAvailabilityAction} className="space-y-6">
-      {DAYS.map(({ key }) => (
+      {AVAILABILITY_DAYS.map(({ key }) => (
         <input
           key={key}
           type="hidden"
@@ -185,6 +117,11 @@ export function AvailabilityForm({ existing }: AvailabilityFormProps) {
           value={availability[key].some(Boolean) ? "1" : "0"}
         />
       ))}
+      <input
+        type="hidden"
+        name="availabilitySlots"
+        value={JSON.stringify(availability)}
+      />
 
       <div className="grid overflow-hidden rounded-2xl border border-border bg-background/70 shadow-sm md:grid-cols-2">
         {WEEK_TABS.map(({ label, active }) => (
@@ -220,7 +157,7 @@ export function AvailabilityForm({ existing }: AvailabilityFormProps) {
         >
           <div className="grid grid-cols-[72px_repeat(7,minmax(105px,1fr))] border-b border-border bg-card">
             <div aria-hidden="true" />
-            {DAYS.map(({ key, label }) => (
+            {AVAILABILITY_DAYS.map(({ key, label }) => (
               <div
                 key={key}
                 className="border-l border-border px-3 py-3 text-center text-sm font-bold text-foreground"
@@ -242,7 +179,7 @@ export function AvailabilityForm({ existing }: AvailabilityFormProps) {
               ))}
             </div>
 
-            {DAYS.map(({ key, short }) => (
+            {AVAILABILITY_DAYS.map(({ key, short }) => (
               <div
                 key={key}
                 className="grid grid-rows-[repeat(30,18px)] border-r border-border last:border-r-0"
@@ -261,7 +198,7 @@ export function AvailabilityForm({ existing }: AvailabilityFormProps) {
                     <button
                       key={`${key}-${id}`}
                       type="button"
-                      aria-label={`${short} ${formatTime(slotIndex)}`}
+                      aria-label={`${short} ${formatAvailabilityTime(slotIndex)}`}
                       aria-pressed={isSelected}
                       onPointerDown={() => handlePointerDown(key, slotIndex)}
                       onPointerEnter={() => handlePointerEnter(key, slotIndex)}
@@ -315,7 +252,7 @@ export function AvailabilityForm({ existing }: AvailabilityFormProps) {
                       <span className="font-semibold text-foreground">
                         {label}:
                       </span>{" "}
-                      {summarizeDay(availability[key])}
+                      {summarizeAvailabilityDay(availability[key])}
                     </span>
                   </p>
                 ))}

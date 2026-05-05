@@ -1,4 +1,4 @@
-import { and, desc, eq, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, or, sql } from "drizzle-orm";
 import {
   BarChart3,
   CalendarDays,
@@ -14,8 +14,19 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
 import { requireCompleteProfile } from "@/lib/auth/require-complete-profile";
+import {
+  buildAvailabilitySlots,
+  getSharedAvailabilityRanges,
+  hasAnyAvailability,
+} from "@/lib/availability";
 import { db } from "@/lib/db";
-import { matches, matchSets, players } from "@/lib/db/schema";
+import {
+  matches,
+  matchSets,
+  type PlayerVisibility,
+  players,
+  weeks,
+} from "@/lib/db/schema";
 import {
   getRanking,
   type RankingCategory,
@@ -35,6 +46,35 @@ type MatchHistoryRow = {
   player2Id: string;
   player1Name: string;
   player2Name: string;
+};
+
+type UpcomingMatchRow = {
+  id: string;
+  status: "pendiente" | "reportado";
+  type: "sorteo" | "desafio" | "campeonato";
+  playedOn: string | null;
+  player1Id: string;
+  player2Id: string;
+  player1Name: string;
+  player2Name: string;
+  weekStartsOn: string | null;
+  weekEndsOn: string | null;
+  player1AvailMonday: boolean | null;
+  player1AvailTuesday: boolean | null;
+  player1AvailWednesday: boolean | null;
+  player1AvailThursday: boolean | null;
+  player1AvailFriday: boolean | null;
+  player1AvailSaturday: boolean | null;
+  player1AvailSunday: boolean | null;
+  player1Visibility: PlayerVisibility | null;
+  player2AvailMonday: boolean | null;
+  player2AvailTuesday: boolean | null;
+  player2AvailWednesday: boolean | null;
+  player2AvailThursday: boolean | null;
+  player2AvailFriday: boolean | null;
+  player2AvailSaturday: boolean | null;
+  player2AvailSunday: boolean | null;
+  player2Visibility: PlayerVisibility | null;
 };
 
 type MatchSetRow = {
@@ -114,6 +154,21 @@ function formatDateParts(value: string | null) {
     month: monthNames[month - 1],
     year: year.toString(),
   };
+}
+
+function formatCompactDate(value: string) {
+  const [year, month, day] = value.split("-");
+  return `${day}/${month}/${year}`;
+}
+
+function formatUpcomingDate(match: UpcomingMatchRow) {
+  if (match.playedOn) return formatCompactDate(match.playedOn);
+  if (match.weekStartsOn && match.weekEndsOn) {
+    return `${formatCompactDate(match.weekStartsOn)}–${formatCompactDate(
+      match.weekEndsOn,
+    )}`;
+  }
+  return "Fecha por definir";
 }
 
 function getAge(birthDate: string | null): number | null {
@@ -254,6 +309,7 @@ export default async function MiPerfilPage() {
     [weekCountRow],
     [monthCountRow],
     [challengeMonthRow],
+    upcomingMatches,
     historyRows,
   ] = await Promise.all([
     getRanking(category),
@@ -302,6 +358,57 @@ export default async function MiPerfilPage() {
           sql`${matches.playedOn} between ${rollingMonthStart} and ${today}`,
         ),
       ),
+    db
+      .select({
+        id: matches.id,
+        status: matches.status,
+        type: matches.type,
+        playedOn: matches.playedOn,
+        player1Id: matches.player1Id,
+        player2Id: matches.player2Id,
+        player1Name: players.fullName,
+        player2Name: sql<string>`players_p2.full_name`,
+        weekStartsOn: weeks.startsOn,
+        weekEndsOn: weeks.endsOn,
+        player1AvailMonday: players.availMonday,
+        player1AvailTuesday: players.availTuesday,
+        player1AvailWednesday: players.availWednesday,
+        player1AvailThursday: players.availThursday,
+        player1AvailFriday: players.availFriday,
+        player1AvailSaturday: players.availSaturday,
+        player1AvailSunday: players.availSunday,
+        player1Visibility: players.visibility,
+        player2AvailMonday: sql<boolean | null>`players_p2.avail_monday`,
+        player2AvailTuesday: sql<boolean | null>`players_p2.avail_tuesday`,
+        player2AvailWednesday: sql<boolean | null>`players_p2.avail_wednesday`,
+        player2AvailThursday: sql<boolean | null>`players_p2.avail_thursday`,
+        player2AvailFriday: sql<boolean | null>`players_p2.avail_friday`,
+        player2AvailSaturday: sql<boolean | null>`players_p2.avail_saturday`,
+        player2AvailSunday: sql<boolean | null>`players_p2.avail_sunday`,
+        player2Visibility: sql<PlayerVisibility | null>`players_p2.visibility`,
+      })
+      .from(matches)
+      .leftJoin(weeks, eq(matches.weekId, weeks.id))
+      .innerJoin(players, eq(matches.player1Id, players.id))
+      .innerJoin(
+        sql`players as players_p2`,
+        sql`${matches.player2Id} = players_p2.id`,
+      )
+      .where(
+        and(
+          or(
+            eq(matches.player1Id, player.id),
+            eq(matches.player2Id, player.id),
+          ),
+          sql`${matches.status} in ('pendiente', 'reportado')`,
+          or(sql`${weeks.endsOn} is null`, sql`${weeks.endsOn} >= ${today}`),
+        ),
+      )
+      .orderBy(
+        asc(sql`coalesce(${matches.playedOn}, ${weeks.startsOn})`),
+        asc(matches.createdAt),
+      )
+      .limit(6) as Promise<UpcomingMatchRow[]>,
     db
       .select({
         id: matches.id,
@@ -733,6 +840,165 @@ export default async function MiPerfilPage() {
               <p className="mt-4 text-sm text-[#776f66]">
                 Aún no apareces en el ranking de esta temporada.
               </p>
+            )}
+          </section>
+
+          {/* Próximos partidos */}
+          <section className="rounded-2xl border border-[#ded6ca] bg-[#fffdfa] p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-[#776f66]" />
+                <h2 className="text-sm font-semibold text-[#0d1b2a]">
+                  Próximos partidos
+                </h2>
+              </div>
+              {upcomingMatches.length > 0 && (
+                <Link
+                  href="/fixture"
+                  className="text-xs font-medium text-[#776f66] hover:text-[#0d1b2a]"
+                >
+                  Ver fixture →
+                </Link>
+              )}
+            </div>
+
+            {upcomingMatches.length === 0 ? (
+              <div className="mt-4 rounded-xl border border-dashed border-[#ded6ca] px-6 py-10 text-center text-sm text-[#776f66]">
+                No tienes partidos próximos publicados.
+              </div>
+            ) : (
+              <div className="mt-4 divide-y divide-[#ede5d8]">
+                {upcomingMatches.map((match) => {
+                  const isPlayer1 = match.player1Id === player.id;
+                  const opponentName = isPlayer1
+                    ? match.player2Name
+                    : match.player1Name;
+                  const myAvailability = buildAvailabilitySlots({
+                    availMonday: isPlayer1
+                      ? match.player1AvailMonday
+                      : match.player2AvailMonday,
+                    availTuesday: isPlayer1
+                      ? match.player1AvailTuesday
+                      : match.player2AvailTuesday,
+                    availWednesday: isPlayer1
+                      ? match.player1AvailWednesday
+                      : match.player2AvailWednesday,
+                    availThursday: isPlayer1
+                      ? match.player1AvailThursday
+                      : match.player2AvailThursday,
+                    availFriday: isPlayer1
+                      ? match.player1AvailFriday
+                      : match.player2AvailFriday,
+                    availSaturday: isPlayer1
+                      ? match.player1AvailSaturday
+                      : match.player2AvailSaturday,
+                    availSunday: isPlayer1
+                      ? match.player1AvailSunday
+                      : match.player2AvailSunday,
+                    visibility: isPlayer1
+                      ? match.player1Visibility
+                      : match.player2Visibility,
+                  });
+                  const opponentAvailability = buildAvailabilitySlots({
+                    availMonday: isPlayer1
+                      ? match.player2AvailMonday
+                      : match.player1AvailMonday,
+                    availTuesday: isPlayer1
+                      ? match.player2AvailTuesday
+                      : match.player1AvailTuesday,
+                    availWednesday: isPlayer1
+                      ? match.player2AvailWednesday
+                      : match.player1AvailWednesday,
+                    availThursday: isPlayer1
+                      ? match.player2AvailThursday
+                      : match.player1AvailThursday,
+                    availFriday: isPlayer1
+                      ? match.player2AvailFriday
+                      : match.player1AvailFriday,
+                    availSaturday: isPlayer1
+                      ? match.player2AvailSaturday
+                      : match.player1AvailSaturday,
+                    availSunday: isPlayer1
+                      ? match.player2AvailSunday
+                      : match.player1AvailSunday,
+                    visibility: isPlayer1
+                      ? match.player2Visibility
+                      : match.player1Visibility,
+                  });
+                  const suggestedBlocks =
+                    match.status === "pendiente"
+                      ? getSharedAvailabilityRanges(
+                          myAvailability,
+                          opponentAvailability,
+                        )
+                      : [];
+                  const hasAvailabilityData =
+                    hasAnyAvailability(myAvailability) &&
+                    hasAnyAvailability(opponentAvailability);
+
+                  return (
+                    <article
+                      key={match.id}
+                      className="flex items-start gap-4 py-4 first:pt-0 last:pb-0"
+                    >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#f6f2ea]">
+                        <CalendarDays className="h-4 w-4 text-[#b04d15]" />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs text-[#776f66]">
+                          {typeLabel(match.type)} · {formatUpcomingDate(match)}
+                        </p>
+                        <p className="mt-0.5 text-sm font-semibold text-[#0d1b2a]">
+                          vs {opponentName}
+                        </p>
+                        <p className="text-xs text-[#776f66]">
+                          {match.status === "reportado"
+                            ? "Resultado pendiente de confirmación"
+                            : "Pendiente de jugar"}
+                        </p>
+                        {match.status === "pendiente" && (
+                          <div className="mt-3 rounded-xl border border-[#ede5d8] bg-[#f6f2ea] px-3 py-2">
+                            <p className="text-[11px] font-semibold uppercase tracking-wide text-[#776f66]">
+                              Horarios recomendados
+                            </p>
+                            {suggestedBlocks.length > 0 ? (
+                              <div className="mt-2 flex flex-wrap gap-1.5">
+                                {suggestedBlocks.slice(0, 4).map((block) => (
+                                  <span
+                                    key={`${match.id}-${block.dayKey}-${block.start}-${block.end}`}
+                                    className="rounded-full bg-[#0d1b2a] px-2.5 py-1 text-xs font-medium text-[#fffdfa]"
+                                  >
+                                    {block.label}
+                                  </span>
+                                ))}
+                                {suggestedBlocks.length > 4 && (
+                                  <span className="rounded-full border border-[#ded6ca] bg-[#fffdfa] px-2.5 py-1 text-xs font-medium text-[#776f66]">
+                                    +{suggestedBlocks.length - 4} más
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <p className="mt-1 text-xs text-[#776f66]">
+                                {hasAvailabilityData
+                                  ? "No hay bloques compartidos de 90 minutos."
+                                  : "Falta disponibilidad de uno de los jugadores."}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <Link
+                        href="/ingresar-resultado"
+                        className="shrink-0 rounded-full border border-[#ded6ca] bg-[#fffdfa] px-3 py-1 text-xs font-medium text-[#b04d15] transition hover:bg-[#f6f2ea] hover:text-[#8a3a0f]"
+                      >
+                        Resultado
+                      </Link>
+                    </article>
+                  );
+                })}
+              </div>
             )}
           </section>
 

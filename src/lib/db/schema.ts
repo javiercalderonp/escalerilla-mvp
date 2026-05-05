@@ -100,6 +100,7 @@ export type PlayerVisibility = {
   phone: "public" | "players" | "private";
   rut: "admin" | "private";
   birthDate: "public" | "players" | "private";
+  availabilitySlots?: Record<string, boolean[]>;
 };
 
 export const DEFAULT_VISIBILITY: PlayerVisibility = {
@@ -204,7 +205,9 @@ export const matches = pgTable(
   "matches",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    weekId: uuid("week_id").references(() => weeks.id, { onDelete: "set null" }),
+    weekId: uuid("week_id").references(() => weeks.id, {
+      onDelete: "set null",
+    }),
     category: genderEnum("category").notNull(),
     type: matchTypeEnum("type").notNull(),
     player1Id: uuid("player1_id")

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
 import { requireCompleteProfile } from "@/lib/auth/require-complete-profile";
+import { buildAvailabilitySlots, hasAnyAvailability } from "@/lib/availability";
 import { db } from "@/lib/db";
 import { players } from "@/lib/db/schema";
 import { AvailabilityForm } from "./availability-form";
@@ -37,6 +38,7 @@ export default async function DisponibilidadPage() {
       availFriday: players.availFriday,
       availSaturday: players.availSaturday,
       availSunday: players.availSunday,
+      visibility: players.visibility,
     })
     .from(players)
     .where(eq(players.email, userEmail.toLowerCase()))
@@ -57,7 +59,9 @@ export default async function DisponibilidadPage() {
     );
   }
 
+  const availabilitySlots = buildAvailabilitySlots(player);
   const hasAvailability =
+    hasAnyAvailability(availabilitySlots) ||
     player.availMonday !== null ||
     player.availTuesday !== null ||
     player.availWednesday !== null ||
@@ -68,13 +72,7 @@ export default async function DisponibilidadPage() {
 
   const existing = hasAvailability
     ? {
-        availMonday: player.availMonday ?? false,
-        availTuesday: player.availTuesday ?? false,
-        availWednesday: player.availWednesday ?? false,
-        availThursday: player.availThursday ?? false,
-        availFriday: player.availFriday ?? false,
-        availSaturday: player.availSaturday ?? false,
-        availSunday: player.availSunday ?? false,
+        slots: availabilitySlots,
       }
     : null;
 
