@@ -2,7 +2,15 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { submitOnboarding } from "@/app/onboarding/actions";
+import { AvailabilityGrid } from "@/components/availability/availability-grid";
 import { Button } from "@/components/ui/button";
+import {
+  AVAILABILITY_DAYS,
+  type AvailabilitySlots,
+  buildSlots,
+  hasAnyAvailability,
+} from "@/lib/availability";
+import { formatPersonName } from "@/lib/format/name";
 import {
   onboardingFullSchema,
   onboardingStep1Schema,
@@ -32,16 +40,6 @@ const levelOptions = [
   },
 ] as const;
 
-const DAYS = [
-  { key: "availMonday" as const, short: "Lun", label: "Lunes" },
-  { key: "availTuesday" as const, short: "Mar", label: "Martes" },
-  { key: "availWednesday" as const, short: "Mié", label: "Miércoles" },
-  { key: "availThursday" as const, short: "Jue", label: "Jueves" },
-  { key: "availFriday" as const, short: "Vie", label: "Viernes" },
-  { key: "availSaturday" as const, short: "Sáb", label: "Sábado" },
-  { key: "availSunday" as const, short: "Dom", label: "Domingo" },
-];
-
 type WizardValues = {
   firstName: string;
   lastName: string;
@@ -60,6 +58,7 @@ type WizardValues = {
   availFriday: boolean;
   availSaturday: boolean;
   availSunday: boolean;
+  availabilitySlots: AvailabilitySlots;
 };
 
 const initialValues: WizardValues = {
@@ -80,6 +79,10 @@ const initialValues: WizardValues = {
   availFriday: false,
   availSaturday: false,
   availSunday: false,
+  availabilitySlots: AVAILABILITY_DAYS.reduce((acc, { key }) => {
+    acc[key] = buildSlots(key, false);
+    return acc;
+  }, {} as AvailabilitySlots),
 };
 
 function getMaxBirthDate() {
@@ -109,6 +112,27 @@ export function OnboardingWizard() {
     setErrors((current) => {
       const next = { ...current };
       delete next[key];
+      return next;
+    });
+    setServerError(null);
+  }
+
+  function updateAvailability(availabilitySlots: AvailabilitySlots) {
+    setValues((current) => ({
+      ...current,
+      availabilitySlots,
+      availMonday: availabilitySlots.availMonday.some(Boolean),
+      availTuesday: availabilitySlots.availTuesday.some(Boolean),
+      availWednesday: availabilitySlots.availWednesday.some(Boolean),
+      availThursday: availabilitySlots.availThursday.some(Boolean),
+      availFriday: availabilitySlots.availFriday.some(Boolean),
+      availSaturday: availabilitySlots.availSaturday.some(Boolean),
+      availSunday: availabilitySlots.availSunday.some(Boolean),
+    }));
+    setErrors((current) => {
+      const next = { ...current };
+      delete next.availDays;
+      delete next.availabilitySlots;
       return next;
     });
     setServerError(null);
@@ -148,8 +172,7 @@ export function OnboardingWizard() {
   }
 
   function handleSubmit() {
-    const availDays = DAYS.map(({ key }) => values[key]);
-    if (!availDays.some(Boolean)) {
+    if (!hasAnyAvailability(values.availabilitySlots)) {
       setErrors({ availDays: "Selecciona al menos un día disponible" });
       return;
     }
@@ -222,7 +245,7 @@ export function OnboardingWizard() {
                 className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:border-court"
                 value={values.firstName}
                 onChange={(event) =>
-                  updateValue("firstName", event.target.value)
+                  updateValue("firstName", formatPersonName(event.target.value))
                 }
               />
             </Field>
@@ -231,7 +254,7 @@ export function OnboardingWizard() {
                 className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:border-court"
                 value={values.lastName}
                 onChange={(event) =>
-                  updateValue("lastName", event.target.value)
+                  updateValue("lastName", formatPersonName(event.target.value))
                 }
               />
             </Field>
@@ -377,30 +400,13 @@ export function OnboardingWizard() {
           </p>
 
           <Field
-            label="¿Qué días normalmente puedes jugar?"
+            label="¿Qué horarios normalmente puedes jugar?"
             error={errors.availDays}
           >
-            <div className="grid grid-cols-4 gap-2 pt-1 sm:grid-cols-7">
-              {DAYS.map(({ key, short, label }) => (
-                <button
-                  key={key}
-                  type="button"
-                  aria-pressed={values[key]}
-                  onClick={() => updateValue(key, !values[key])}
-                  className={[
-                    "flex flex-col items-center justify-center gap-0.5 rounded-2xl border py-3 text-center transition",
-                    values[key]
-                      ? "border-court bg-court text-court-foreground"
-                      : "border-border bg-background hover:border-court/40 text-muted-foreground",
-                  ].join(" ")}
-                >
-                  <span className="text-xs font-semibold">{short}</span>
-                  <span className="hidden text-[10px] opacity-70 sm:block">
-                    {label}
-                  </span>
-                </button>
-              ))}
-            </div>
+            <AvailabilityGrid
+              availability={values.availabilitySlots}
+              onChange={updateAvailability}
+            />
           </Field>
 
           {serverError ? (
@@ -433,11 +439,11 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className="block space-y-2 text-sm">
+    <div className="block space-y-2 text-sm">
       <span className="font-medium text-foreground">{label}</span>
       {children}
       {error ? <span className="text-xs text-rose-600">{error}</span> : null}
-    </label>
+    </div>
   );
 }
 

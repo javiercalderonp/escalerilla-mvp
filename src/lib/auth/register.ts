@@ -8,21 +8,32 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { isAdminEmail } from "@/lib/env";
 
-const RegisterSchema = z.object({
-  email: z.string().email("Email inválido"),
-  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
-  name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
-});
+const RegisterSchema = z
+  .object({
+    email: z.string().email("Email inválido"),
+    password: z
+      .string()
+      .min(8, "La contraseña debe tener al menos 8 caracteres"),
+    confirmPassword: z
+      .string()
+      .min(8, "La confirmación debe tener al menos 8 caracteres"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Las contraseñas no coinciden",
+    path: ["confirmPassword"],
+  });
 
 export type RegisterResult =
   | { success: true }
   | { success: false; error: string };
 
-export async function registerWithEmail(formData: FormData): Promise<RegisterResult> {
+export async function registerWithEmail(
+  formData: FormData,
+): Promise<RegisterResult> {
   const parsed = RegisterSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
-    name: formData.get("name"),
+    confirmPassword: formData.get("confirmPassword"),
   });
 
   if (!parsed.success) {
@@ -30,7 +41,7 @@ export async function registerWithEmail(formData: FormData): Promise<RegisterRes
     return { success: false, error: firstError?.message ?? "Datos inválidos" };
   }
 
-  const { email: rawEmail, password, name } = parsed.data;
+  const { email: rawEmail, password } = parsed.data;
   const email = rawEmail.toLowerCase();
 
   if (!db) return { success: false, error: "Error de base de datos" };
@@ -45,14 +56,16 @@ export async function registerWithEmail(formData: FormData): Promise<RegisterRes
     if (existing.passwordHash) {
       return { success: false, error: "Ya existe una cuenta con este email" };
     }
-    return { success: false, error: "Este email ya está asociado a una cuenta de Google" };
+    return {
+      success: false,
+      error: "Este email ya está asociado a una cuenta de Google",
+    };
   }
 
   const passwordHash = await hash(password, 12);
 
   await db.insert(users).values({
     email,
-    name,
     passwordHash,
     role: isAdminEmail(email) ? "admin" : "guest",
     lastLoginAt: new Date(),

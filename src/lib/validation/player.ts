@@ -1,13 +1,28 @@
 import { z } from "zod";
 
+import {
+  type AvailabilitySlots,
+  normalizeAvailabilitySlots,
+} from "../availability";
+import { formatPersonName } from "../format/name";
 import { phoneSchema } from "./phone";
 import { rutSchema } from "./rut";
 
 const NAME_REGEX = /^[A-Za-zÁÉÍÓÚÑáéíóúñ' -]+$/;
 
 export const onboardingStep1Schema = z.object({
-  firstName: z.string().min(2).max(60).regex(NAME_REGEX, "Solo letras"),
-  lastName: z.string().min(2).max(60).regex(NAME_REGEX, "Solo letras"),
+  firstName: z
+    .string()
+    .min(2)
+    .max(60)
+    .regex(NAME_REGEX, "Solo letras")
+    .transform(formatPersonName),
+  lastName: z
+    .string()
+    .min(2)
+    .max(60)
+    .regex(NAME_REGEX, "Solo letras")
+    .transform(formatPersonName),
   gender: z.enum(["M", "F"]),
   birthDate: z.coerce.date().refine((date) => {
     const age = (Date.now() - date.getTime()) / 31_557_600_000;
@@ -37,6 +52,16 @@ export const onboardingStep3Schema = z.object({
   availFriday: z.boolean(),
   availSaturday: z.boolean(),
   availSunday: z.boolean(),
+  availabilitySlots: z.unknown().transform((value, ctx) => {
+    const slots = normalizeAvailabilitySlots(value);
+    if (slots) return slots as AvailabilitySlots;
+
+    ctx.addIssue({
+      code: "custom",
+      message: "Disponibilidad inválida",
+    });
+    return z.NEVER;
+  }),
 });
 
 export const onboardingFullSchema = onboardingStep1Schema

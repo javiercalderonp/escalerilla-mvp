@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { ensureAppUser } from "@/lib/auth/ensure-app-user";
 import { db } from "@/lib/db";
-import { players, users } from "@/lib/db/schema";
+import { DEFAULT_VISIBILITY, players, users } from "@/lib/db/schema";
 import { isAdminEmail } from "@/lib/env";
 import { onboardingFullSchema } from "@/lib/validation/player";
 
@@ -15,6 +15,7 @@ type ExistingPlayerCandidate = {
   id: string;
   fullName: string;
   rut: string | null;
+  visibility: typeof DEFAULT_VISIBILITY | null;
 };
 
 function normalizeProfileName(value: string) {
@@ -53,6 +54,7 @@ export async function submitOnboarding(input: unknown) {
           id: players.id,
           fullName: players.fullName,
           rut: players.rut,
+          visibility: players.visibility,
         })
         .from(players)
         .where(eq(players.rut, data.rut))
@@ -66,6 +68,7 @@ export async function submitOnboarding(input: unknown) {
             id: players.id,
             fullName: players.fullName,
             rut: players.rut,
+            visibility: players.visibility,
           })
           .from(players)
           .where(eq(players.gender, data.gender));
@@ -108,6 +111,11 @@ export async function submitOnboarding(input: unknown) {
             dominantHand: data.dominantHand,
             backhand: data.backhand,
             yearsPlaying: data.yearsPlaying,
+            visibility: {
+              ...DEFAULT_VISIBILITY,
+              ...existingPlayer.visibility,
+              availabilitySlots: data.availabilitySlots,
+            },
             availMonday: data.availMonday,
             availTuesday: data.availTuesday,
             availWednesday: data.availWednesday,
@@ -142,6 +150,10 @@ export async function submitOnboarding(input: unknown) {
             backhand: data.backhand,
             yearsPlaying: data.yearsPlaying,
             joinedLadderOn: today,
+            visibility: {
+              ...DEFAULT_VISIBILITY,
+              availabilitySlots: data.availabilitySlots,
+            },
             availMonday: data.availMonday,
             availTuesday: data.availTuesday,
             availWednesday: data.availWednesday,
@@ -161,6 +173,12 @@ export async function submitOnboarding(input: unknown) {
           .where(eq(users.id, user.id));
       }
     } else {
+      const [currentPlayer] = await db
+        .select({ visibility: players.visibility })
+        .from(players)
+        .where(eq(players.id, user.playerId))
+        .limit(1);
+
       await db
         .update(players)
         .set({
@@ -176,6 +194,11 @@ export async function submitOnboarding(input: unknown) {
           dominantHand: data.dominantHand,
           backhand: data.backhand,
           yearsPlaying: data.yearsPlaying,
+          visibility: {
+            ...DEFAULT_VISIBILITY,
+            ...currentPlayer?.visibility,
+            availabilitySlots: data.availabilitySlots,
+          },
           availMonday: data.availMonday,
           availTuesday: data.availTuesday,
           availWednesday: data.availWednesday,

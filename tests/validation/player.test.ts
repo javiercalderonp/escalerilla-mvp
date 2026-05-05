@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { AVAILABILITY_DAYS, buildSlots } from "../../src/lib/availability";
 import {
   onboardingFullSchema,
   onboardingStep1Schema,
@@ -7,16 +8,26 @@ import {
 } from "../../src/lib/validation/player";
 
 describe("onboarding schemas", () => {
+  const availabilitySlots = AVAILABILITY_DAYS.reduce(
+    (acc, { key }) => {
+      acc[key] = buildSlots(key, key === "availMonday");
+      return acc;
+    },
+    {} as Record<(typeof AVAILABILITY_DAYS)[number]["key"], boolean[]>,
+  );
+
   it("acepta paso 1 válido y normaliza phone/rut", () => {
     const parsed = onboardingStep1Schema.parse({
-      firstName: "Javier",
-      lastName: "Calderon",
+      firstName: "javier",
+      lastName: "calderon perez",
       gender: "M",
       birthDate: "1990-01-15",
       phone: "912345678",
       rut: "12.345.678-5",
     });
 
+    expect(parsed.firstName).toBe("Javier");
+    expect(parsed.lastName).toBe("Calderon Perez");
     expect(parsed.phone).toBe("+56912345678");
     expect(parsed.rut).toBe("12345678-5");
   });
@@ -68,6 +79,14 @@ describe("onboarding schemas", () => {
       dominantHand: "diestro",
       backhand: "dos_manos",
       yearsPlaying: 5,
+      availMonday: true,
+      availTuesday: false,
+      availWednesday: false,
+      availThursday: false,
+      availFriday: false,
+      availSaturday: false,
+      availSunday: false,
+      availabilitySlots,
     });
 
     expect(parsed.level).toBe("intermedio_bajo");
