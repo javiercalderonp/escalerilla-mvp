@@ -1,13 +1,7 @@
-import { and, eq, gte, lte, or, sql } from "drizzle-orm";
+import { and, eq, gte, or, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import {
-  auditLog,
-  freezes,
-  matches,
-  players,
-  rankingEvents,
-} from "@/lib/db/schema";
+import { auditLog, matches, players, rankingEvents } from "@/lib/db/schema";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -77,19 +71,6 @@ export async function GET(request: Request) {
     }
   }
 
-  // Load active freezes
-  const activeFreezeRows = await db
-    .select({ playerId: freezes.playerId })
-    .from(freezes)
-    .where(
-      and(
-        lte(freezes.startsOn, todayStr),
-        or(sql`${freezes.endsOn} IS NULL`, gte(freezes.endsOn, todayStr)),
-      ),
-    );
-
-  const frozenPlayerIds = new Set(activeFreezeRows.map((r) => r.playerId));
-
   // Load recent inactivity events per player to enforce idempotency
   type InactivityReason =
     | "inactivity_month"
@@ -144,16 +125,6 @@ export async function GET(request: Request) {
 
   for (const player of activePlayers) {
     const currentPoints = Number(player.points);
-
-    // Skip frozen players
-    if (frozenPlayerIds.has(player.id)) {
-      skipped.push({
-        playerId: player.id,
-        name: player.fullName,
-        reason: "congelado",
-      });
-      continue;
-    }
 
     const lastMatchDate = lastMatchMap.get(player.id) ?? null;
     const daysSince = lastMatchDate
