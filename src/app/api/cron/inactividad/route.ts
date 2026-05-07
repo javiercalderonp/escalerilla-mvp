@@ -137,6 +137,7 @@ export async function GET(request: Request) {
 
     const penaltyMap =
       lastPenaltyMap.get(player.id) ?? new Map<string, string>();
+    let effectivePoints = currentPoints;
 
     // -40 monthly (repeat monthly, idempotent: last penalty must be >30 days ago or not exist after last match)
     if (daysSince >= 30) {
@@ -158,45 +159,48 @@ export async function GET(request: Request) {
           reason: "inactivity_month",
           note: `Sin partido en ${daysSince} días`,
         });
+        effectivePoints -= 40;
       }
     }
 
     // -25% at 3 months (once per inactivity stretch)
-    if (daysSince >= 90 && currentPoints > 0) {
+    if (daysSince >= 90 && effectivePoints > 0) {
       const lastApplied = penaltyMap.get("inactivity_3mo") ?? null;
       const alreadyApplied =
         lastApplied !== null &&
         (lastMatchDate === null || lastApplied > lastMatchDate);
       if (!alreadyApplied) {
-        const delta = -Math.round(currentPoints * 0.25);
+        const delta = -Math.round(effectivePoints * 0.25);
         eventsToInsert.push({
           playerId: player.id,
           delta,
           reason: "inactivity_3mo",
           note: `Sin partido en ${daysSince} días — -25%`,
         });
+        effectivePoints += delta;
       }
     }
 
     // -50% at 6 months (once per inactivity stretch)
-    if (daysSince >= 180 && currentPoints > 0) {
+    if (daysSince >= 180 && effectivePoints > 0) {
       const lastApplied = penaltyMap.get("inactivity_6mo") ?? null;
       const alreadyApplied =
         lastApplied !== null &&
         (lastMatchDate === null || lastApplied > lastMatchDate);
       if (!alreadyApplied) {
-        const delta = -Math.round(currentPoints * 0.5);
+        const delta = -Math.round(effectivePoints * 0.5);
         eventsToInsert.push({
           playerId: player.id,
           delta,
           reason: "inactivity_6mo",
           note: `Sin partido en ${daysSince} días — -50%`,
         });
+        effectivePoints += delta;
       }
     }
 
     // -100% at 1 year (once per inactivity stretch)
-    if (daysSince >= 365 && currentPoints > 0) {
+    if (daysSince >= 365 && effectivePoints > 0) {
       const lastApplied = penaltyMap.get("inactivity_1y") ?? null;
       const alreadyApplied =
         lastApplied !== null &&
@@ -204,7 +208,7 @@ export async function GET(request: Request) {
       if (!alreadyApplied) {
         eventsToInsert.push({
           playerId: player.id,
-          delta: -currentPoints,
+          delta: -effectivePoints,
           reason: "inactivity_1y",
           note: `Sin partido en ${daysSince} días — -100%`,
         });
