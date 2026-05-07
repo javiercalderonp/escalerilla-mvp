@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, gt, gte, or, sql } from "drizzle-orm";
+import { and, eq, gt, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -80,7 +80,7 @@ export async function generateProposalAction(
     .where(
       and(
         or(eq(matches.status, "confirmado"), eq(matches.status, "wo")),
-        gte(matches.playedOn, thirtyDaysAgoStr),
+        gt(matches.playedOn, thirtyDaysAgoStr),
       ),
     );
 

@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, or, sql } from "drizzle-orm";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
@@ -114,7 +114,7 @@ export default async function FixturePage({
     .where(
       and(
         or(eq(matches.status, "confirmado"), eq(matches.status, "wo")),
-        gte(matches.playedOn, thirtyDaysAgoStr),
+        gt(matches.playedOn, thirtyDaysAgoStr),
       ),
     );
 

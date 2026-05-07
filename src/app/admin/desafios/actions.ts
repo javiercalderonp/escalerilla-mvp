@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, gte, or, sql } from "drizzle-orm";
+import { and, eq, gt, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -126,7 +126,7 @@ export async function createChallengeAction(formData: FormData) {
           eq(matches.status, "wo"),
           eq(matches.status, "empate"),
         ),
-        gte(matches.playedOn, cutoff),
+        gt(matches.playedOn, cutoff),
       ),
     )
     .limit(1);
