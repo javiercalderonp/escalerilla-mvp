@@ -689,6 +689,13 @@ GOOGLE_CLIENT_SECRET=""
 ADMIN_EMAILS="javier11calderon@gmail.com"
 
 # ────────────────────────────────────────────
+# Email de resultados (apagado hasta tener remitente oficial)
+# ────────────────────────────────────────────
+MATCH_RESULT_EMAILS_ENABLED="false"
+MATCH_RESULT_EMAIL_FROM=""
+RESEND_API_KEY=""
+
+# ────────────────────────────────────────────
 # Cron (Vercel Cron)
 # ────────────────────────────────────────────
 # Header Authorization: Bearer ${CRON_SECRET} protege el endpoint.
@@ -711,6 +718,9 @@ APP_TIMEZONE="America/Santiago"
 | `GOOGLE_CLIENT_ID` | OAuth client local | mismo | mismo |
 | `GOOGLE_CLIENT_SECRET` | OAuth client local | mismo | mismo |
 | `ADMIN_EMAILS` | email dev | lista staging | lista producción |
+| `MATCH_RESULT_EMAILS_ENABLED` | `false` | `false` | `false` hasta tener remitente oficial |
+| `MATCH_RESULT_EMAIL_FROM` | vacío | remitente verificado | remitente oficial verificado |
+| `RESEND_API_KEY` | vacío | Resend preview | Resend producción |
 | `CRON_SECRET` | random local | random | random |
 | `APP_TIMEZONE` | `America/Santiago` | mismo | mismo |
 

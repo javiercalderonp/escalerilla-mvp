@@ -6,7 +6,6 @@ import {
   correctDrawAction,
   correctResultAction,
   correctWalkoverAction,
-  createMatchAction,
   registerDrawAction,
   registerResultAction,
   registerWalkoverAction,
@@ -14,6 +13,7 @@ import {
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { matches, players, weeks } from "@/lib/db/schema";
+import { AdminMatchesCreateMenu } from "./create-menu";
 
 type AdminMatchesPageProps = {
   searchParams?: Promise<{
@@ -100,6 +100,24 @@ function formatDate(value: string | Date | null) {
 function formatWeekLabel(start: string | null, end: string | null) {
   if (!start || !end) return "Sin semana";
   return `${formatDate(start)} – ${formatDate(end)}`;
+}
+
+function nextMonday(): string {
+  const today = new Date();
+  const day = today.getDay();
+  const daysUntil = day === 0 ? 1 : 8 - day;
+  const d = new Date(today);
+  d.setDate(today.getDate() + daysUntil);
+  return d.toISOString().slice(0, 10);
+}
+
+function getFocusWeek(rows: WeekOption[]) {
+  return (
+    rows.find((week) => week.status === "abierta") ??
+    rows.find((week) => week.status === "borrador") ??
+    rows[0] ??
+    null
+  );
 }
 
 function SetFields({
@@ -386,6 +404,10 @@ export default async function AdminMatchesPage({
     getPlayerOptions(),
     getWeekOptions(),
   ]);
+  const focusWeek = getFocusWeek(weekOptions);
+  const programmingHref = focusWeek
+    ? `/admin/semanas/${focusWeek.id}/fixture?agregarJugadores=1`
+    : null;
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6">
@@ -401,13 +423,18 @@ export default async function AdminMatchesPage({
               empates y W.O. dentro de la app.
             </p>
           </div>
-          <div className="flex flex-wrap gap-3 text-sm">
+          <div className="flex flex-wrap items-center gap-3 text-sm">
             <Link
               href="/admin/jugadores"
               className="rounded-full border border-slate-300 px-4 py-2 font-medium text-slate-700 transition hover:border-slate-400 hover:text-slate-950"
             >
               Ir a jugadores
             </Link>
+            <AdminMatchesCreateMenu
+              playerOptions={playerOptions}
+              programmingHref={programmingHref}
+              nextWeekStartsOn={nextMonday()}
+            />
           </div>
         </div>
       </section>
@@ -445,66 +472,7 @@ export default async function AdminMatchesPage({
         </article>
       </section>
 
-      <section className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr]">
-        <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">
-            Crear partido pendiente
-          </h2>
-          <p className="mt-2 text-sm text-slate-600">
-            Primer paso simple para dejar partidos listos antes de registrar el
-            resultado.
-          </p>
-
-          <form action={createMatchAction} className="mt-6 space-y-4">
-            <label className="space-y-2 text-sm text-slate-700">
-              <span className="font-medium">Categoría</span>
-              <select
-                name="category"
-                defaultValue="M"
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-emerald-500"
-              >
-                <option value="M">Hombres</option>
-                <option value="F">Mujeres</option>
-              </select>
-            </label>
-
-            <label className="space-y-2 text-sm text-slate-700">
-              <span className="font-medium">Jugador 1</span>
-              <select
-                name="player1Id"
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-emerald-500"
-              >
-                {playerOptions.map((player) => (
-                  <option key={player.id} value={player.id}>
-                    {player.fullName} · {formatCategory(player.gender)}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="space-y-2 text-sm text-slate-700">
-              <span className="font-medium">Jugador 2</span>
-              <select
-                name="player2Id"
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-emerald-500"
-              >
-                {playerOptions.map((player) => (
-                  <option key={player.id} value={player.id}>
-                    {player.fullName} · {formatCategory(player.gender)}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <button
-              type="submit"
-              className="rounded-full bg-slate-950 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800"
-            >
-              Crear partido
-            </button>
-          </form>
-        </article>
-
+      <section>
         <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-4">
             <div>

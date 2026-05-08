@@ -358,6 +358,8 @@ El admin ve un botón "Copiar mensaje" y lo pega en WhatsApp. No se llama API ex
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
 - `CRON_SECRET`.
 - `ADMIN_EMAILS` (mientras no exista tabla dedicada).
+- `MATCH_RESULT_EMAILS_ENABLED=false` hasta tener correo oficial de la escalerilla.
+- `MATCH_RESULT_EMAIL_FROM` y `RESEND_API_KEY` para activar notificaciones de resultados via Resend.
 
 ---
 

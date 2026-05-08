@@ -1,5 +1,11 @@
 import { and, desc, eq, or, sql } from "drizzle-orm"
 
+import {
+  AVAILABILITY_DAYS,
+  buildAvailabilitySlots,
+  hasAnyAvailability,
+  summarizeAvailabilityDay,
+} from "@/lib/availability"
 import { db } from "@/lib/db"
 import { matchSets, matches, players, rankingEvents, users } from "@/lib/db/schema"
 import { getRanking, type PlayerStatus, type RankingCategory } from "@/lib/ranking"
@@ -36,6 +42,11 @@ export type PlayerCardData = {
     winRate: number
     streak: Array<"W" | "L">
   }
+  availability: Array<{
+    day: string
+    short: string
+    summary: string
+  }>
   recentMatches: Array<{
     id: string
     opponentName: string
@@ -153,7 +164,7 @@ export async function getPlayerCardData(
   const visibility = player.visibility ?? {
     phone: "players",
     rut: "admin",
-    birthDate: "private",
+    birthDate: "players",
   }
 
   const canSeePhone =
@@ -245,6 +256,13 @@ export async function getPlayerCardData(
   const matchesPlayed = recentMatchesRows.length
   const matchesWon = recentMatches.filter((match) => match.result === "W" || match.result === "WO_W").length
   const matchesLost = recentMatches.filter((match) => match.result === "L" || match.result === "WO_L").length
+  const availabilitySlots = buildAvailabilitySlots(player)
+  const availability = hasAnyAvailability(availabilitySlots)
+    ? AVAILABILITY_DAYS.flatMap(({ key, label, short }) => {
+        const summary = summarizeAvailabilityDay(availabilitySlots[key])
+        return summary ? [{ day: label, short, summary }] : []
+      })
+    : []
 
   const [deltaWeekRow] = await db
     .select({ value: sql<number>`coalesce(sum(${rankingEvents.delta}), 0)` })
@@ -290,6 +308,7 @@ export async function getPlayerCardData(
         .map((match) => (match.result === "W" || match.result === "WO_W" ? "W" : match.result === "L" || match.result === "WO_L" ? "L" : null))
         .filter((value): value is "W" | "L" => value !== null),
     },
+    availability,
     recentMatches,
   }
 }

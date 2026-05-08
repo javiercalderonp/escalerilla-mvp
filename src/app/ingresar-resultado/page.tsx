@@ -23,7 +23,11 @@ export default async function IngresarResultadoPage() {
   const playerId = actor.playerId;
 
   const [myPlayer] = await db
-    .select({ id: players.id, fullName: players.fullName, gender: players.gender })
+    .select({
+      id: players.id,
+      fullName: players.fullName,
+      gender: players.gender,
+    })
     .from(players)
     .where(eq(players.id, playerId))
     .limit(1);
@@ -67,14 +71,6 @@ export default async function IngresarResultadoPage() {
 
   return (
     <main className="mx-auto max-w-lg px-4 py-8">
-      <h1 className="mb-1 text-2xl font-bold text-slate-900">
-        Ingresar resultado
-      </h1>
-      <p className="mb-6 text-sm text-slate-500">
-        Registra el resultado de tu partido y los puntos se actualizan
-        automáticamente.
-      </p>
-
       <ResultForm
         pendingMatches={pendingMatches}
         allPlayers={allPlayers}

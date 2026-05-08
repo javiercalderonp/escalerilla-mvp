@@ -1,13 +1,20 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { ensureAppUser } from "@/lib/auth/ensure-app-user";
 import { db } from "@/lib/db";
-import { auditLog, matches, matchSets, rankingEvents } from "@/lib/db/schema";
+import {
+  auditLog,
+  matches,
+  matchSets,
+  players,
+  rankingEvents,
+} from "@/lib/db/schema";
+import { notifyMatchResultRegistered } from "@/lib/email/match-result";
 import { refreshHistoricalBestRanking } from "@/lib/ranking";
 import {
   calculateWinLossPoints,
@@ -18,8 +25,7 @@ import {
 const createMatchSchema = z.object({
   player1Id: z.string().uuid(),
   player2Id: z.string().uuid(),
-  category: z.enum(["M", "F"]),
-  type: z.enum(["sorteo", "desafio", "campeonato"]).default("sorteo"),
+  isChallenge: z.boolean(),
 });
 
 const optionalScoreField = z.coerce.number().int().min(0).max(20).optional();
@@ -318,8 +324,7 @@ export async function createMatchAction(formData: FormData) {
   const parsed = createMatchSchema.safeParse({
     player1Id: formData.get("player1Id"),
     player2Id: formData.get("player2Id"),
-    category: formData.get("category"),
-    type: formData.get("type") ?? "sorteo",
+    isChallenge: formData.get("isChallenge") === "1",
   });
 
   if (!parsed.success) {
@@ -332,13 +337,40 @@ export async function createMatchAction(formData: FormData) {
     );
   }
 
+  const selectedPlayers = await dbClient
+    .select({
+      id: players.id,
+      gender: players.gender,
+      status: players.status,
+    })
+    .from(players)
+    .where(inArray(players.id, [parsed.data.player1Id, parsed.data.player2Id]));
+  const player1 = selectedPlayers.find(
+    (player) => player.id === parsed.data.player1Id,
+  );
+  const player2 = selectedPlayers.find(
+    (player) => player.id === parsed.data.player2Id,
+  );
+
+  if (!player1 || !player2) {
+    throw new Error("Seleccioná jugadores válidos");
+  }
+
+  if (player1.status !== "activo" || player2.status !== "activo") {
+    throw new Error("Solo puedes crear partidos con jugadores activos");
+  }
+
+  if (player1.gender !== player2.gender) {
+    throw new Error("Los jugadores deben pertenecer a la misma categoría");
+  }
+
   const [match] = await dbClient
     .insert(matches)
     .values({
       player1Id: parsed.data.player1Id,
       player2Id: parsed.data.player2Id,
-      category: parsed.data.category,
-      type: parsed.data.type,
+      category: player1.gender,
+      type: parsed.data.isChallenge ? "desafio" : "sorteo",
       status: "pendiente",
     })
     .returning({ id: matches.id });
@@ -348,7 +380,11 @@ export async function createMatchAction(formData: FormData) {
     action: "match.create",
     entityType: "match",
     entityId: match.id,
-    payload: parsed.data,
+    payload: {
+      ...parsed.data,
+      category: player1.gender,
+      type: parsed.data.isChallenge ? "desafio" : "sorteo",
+    },
   });
 
   revalidatePath("/admin/partidos");
@@ -698,6 +734,7 @@ export async function registerResultAction(formData: FormData) {
   });
 
   await refreshRankingAfterResult(match.category);
+  await notifyMatchResultRegistered(match.id);
 }
 
 export async function registerDrawAction(formData: FormData) {
@@ -718,6 +755,7 @@ export async function registerDrawAction(formData: FormData) {
   });
 
   await refreshRankingAfterResult(match.category);
+  await notifyMatchResultRegistered(match.id);
 }
 
 export async function registerWalkoverAction(formData: FormData) {
@@ -742,6 +780,7 @@ export async function registerWalkoverAction(formData: FormData) {
   });
 
   await refreshRankingAfterResult(match.category);
+  await notifyMatchResultRegistered(match.id);
 }
 
 export async function correctResultAction(formData: FormData) {

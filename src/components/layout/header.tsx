@@ -1,10 +1,16 @@
-import { LogInIcon } from "lucide-react";
+import { LogInIcon, LogOutIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-import { auth } from "@/lib/auth";
+import { auth, signOut } from "@/lib/auth";
 import { MobileNav } from "./mobile-nav";
 import { NavLinks } from "./nav-links";
+
+async function signOutAction() {
+  "use server";
+
+  await signOut({ redirectTo: "/" });
+}
 
 export async function Header() {
   const session = await auth();
@@ -21,7 +27,7 @@ export async function Header() {
       : []),
     ...(isAdmin
       ? [
-          { href: "/admin/semanas", label: "Programación" },
+          { href: "/admin/partidos", label: "Admin partidos" },
           { href: "/admin/jugadores", label: "Jugadores" },
         ]
       : []),
@@ -43,7 +49,11 @@ export async function Header() {
     <header className="sticky top-0 z-50 bg-[#0d1b2a]">
       {/* Mobile layout: hamburger left | logo center | spacer right */}
       <div className="flex items-center px-4 py-3 md:hidden">
-        <MobileNav items={mobileNavItems} profileItem={profileItem} />
+        <MobileNav
+          items={mobileNavItems}
+          profileItem={profileItem}
+          signOutAction={session?.user ? signOutAction : undefined}
+        />
         <Link
           href="/"
           className="flex flex-1 items-center justify-center gap-3"
@@ -65,7 +75,16 @@ export async function Header() {
           </div>
         </Link>
         {session?.user ? (
-          <div className="w-9 shrink-0" />
+          <form action={signOutAction} className="w-9 shrink-0">
+            <button
+              type="submit"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white/70 transition hover:border-clay/50 hover:text-white"
+              aria-label="Cerrar sesión"
+              title="Cerrar sesión"
+            >
+              <LogOutIcon className="h-4 w-4" />
+            </button>
+          </form>
         ) : (
           <Link
             href="/login"
@@ -115,7 +134,17 @@ export async function Header() {
         </nav>
 
         <div className="shrink-0">
-          {session?.user ? null : (
+          {session?.user ? (
+            <form action={signOutAction}>
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:border-clay/50 hover:bg-white/15"
+              >
+                <LogOutIcon className="size-4" aria-hidden="true" />
+                Salir
+              </button>
+            </form>
+          ) : (
             <Link
               href="/login"
               className="rounded-lg bg-clay px-4 py-2 text-sm font-semibold text-white transition hover:bg-clay/90"

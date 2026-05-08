@@ -11,6 +11,9 @@ export const env = {
   googleClientSecret: process.env.AUTH_GOOGLE_SECRET ?? "",
   adminEmails: splitEmails(process.env.ADMIN_EMAILS),
   appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+  matchResultEmailsEnabled: process.env.MATCH_RESULT_EMAILS_ENABLED === "true",
+  matchResultEmailFrom: process.env.MATCH_RESULT_EMAIL_FROM ?? "",
+  resendApiKey: process.env.RESEND_API_KEY ?? "",
 };
 
 export const isAdminEmail = (email?: string | null) => {

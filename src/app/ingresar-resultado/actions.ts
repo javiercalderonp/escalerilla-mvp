@@ -13,6 +13,7 @@ import {
   players,
   rankingEvents,
 } from "@/lib/db/schema";
+import { notifyMatchResultRegistered } from "@/lib/email/match-result";
 import { refreshHistoricalBestRanking } from "@/lib/ranking";
 import {
   calculateWinLossPoints,
@@ -321,6 +322,7 @@ export async function playerReportResultAction(
     }
 
     await refreshHistoricalBestRanking(match.category);
+    await notifyMatchResultRegistered(match.id);
 
     revalidateTag("ranking", "max");
     revalidatePath("/admin/partidos");

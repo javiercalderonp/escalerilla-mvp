@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   HomeIcon,
   LogInIcon,
+  LogOutIcon,
   type LucideIcon,
   Menu,
   TrophyIcon,
@@ -23,6 +24,7 @@ const navIcons: Record<string, LucideIcon> = {
   "/ranking/hombres": BarChart2Icon,
   "/fixture": CalendarIcon,
   "/ingresar-resultado": CheckCircle2,
+  "/admin/partidos": CalendarIcon,
   "/admin/semanas": TrophyIcon,
   "/admin/jugadores": UsersIcon,
   "/login": LogInIcon,
@@ -36,9 +38,11 @@ function iconForItem(item: NavItem) {
 export function MobileNav({
   items,
   profileItem,
+  signOutAction,
 }: {
   items: NavItem[];
   profileItem?: NavItem | null;
+  signOutAction?: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const loginItem = items.find((item) => item.href === "/login");
@@ -115,6 +119,18 @@ export function MobileNav({
                   <LogInIcon className="size-4 shrink-0 text-clay" />
                   {loginItem.label}
                 </Link>
+              )}
+              {signOutAction && (
+                <form action={signOutAction} className="mt-auto">
+                  <button
+                    type="submit"
+                    onClick={() => setOpen(false)}
+                    className="flex w-full items-center gap-3 border-t border-white/10 px-6 py-5 text-left text-sm font-semibold text-white transition hover:bg-white/5"
+                  >
+                    <LogOutIcon className="size-4 shrink-0 text-clay" />
+                    Salir
+                  </button>
+                </form>
               )}
             </nav>
           </div>
