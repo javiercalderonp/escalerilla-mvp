@@ -23,13 +23,10 @@ describe("isValidSet", () => {
     ).toEqual({ valid: true });
   });
 
-  it("rechaza 7-6 sin tie-break", () => {
+  it("acepta 7-6 sin tie-break", () => {
     expect(
       isValidSet({ gamesP1: 7, gamesP2: 6 }, { format: "mr3", setNumber: 1 }),
-    ).toEqual({
-      valid: false,
-      reason: "El 7-6 requiere tie-break informado",
-    });
+    ).toEqual({ valid: true });
   });
 
   it("rechaza 10-9 en super tie-break", () => {
@@ -45,6 +42,15 @@ describe("isValidSet", () => {
     expect(
       isValidSet(
         { gamesP1: 9, gamesP2: 8, tiebreakP1: 7, tiebreakP2: 4 },
+        { format: "set_largo", setNumber: 1 },
+      ),
+    ).toEqual({ valid: true });
+  });
+
+  it("acepta 9-8 sin tie-break en set largo", () => {
+    expect(
+      isValidSet(
+        { gamesP1: 9, gamesP2: 8 },
         { format: "set_largo", setNumber: 1 },
       ),
     ).toEqual({ valid: true });

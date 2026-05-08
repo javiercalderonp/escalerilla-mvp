@@ -24,7 +24,6 @@ const navIcons: Record<string, LucideIcon> = {
   "/ranking/hombres": BarChart2Icon,
   "/fixture": CalendarIcon,
   "/ingresar-resultado": CheckCircle2,
-  "/admin/partidos": CalendarIcon,
   "/admin/semanas": TrophyIcon,
   "/admin/jugadores": UsersIcon,
   "/login": LogInIcon,

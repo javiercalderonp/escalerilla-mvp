@@ -2,8 +2,7 @@ import { and, asc, desc, eq, gt, inArray, lt, or, sql } from "drizzle-orm";
 import { Check } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import iconMan from "../../../icon-man.png";
-import iconWoman from "../../../icon-woman.png";
+import { AdminMatchesCreateMenu } from "@/app/fixture/create-menu";
 import { FixtureAdminActions } from "@/app/fixture/fixture-admin-actions";
 import { EmptyState } from "@/components/ui/empty-state";
 import { WeekStepper } from "@/components/ui/week-stepper";
@@ -18,6 +17,8 @@ import {
   weeks,
 } from "@/lib/db/schema";
 import { getRanking } from "@/lib/ranking";
+import iconMan from "../../../icon-man.png";
+import iconWoman from "../../../icon-woman.png";
 
 type FixturePageProps = {
   searchParams?: Promise<{
@@ -69,6 +70,15 @@ function getWeekEnd(weekStart: string) {
   return addDays(weekStart, 6);
 }
 
+function nextMonday(): string {
+  const today = new Date();
+  const day = today.getDay();
+  const daysUntil = day === 0 ? 1 : 8 - day;
+  const d = new Date(today);
+  d.setDate(today.getDate() + daysUntil);
+  return d.toISOString().slice(0, 10);
+}
+
 function formatPoints(points: number) {
   if (points > 0) return `+${points} pts`;
   if (points < 0) return `${points} pts`;
@@ -81,15 +91,8 @@ function getTypeLabel(type: "sorteo" | "desafio" | "campeonato") {
   return " ";
 }
 
-function MatchStatusBadge({
-  status,
-  winnerName,
-}: {
-  status: string;
-  winnerName: string | null;
-}) {
+function MatchStatusBadge({ status }: { status: string }) {
   if (status === "confirmado") {
-    const first = winnerName ? winnerName.split(" ")[0] : null;
     return (
       <span className="flex items-center gap-1 text-xs font-medium text-grass"></span>
     );
@@ -334,7 +337,6 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
       status: matches.status,
       format: matches.format,
       winnerId: matches.winnerId,
-      winnerName: sql<string | null>`players_winner.full_name`,
       playedOn: matches.playedOn,
       weekStartsOn: weeks.startsOn,
       weekEndsOn: weeks.endsOn,
@@ -346,10 +348,6 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
     .innerJoin(
       sql`players as players_p2`,
       sql`${matches.player2Id} = players_p2.id`,
-    )
-    .leftJoin(
-      sql`players as players_winner`,
-      sql`${matches.winnerId} = players_winner.id`,
     )
     .where(matchVisibilityCondition)
     .orderBy(
@@ -474,10 +472,49 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
   const weekCategoryQuery =
     selectedCategory === "F" ? "&categoria=mujeres" : "";
   const isAdmin = session?.user?.role === "admin";
+  const [playerOptions, focusWeekRows] = isAdmin
+    ? await Promise.all([
+        db
+          .select({
+            id: players.id,
+            fullName: players.fullName,
+            gender: players.gender,
+          })
+          .from(players)
+          .where(eq(players.status, "activo"))
+          .orderBy(asc(players.gender), asc(players.fullName)),
+        db
+          .select({
+            id: weeks.id,
+            startsOn: weeks.startsOn,
+            status: weeks.status,
+          })
+          .from(weeks)
+          .where(inArray(weeks.status, ["abierta", "borrador"]))
+          .orderBy(
+            sql`case when ${weeks.status} = 'abierta' then 0 else 1 end`,
+            desc(weeks.startsOn),
+          )
+          .limit(1),
+      ])
+    : [[], []];
+  const programmingHref = focusWeekRows[0]
+    ? `/admin/semanas/${focusWeekRows[0].id}/fixture?agregarJugadores=1`
+    : null;
 
   return (
     <div className="flex w-full flex-1 bg-background">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6">
+        {isAdmin ? (
+          <div className="fixed bottom-20 right-4 z-40 sm:bottom-8 sm:right-8">
+            <AdminMatchesCreateMenu
+              playerOptions={playerOptions}
+              programmingHref={programmingHref}
+              nextWeekStartsOn={nextMonday()}
+            />
+          </div>
+        ) : null}
+
         {/* ── Hero header — hidden on mobile ── */}
         <div
           className="relative hidden overflow-hidden rounded-3xl shadow-md sm:block"
@@ -662,10 +699,7 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
                                 </span>
                               </div>
                               <div className="flex items-center gap-2">
-                                <MatchStatusBadge
-                                  status={match.status}
-                                  winnerName={match.winnerName}
-                                />
+                                <MatchStatusBadge status={match.status} />
                                 {isAdmin ? (
                                   <FixtureAdminActions
                                     match={{

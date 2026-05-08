@@ -18,7 +18,7 @@ import {
   registerDrawAction,
   registerResultAction,
   registerWalkoverAction,
-} from "@/app/admin/partidos/actions";
+} from "@/app/fixture/match-admin-actions";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { getTodayInSantiago } from "@/lib/date";
 
 type MatchStatus = "pendiente" | "reportado" | "confirmado" | "wo" | "empate";
 
@@ -227,6 +228,7 @@ export function FixtureAdminActions({ match, sets }: FixtureAdminActionsProps) {
     : isDrawMode
       ? "Marcar empate"
       : "Confirmar resultado";
+  const defaultPlayedOn = match.playedOn ?? getTodayInSantiago();
 
   return (
     <div className="relative">
@@ -353,7 +355,7 @@ export function FixtureAdminActions({ match, sets }: FixtureAdminActionsProps) {
                   <input
                     name="playedOn"
                     type="date"
-                    defaultValue={match.playedOn ?? ""}
+                    defaultValue={defaultPlayedOn}
                     className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none transition focus:border-destructive"
                   />
                 </label>
@@ -401,7 +403,7 @@ export function FixtureAdminActions({ match, sets }: FixtureAdminActionsProps) {
                     <input
                       name="playedOn"
                       type="date"
-                      defaultValue={match.playedOn ?? ""}
+                      defaultValue={defaultPlayedOn}
                       className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none transition focus:border-court"
                     />
                   </label>

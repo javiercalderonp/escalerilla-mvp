@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { ensureAppUser } from "@/lib/auth/ensure-app-user";
+import { getTodayInSantiago } from "@/lib/date";
 import { db } from "@/lib/db";
 import {
   auditLog,
@@ -308,10 +309,13 @@ async function insertCompensationEvents(args: {
 
 function revalidateMatchSurfaces() {
   revalidateTag("ranking", "max");
-  revalidatePath("/admin/partidos");
   revalidatePath("/fixture");
   revalidatePath("/ranking/hombres");
   revalidatePath("/ranking/mujeres");
+}
+
+function resolvePlayedOn(value: string | undefined) {
+  return value || getTodayInSantiago();
 }
 
 async function refreshRankingAfterResult(category: "M" | "F") {
@@ -387,7 +391,6 @@ export async function createMatchAction(formData: FormData) {
     },
   });
 
-  revalidatePath("/admin/partidos");
   revalidatePath("/fixture");
 }
 
@@ -483,7 +486,7 @@ async function applyConfirmedResult(args: {
       status: "confirmado",
       winnerId,
       woLoserId: null,
-      playedOn: args.parsed.playedOn || null,
+      playedOn: resolvePlayedOn(args.parsed.playedOn),
       confirmedAt: new Date(),
       confirmedById: args.actorId,
     })
@@ -579,7 +582,7 @@ async function applyDrawResult(args: {
       status: "empate",
       winnerId: null,
       woLoserId: null,
-      playedOn: args.parsed.playedOn || null,
+      playedOn: resolvePlayedOn(args.parsed.playedOn),
       confirmedAt: new Date(),
       confirmedById: args.actorId,
     })
@@ -666,7 +669,7 @@ async function applyWalkoverResult(args: {
       format: null,
       winnerId,
       woLoserId: loserId,
-      playedOn: args.parsed.playedOn || null,
+      playedOn: resolvePlayedOn(args.parsed.playedOn),
       confirmedAt: new Date(),
       confirmedById: args.actorId,
     })

@@ -140,7 +140,7 @@ function buildMatchUrl(matchId: string, recipientKind: EmailRecipient["kind"]) {
   const baseUrl = env.appUrl.replace(/\/$/, "");
 
   if (recipientKind === "admin") {
-    return `${baseUrl}/admin/partidos?match=${matchId}`;
+    return `${baseUrl}/fixture`;
   }
 
   return `${baseUrl}/mi-perfil/partidos/${matchId}`;

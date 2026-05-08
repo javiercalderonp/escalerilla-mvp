@@ -5,6 +5,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 
 import { auth } from "@/lib/auth";
 import { ensureAppUser } from "@/lib/auth/ensure-app-user";
+import { getTodayInSantiago } from "@/lib/date";
 import { db } from "@/lib/db";
 import {
   auditLog,
@@ -74,6 +75,7 @@ export async function playerReportResultAction(
     }
 
     const playerId = actor.playerId;
+    const resultPlayedOn = input.playedOn || getTodayInSantiago();
     let match: MatchRecord;
 
     if (input.kind === "scheduled") {
@@ -151,7 +153,7 @@ export async function playerReportResultAction(
           format: null,
           winnerId: input.woWinnerId,
           woLoserId: loserId,
-          playedOn: input.playedOn ?? null,
+          playedOn: resultPlayedOn,
           reportedAt: new Date(),
           reportedById: actor.id,
           confirmedAt: new Date(),
@@ -200,7 +202,7 @@ export async function playerReportResultAction(
           format: "mr3",
           winnerId: null,
           woLoserId: null,
-          playedOn: input.playedOn ?? null,
+          playedOn: resultPlayedOn,
           reportedAt: new Date(),
           reportedById: actor.id,
           confirmedAt: new Date(),
@@ -272,7 +274,7 @@ export async function playerReportResultAction(
           status: "confirmado",
           winnerId,
           woLoserId: null,
-          playedOn: input.playedOn ?? null,
+          playedOn: resultPlayedOn,
           reportedAt: new Date(),
           reportedById: actor.id,
           confirmedAt: new Date(),
@@ -325,7 +327,6 @@ export async function playerReportResultAction(
     await notifyMatchResultRegistered(match.id);
 
     revalidateTag("ranking", "max");
-    revalidatePath("/admin/partidos");
     revalidatePath("/fixture");
     revalidatePath("/ranking/hombres");
     revalidatePath("/ranking/mujeres");

@@ -11,6 +11,8 @@ import {
   useTransition,
 } from "react";
 
+import { getTodayInSantiago } from "@/lib/date";
+
 import type { ParsedSet } from "./actions";
 import { playerReportResultAction } from "./actions";
 
@@ -28,6 +30,24 @@ export type PlayerOption = { id: string; fullName: string };
 type MatchFormat = "mr3" | "set_largo" | "wo" | "empate";
 
 const WHEEL_ITEM_HEIGHT = 40;
+
+function buildSetFromDisplayOrder({
+  setNumber,
+  playerGames,
+  opponentGames,
+  shouldSwap,
+}: {
+  setNumber: number;
+  playerGames: number;
+  opponentGames: number;
+  shouldSwap: boolean;
+}): ParsedSet {
+  return {
+    setNumber,
+    gamesP1: shouldSwap ? opponentGames : playerGames,
+    gamesP2: shouldSwap ? playerGames : opponentGames,
+  };
+}
 
 function ScoreWheel({
   value,
@@ -153,6 +173,74 @@ function ScoreWheel({
   );
 }
 
+function ScoreNumberInput({
+  value,
+  onChange,
+  max,
+  ariaLabel,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  max: number;
+  ariaLabel: string;
+}) {
+  return (
+    <input
+      type="number"
+      inputMode="numeric"
+      min={0}
+      max={max}
+      value={value}
+      aria-label={ariaLabel}
+      onChange={(event) => {
+        const nextValue = event.target.value;
+        if (nextValue === "") {
+          onChange("");
+          return;
+        }
+        if (!/^\d+$/.test(nextValue)) return;
+
+        const nextScore = Math.min(max, Math.max(0, Number(nextValue)));
+        onChange(String(nextScore));
+      }}
+      className="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-center text-lg font-semibold text-slate-900 outline-none transition focus:border-clay focus:ring-1 focus:ring-clay"
+    />
+  );
+}
+
+function ScoreControl({
+  value,
+  onChange,
+  max,
+  ariaLabel,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  max: number;
+  ariaLabel: string;
+}) {
+  return (
+    <>
+      <div className="md:hidden">
+        <ScoreWheel
+          value={value}
+          onChange={onChange}
+          max={max}
+          ariaLabel={ariaLabel}
+        />
+      </div>
+      <div className="hidden md:block">
+        <ScoreNumberInput
+          value={value}
+          onChange={onChange}
+          max={max}
+          ariaLabel={ariaLabel}
+        />
+      </div>
+    </>
+  );
+}
+
 type Props = {
   pendingMatches: PendingMatch[];
   allPlayers: PlayerOption[];
@@ -166,11 +254,6 @@ function SetScoreFields({
   onP1Change,
   vp2,
   onP2Change,
-  vtbp1,
-  onTbP1Change,
-  vtbp2,
-  onTbP2Change,
-  showTiebreak,
   maxGames,
 }: {
   label: string;
@@ -178,55 +261,25 @@ function SetScoreFields({
   onP1Change: (v: string) => void;
   vp2: string;
   onP2Change: (v: string) => void;
-  vtbp1: string;
-  onTbP1Change: (v: string) => void;
-  vtbp2: string;
-  onTbP2Change: (v: string) => void;
-  showTiebreak: boolean;
   maxGames: number;
 }) {
   return (
     <div className="space-y-1.5">
       <p className="text-xs font-medium text-slate-500">{label}</p>
       <div className="grid grid-cols-2 gap-3">
-        <ScoreWheel
+        <ScoreControl
           value={vp1}
           onChange={onP1Change}
           max={maxGames}
           ariaLabel={`${label} jugador 1`}
         />
-        <ScoreWheel
+        <ScoreControl
           value={vp2}
           onChange={onP2Change}
           max={maxGames}
           ariaLabel={`${label} jugador 2`}
         />
       </div>
-      {showTiebreak && (
-        <div className="space-y-1">
-          <p className="text-[11px] font-medium text-slate-400">
-            TB (si aplica)
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <ScoreWheel
-              value={vtbp1}
-              onChange={onTbP1Change}
-              max={20}
-              ariaLabel={`${label} tie-break jugador 1`}
-              optional
-              compact
-            />
-            <ScoreWheel
-              value={vtbp2}
-              onChange={onTbP2Change}
-              max={20}
-              ariaLabel={`${label} tie-break jugador 2`}
-              optional
-              compact
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -250,15 +303,11 @@ export function ResultForm({
 
   // Step 2
   const [format, setFormat] = useState<MatchFormat | null>(null);
-  const [playedOn, setPlayedOn] = useState("");
+  const [playedOn, setPlayedOn] = useState(() => getTodayInSantiago());
   const [s1p1, setS1p1] = useState("");
   const [s1p2, setS1p2] = useState("");
-  const [s1tbp1, setS1tbp1] = useState("");
-  const [s1tbp2, setS1tbp2] = useState("");
   const [s2p1, setS2p1] = useState("");
   const [s2p2, setS2p2] = useState("");
-  const [s2tbp1, setS2tbp1] = useState("");
-  const [s2tbp2, setS2tbp2] = useState("");
   const [hasSet3, setHasSet3] = useState(false);
   const [s3p1, setS3p1] = useState("");
   const [s3p2, setS3p2] = useState("");
@@ -273,17 +322,26 @@ export function ResultForm({
       ? null
       : pendingMatches.find((m) => m.id === matchSelection);
 
-  const p1Id = currentMatch?.player1Id ?? myPlayerId;
-  const p2Id = currentMatch?.player2Id ?? opponentId;
-  const p1Name = currentMatch?.player1Name ?? myName;
-  const p2Name =
-    currentMatch?.player2Name ??
+  const currentMatchOpponentId =
+    currentMatch?.player1Id === myPlayerId
+      ? currentMatch.player2Id
+      : currentMatch?.player1Id;
+  const currentMatchOpponentName =
+    currentMatch?.player1Id === myPlayerId
+      ? currentMatch.player2Name
+      : currentMatch?.player1Name;
+  const displayPlayerId = myPlayerId;
+  const displayOpponentId = currentMatchOpponentId ?? opponentId;
+  const displayPlayerName = myName;
+  const displayOpponentName =
+    currentMatchOpponentName ??
     allPlayers.find((p) => p.id === opponentId)?.fullName ??
     "Rival";
+  const shouldSwapScores = currentMatch?.player2Id === myPlayerId;
   const matchLabel =
     currentMatch?.type === "desafio"
-      ? `${p1Name} vs ${p2Name} · Desafío`
-      : `${p1Name} vs ${p2Name}`;
+      ? `${displayPlayerName} vs ${displayOpponentName} · Desafío`
+      : `${displayPlayerName} vs ${displayOpponentName}`;
 
   function goBackToMatchSelection() {
     setFormat(null);
@@ -325,12 +383,8 @@ export function ResultForm({
     setFormat(f);
     setS1p1("0");
     setS1p2("0");
-    setS1tbp1("");
-    setS1tbp2("");
     setS2p1("0");
     setS2p2("0");
-    setS2tbp1("");
-    setS2tbp2("");
     setS3p1("");
     setS3p2("");
     setHasSet3(false);
@@ -344,15 +398,11 @@ export function ResultForm({
     setOpponentId("");
     setIsChallenge(false);
     setFormat(null);
-    setPlayedOn("");
+    setPlayedOn(getTodayInSantiago());
     setS1p1("");
     setS1p2("");
-    setS1tbp1("");
-    setS1tbp2("");
     setS2p1("");
     setS2p2("");
-    setS2tbp1("");
-    setS2tbp2("");
     setS3p1("");
     setS3p2("");
     setHasSet3(false);
@@ -385,13 +435,12 @@ export function ResultForm({
       }
 
       sets = [
-        {
+        buildSetFromDisplayOrder({
           setNumber: 1,
-          gamesP1: g1p1,
-          gamesP2: g1p2,
-          tiebreakP1: s1tbp1 ? parseInt(s1tbp1, 10) : null,
-          tiebreakP2: s1tbp2 ? parseInt(s1tbp2, 10) : null,
-        },
+          playerGames: g1p1,
+          opponentGames: g1p2,
+          shouldSwap: shouldSwapScores,
+        }),
       ];
 
       if (format !== "set_largo") {
@@ -401,19 +450,27 @@ export function ResultForm({
           setError("Completa el puntaje del Set 2");
           return;
         }
-        sets.push({
-          setNumber: 2,
-          gamesP1: g2p1,
-          gamesP2: g2p2,
-          tiebreakP1: s2tbp1 ? parseInt(s2tbp1, 10) : null,
-          tiebreakP2: s2tbp2 ? parseInt(s2tbp2, 10) : null,
-        });
+        sets.push(
+          buildSetFromDisplayOrder({
+            setNumber: 2,
+            playerGames: g2p1,
+            opponentGames: g2p2,
+            shouldSwap: shouldSwapScores,
+          }),
+        );
 
         if (hasSet3) {
           const g3p1 = parseInt(s3p1, 10);
           const g3p2 = parseInt(s3p2, 10);
           if (!Number.isNaN(g3p1) && !Number.isNaN(g3p2)) {
-            sets.push({ setNumber: 3, gamesP1: g3p1, gamesP2: g3p2 });
+            sets.push(
+              buildSetFromDisplayOrder({
+                setNumber: 3,
+                playerGames: g3p1,
+                opponentGames: g3p2,
+                shouldSwap: shouldSwapScores,
+              }),
+            );
           }
         }
       }
@@ -645,10 +702,10 @@ export function ResultForm({
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3 px-0.5">
               <span className="truncate text-xs font-semibold text-slate-700">
-                {p1Name}
+                {displayPlayerName}
               </span>
               <span className="truncate text-xs font-semibold text-slate-700">
-                {p2Name}
+                {displayOpponentName}
               </span>
             </div>
 
@@ -658,11 +715,6 @@ export function ResultForm({
               onP1Change={setS1p1}
               vp2={s1p2}
               onP2Change={setS1p2}
-              vtbp1={s1tbp1}
-              onTbP1Change={setS1tbp1}
-              vtbp2={s1tbp2}
-              onTbP2Change={setS1tbp2}
-              showTiebreak={format !== "empate"}
               maxGames={format === "set_largo" ? 9 : 7}
             />
 
@@ -673,11 +725,6 @@ export function ResultForm({
                 onP1Change={setS2p1}
                 vp2={s2p2}
                 onP2Change={setS2p2}
-                vtbp1={s2tbp1}
-                onTbP1Change={setS2tbp1}
-                vtbp2={s2tbp2}
-                onTbP2Change={setS2tbp2}
-                showTiebreak={format !== "empate"}
                 maxGames={7}
               />
             )}
@@ -703,17 +750,17 @@ export function ResultForm({
 
                 {hasSet3 && (
                   <div className="grid grid-cols-2 gap-3">
-                    <ScoreWheel
+                    <ScoreControl
                       value={s3p1}
                       onChange={setS3p1}
                       max={20}
-                      ariaLabel="Set 3 super tie-break jugador 1"
+                      ariaLabel="Set 3 super tie-break tu marcador"
                     />
-                    <ScoreWheel
+                    <ScoreControl
                       value={s3p2}
                       onChange={setS3p2}
                       max={20}
-                      ariaLabel="Set 3 super tie-break jugador 2"
+                      ariaLabel="Set 3 super tie-break marcador rival"
                     />
                   </div>
                 )}
@@ -731,30 +778,33 @@ export function ResultForm({
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => setWoWinnerId(p1Id)}
+                onClick={() => setWoWinnerId(displayPlayerId)}
                 className={`rounded-xl border px-4 py-3 text-sm transition ${
-                  woWinnerId === p1Id
+                  woWinnerId === displayPlayerId
                     ? "border-clay bg-clay/10 font-semibold text-clay"
                     : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
                 }`}
               >
-                <div className="font-medium">{p1Name}</div>
+                <div className="font-medium">{displayPlayerName}</div>
                 <div className="mt-0.5 text-xs text-slate-500">
-                  ({p2Name} no se presentó)
+                  ({displayOpponentName} no se presentó)
                 </div>
               </button>
               <button
                 type="button"
-                onClick={() => setWoWinnerId(p2Id)}
+                onClick={() => {
+                  if (displayOpponentId) setWoWinnerId(displayOpponentId);
+                }}
+                disabled={!displayOpponentId}
                 className={`rounded-xl border px-4 py-3 text-sm transition ${
-                  woWinnerId === p2Id
+                  woWinnerId === displayOpponentId
                     ? "border-clay bg-clay/10 font-semibold text-clay"
                     : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
                 }`}
               >
-                <div className="font-medium">{p2Name}</div>
+                <div className="font-medium">{displayOpponentName}</div>
                 <div className="mt-0.5 text-xs text-slate-500">
-                  ({p1Name} no se presentó)
+                  ({displayPlayerName} no se presentó)
                 </div>
               </button>
             </div>
@@ -767,8 +817,7 @@ export function ResultForm({
             htmlFor={playedOnInputId}
             className="mb-1 block text-xs font-medium text-slate-500"
           >
-            Fecha del partido{" "}
-            <span className="font-normal text-slate-400">(opcional)</span>
+            Fecha del partido
           </label>
           <input
             id={playedOnInputId}

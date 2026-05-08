@@ -55,10 +55,7 @@ export function isValidSet(set: SetInput, ctx: ValidationContext) {
 
     if (maxGames === 9 && minGames === 8) {
       if (!hasTiebreak) {
-        return {
-          valid: false as const,
-          reason: "El 9-8 en set largo requiere tie-break",
-        };
+        return { valid: true as const };
       }
 
       return validateTiebreak(tiebreakP1, tiebreakP2, 7);
@@ -77,10 +74,7 @@ export function isValidSet(set: SetInput, ctx: ValidationContext) {
 
   if (maxGames === 7 && minGames === 6) {
     if (!hasTiebreak) {
-      return {
-        valid: false as const,
-        reason: "El 7-6 requiere tie-break informado",
-      };
+      return { valid: true as const };
     }
 
     return validateTiebreak(tiebreakP1, tiebreakP2, 7);

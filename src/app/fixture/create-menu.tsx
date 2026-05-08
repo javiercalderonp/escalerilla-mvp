@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { createMatchAction } from "./actions";
+import { createMatchAction } from "./match-admin-actions";
 
 type PlayerOption = {
   id: string;

@@ -19,18 +19,12 @@ export async function Header() {
     session?.user?.role === "player" || session?.user?.role === "admin";
 
   const navItems = [
-    { href: "/", label: "Inicio" },
     { href: "/ranking/hombres", label: "Ranking" },
     { href: "/fixture", label: "Partidos" },
     ...(isPlayer
       ? [{ href: "/ingresar-resultado", label: "Ingresar resultado" }]
       : []),
-    ...(isAdmin
-      ? [
-          { href: "/admin/partidos", label: "Admin partidos" },
-          { href: "/admin/jugadores", label: "Jugadores" },
-        ]
-      : []),
+    ...(isAdmin ? [{ href: "/admin/jugadores", label: "Jugadores" }] : []),
   ];
 
   const mobileNavItems = [
@@ -119,32 +113,39 @@ export async function Header() {
         <nav className="flex flex-1 items-center justify-center gap-7 text-sm">
           <NavLinks items={navItems} />
           {session?.user && (
-            <div className="flex items-center gap-3">
+            <div className="group relative flex items-center gap-3">
               <Link
                 href="/mi-perfil"
-                className="max-w-48 truncate text-white/60 transition hover:text-white"
+                className="max-w-48 truncate text-white/60 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay/70 focus-visible:ring-offset-4 focus-visible:ring-offset-[#0d1b2a]"
               >
                 {session.user.name ?? session.user.email}
               </Link>
               <span className="rounded-full bg-clay/20 px-3 py-1 text-xs font-medium text-clay">
                 {session.user.role}
               </span>
+              <div className="invisible absolute left-0 top-full z-50 min-w-48 pt-2 opacity-0 transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+                <form
+                  action={signOutAction}
+                  className="rounded-lg border border-white/10 bg-[#142235] p-1 shadow-xl shadow-black/20"
+                >
+                  <button
+                    type="submit"
+                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-semibold text-white/85 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay/70"
+                  >
+                    <LogOutIcon
+                      className="size-4 text-clay"
+                      aria-hidden="true"
+                    />
+                    Cerrar Sesion
+                  </button>
+                </form>
+              </div>
             </div>
           )}
         </nav>
 
         <div className="shrink-0">
-          {session?.user ? (
-            <form action={signOutAction}>
-              <button
-                type="submit"
-                className="inline-flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:border-clay/50 hover:bg-white/15"
-              >
-                <LogOutIcon className="size-4" aria-hidden="true" />
-                Salir
-              </button>
-            </form>
-          ) : (
+          {!session?.user && (
             <Link
               href="/login"
               className="rounded-lg bg-clay px-4 py-2 text-sm font-semibold text-white transition hover:bg-clay/90"
