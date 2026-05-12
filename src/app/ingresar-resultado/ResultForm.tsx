@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Check, Clock, Info } from "lucide-react";
+import { ArrowLeft, Check, Info } from "lucide-react";
 import Link from "next/link";
 import {
   Fragment,
@@ -378,6 +378,7 @@ type Props = {
   allPlayers: PlayerOption[];
   myPlayerId: string;
   myName: string;
+  rankingHref: string;
 };
 
 export function ResultForm({
@@ -385,6 +386,7 @@ export function ResultForm({
   allPlayers,
   myPlayerId,
   myName,
+  rankingHref,
 }: Props) {
   const [uiStep, setUiStep] = useState<1 | 2 | 3>(1);
   const opponentSelectId = useId();
@@ -612,10 +614,6 @@ export function ResultForm({
           <h2 className="mb-1 text-xl font-bold text-slate-900">
             ¡Resultado enviado!
           </h2>
-          <p className="text-sm text-slate-500">
-            El resultado fue enviado a{" "}
-            <strong>{displayOpponentName}</strong> para su confirmación.
-          </p>
         </div>
 
         <div className="w-full rounded-2xl border border-slate-200 bg-white p-5">
@@ -663,21 +661,9 @@ export function ResultForm({
           )}
         </div>
 
-        <div className="flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-          <Clock className="h-5 w-5 shrink-0 text-slate-400" />
-          <div>
-            <p className="text-sm font-medium text-slate-700">
-              Esperando confirmación del rival
-            </p>
-            <p className="text-xs text-slate-500">
-              Te notificaremos cuando lo confirme.
-            </p>
-          </div>
-        </div>
-
         <div className="flex w-full flex-col gap-3">
           <Link
-            href="/ranking"
+            href={rankingHref}
             className="w-full rounded-2xl bg-clay px-6 py-4 text-center text-sm font-bold text-white transition hover:bg-clay/90"
           >
             Volver al ranking

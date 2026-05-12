@@ -1,11 +1,13 @@
 import { ArrowRight } from "lucide-react";
 import { Oswald } from "next/font/google";
+import Image from "next/image";
 import Link from "next/link";
 
 import { HowItWorks } from "@/components/landing/how-it-works";
 import { MatchesCarousel } from "@/components/landing/matches-carousel";
 import { RankingPreviewCard } from "@/components/landing/ranking-preview-card";
 import { getRanking, getRecentPublicMatches } from "@/lib/ranking";
+import landingPhoto from "../../public/images/foto-landing.png";
 
 const oswald = Oswald({ subsets: ["latin"], weight: ["700"] });
 
@@ -24,14 +26,18 @@ export default async function Home() {
       {/* ── Hero ── */}
       <section className="relative -mt-2 min-h-screen w-full overflow-hidden lg:min-h-[680px]">
         {/* Background photo */}
-        <div
-          className="absolute inset-0 bg-[#b04d15]"
-          style={{
-            backgroundImage: "url('/images/foto-landing.png')",
-            backgroundSize: "cover",
-            backgroundPosition: "center top",
-          }}
-        />
+        <div className="absolute inset-0 bg-[#b04d15]">
+          <Image
+            src={landingPhoto}
+            alt=""
+            fill
+            priority
+            placeholder="blur"
+            quality={82}
+            sizes="100vw"
+            className="object-cover object-top"
+          />
+        </div>
 
         {/* Dark gradient overlays */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#0d1b2a] via-[#0d1b2a]/75 to-[#0d1b2a]/10" />

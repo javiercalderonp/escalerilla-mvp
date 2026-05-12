@@ -599,7 +599,7 @@ export default async function MiPerfilPage() {
             <div className="min-w-0 flex-1">
               <div className="flex items-start gap-2">
                 <div className="min-w-0 flex-1">
-                  <h1 className="truncate text-3xl font-bold tracking-tight text-[#0d1b2a]">
+                  <h1 className="text-3xl font-bold tracking-tight text-[#0d1b2a]">
                     {player.fullName}
                   </h1>
                   <p className="mt-1 text-sm text-[#776f66]">
@@ -668,72 +668,66 @@ export default async function MiPerfilPage() {
           </div>
         </section>
 
-        <section className="mt-4 rounded-2xl border border-[#ded6ca] bg-[#fffdfa] p-4 shadow-sm">
-          {nextMatch ? (
-            <>
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-start gap-3">
-                  <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-white">
-                    <CalendarDays className="h-5 w-5" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold uppercase tracking-wide text-emerald-800">
-                      Próximo partido
-                    </p>
-                    <p className="mt-4 text-sm text-[#776f66]">
-                      {typeLabel(nextMatch.type)}
-                    </p>
-                    <h2 className="mt-1 truncate text-3xl font-bold leading-none text-[#0d1b2a]">
-                      vs {nextMatchOpponent}
-                    </h2>
-                    <p className="mt-2 text-lg text-[#b04d15]">
-                      {nextMatch.status === "reportado"
-                        ? "Resultado pendiente"
-                        : "Pendiente de jugar"}
-                    </p>
-                  </div>
-                </div>
-                <Link
-                  href="/ingresar-resultado"
-                  className="mt-2 shrink-0 rounded-full border border-[#b04d15] px-4 py-2 text-sm font-semibold text-[#b04d15]"
-                >
-                  Resultado
-                </Link>
-              </div>
-
-              <div className="mt-5 rounded-xl border border-[#ded6ca] bg-[#f6f2ea] px-3 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#776f66]">
-                  Horarios recomendados
-                </p>
-                {nextMatchSuggestedBlocks.length > 0 ? (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {nextMatchSuggestedBlocks.slice(0, 4).map((block) => (
-                      <span
-                        key={`${nextMatch.id}-${block.dayKey}-${block.start}-${block.end}`}
-                        className="rounded-full bg-[#0d1b2a] px-4 py-2 text-sm font-medium text-white"
-                      >
-                        {block.label}
-                      </span>
-                    ))}
-                    {nextMatchSuggestedBlocks.length > 4 && (
-                      <span className="rounded-full border border-[#ded6ca] bg-[#fffdfa] px-4 py-2 text-sm font-medium text-[#776f66]">
-                        +{nextMatchSuggestedBlocks.length - 4} más
-                      </span>
-                    )}
-                  </div>
-                ) : (
-                  <p className="mt-2 text-sm text-[#776f66]">
-                    Sin bloques compartidos sugeridos.
+        {nextMatch && (
+          <section className="mt-4 rounded-2xl border border-[#ded6ca] bg-[#fffdfa] p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-start gap-3">
+                <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-white">
+                  <CalendarDays className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold uppercase tracking-wide text-emerald-800">
+                    Próximo partido
                   </p>
-                )}
+                  <p className="mt-4 text-sm text-[#776f66]">
+                    {typeLabel(nextMatch.type)}
+                  </p>
+                  <h2 className="mt-1 text-3xl font-bold leading-none text-[#0d1b2a]">
+                    vs {nextMatchOpponent}
+                  </h2>
+                  <p className="mt-2 text-lg text-[#b04d15]">
+                    {nextMatch.status === "reportado"
+                      ? "Resultado pendiente"
+                      : "Pendiente de jugar"}
+                  </p>
+                </div>
               </div>
-            </>
-          ) : (
-            <div className="rounded-xl border border-dashed border-[#ded6ca] px-4 py-8 text-center text-sm text-[#776f66]">
-              No tienes partidos próximos publicados.
+              <Link
+                href="/ingresar-resultado"
+                className="mt-2 shrink-0 rounded-full border border-[#b04d15] px-4 py-2 text-sm font-semibold text-[#b04d15]"
+              >
+                Resultado
+              </Link>
             </div>
-          )}
-        </section>
+
+            <div className="mt-5 rounded-xl border border-[#ded6ca] bg-[#f6f2ea] px-3 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#776f66]">
+                Horarios recomendados
+              </p>
+              {nextMatchSuggestedBlocks.length > 0 ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {nextMatchSuggestedBlocks.slice(0, 4).map((block) => (
+                    <span
+                      key={`${nextMatch.id}-${block.dayKey}-${block.start}-${block.end}`}
+                      className="rounded-full bg-[#0d1b2a] px-4 py-2 text-sm font-medium text-white"
+                    >
+                      {block.label}
+                    </span>
+                  ))}
+                  {nextMatchSuggestedBlocks.length > 4 && (
+                    <span className="rounded-full border border-[#ded6ca] bg-[#fffdfa] px-4 py-2 text-sm font-medium text-[#776f66]">
+                      +{nextMatchSuggestedBlocks.length - 4} más
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-[#776f66]">
+                  Sin bloques compartidos sugeridos.
+                </p>
+              )}
+            </div>
+          </section>
+        )}
 
         <section className="mt-4 rounded-2xl border border-[#ded6ca] bg-[#fffdfa] p-4 shadow-sm">
           <div className="flex items-center gap-2">
@@ -1531,8 +1525,8 @@ function MobileProfileFact({
       <div className="mx-auto flex h-6 w-6 items-center justify-center text-[#776f66]">
         {icon}
       </div>
-      <p className="mt-1 truncate text-xs text-[#776f66]">{label}</p>
-      <p className="mt-0.5 truncate text-sm font-semibold text-[#0d1b2a]">
+      <p className="mt-1 break-words text-xs leading-tight text-[#776f66]">{label}</p>
+      <p className="mt-0.5 break-words text-sm font-semibold leading-tight text-[#0d1b2a]">
         {value}
       </p>
     </div>

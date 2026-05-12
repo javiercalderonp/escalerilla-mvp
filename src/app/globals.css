@@ -187,3 +187,117 @@ a {
     --marquee-duration: 6.65s;
   }
 }
+
+.ranking-print-only {
+  display: none;
+}
+
+@media print {
+  @page {
+    margin: 14mm;
+    size: A4 portrait;
+  }
+
+  html,
+  body {
+    background: #ffffff;
+  }
+
+  header,
+  footer,
+  .ranking-screen-only {
+    display: none;
+  }
+
+  main {
+    display: block;
+  }
+
+  .ranking-print-only {
+    display: block;
+    color: #0d1b2a;
+    font-family: var(--font-geist-sans), Arial, sans-serif;
+  }
+
+  .ranking-print-hero {
+    break-inside: avoid;
+    margin-bottom: 18px;
+    overflow: hidden;
+    border-radius: 18px;
+    background: linear-gradient(140deg, #0b1d4f 0%, #1640a0 55%, #0d2460 100%);
+    color: #ffffff;
+    padding: 22px 26px;
+  }
+
+  .ranking-print-hero p {
+    margin: 0 0 7px;
+    color: #93c5fd;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .ranking-print-hero h1 {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 0;
+  }
+
+  .ranking-print-hero span {
+    display: block;
+    margin-top: 8px;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 12px;
+  }
+
+  .ranking-print-table {
+    width: 100%;
+    border-collapse: collapse;
+    overflow: hidden;
+    border: 1px solid #ded6ca;
+    border-radius: 14px;
+    font-size: 10.5px;
+  }
+
+  .ranking-print-table thead {
+    display: table-header-group;
+    background: #ede5d8;
+  }
+
+  .ranking-print-table tr {
+    break-inside: avoid;
+  }
+
+  .ranking-print-table th,
+  .ranking-print-table td {
+    border-bottom: 1px solid #ded6ca;
+    padding: 7px 8px;
+    text-align: left;
+  }
+
+  .ranking-print-table th {
+    color: #776f66;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .ranking-print-table td:not(:nth-child(2)),
+  .ranking-print-table th:not(:nth-child(2)) {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .ranking-print-table tbody tr:nth-child(even) {
+    background: #faf7f1;
+  }
+
+  .ranking-print-table tbody tr.is-top {
+    background: #f3eadb;
+    font-weight: 700;
+  }
+}

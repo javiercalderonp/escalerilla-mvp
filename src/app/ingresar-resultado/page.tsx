@@ -69,6 +69,9 @@ export default async function IngresarResultadoPage() {
     )
     .orderBy(asc(players.fullName))) as PlayerOption[];
 
+  const rankingHref =
+    myPlayer.gender === "F" ? "/ranking/mujeres" : "/ranking/hombres";
+
   return (
     <main className="mx-auto max-w-lg px-4 py-8">
       <ResultForm
@@ -76,6 +79,7 @@ export default async function IngresarResultadoPage() {
         allPlayers={allPlayers}
         myPlayerId={playerId}
         myName={myPlayer.fullName}
+        rankingHref={rankingHref}
       />
     </main>
   );
