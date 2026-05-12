@@ -1,17 +1,23 @@
 import { describe, expect, it } from "vitest";
 
-import { type ProposalPlayer, proposeFixture } from "../propose";
+import {
+  buildMatchmakingPlayers,
+  type ProposalPlayer,
+  proposeFixture,
+} from "../propose";
 
 function player(
   id: string,
   points: number,
   maxMatches: number,
+  matchmakingScore = points,
 ): ProposalPlayer {
   return {
     id,
     fullName: id,
     points,
     maxMatches,
+    matchmakingScore,
   };
 }
 
@@ -72,5 +78,44 @@ describe("proposeFixture", () => {
     );
 
     expect(pairKeys).toHaveLength(new Set(pairKeys).size);
+  });
+
+  it("chooses the valid partner with the closest matchmaking score", () => {
+    const pairs = proposeFixture(
+      [
+        player("A", 950, 2, 0.95),
+        player("B", 940, 1, 0.94),
+        player("C", 800, 1, 0.8),
+        player("D", 790, 1, 0.79),
+      ],
+      new Map(),
+    );
+
+    const pairKeys = pairs.map((pair) =>
+      [pair.player1.id, pair.player2.id].sort().join(":"),
+    );
+
+    expect(pairKeys).toEqual(["A:B", "C:D"]);
+  });
+});
+
+describe("buildMatchmakingPlayers", () => {
+  it("keeps public points intact while adding an internal matchmaking score", () => {
+    const [top, bottom] = buildMatchmakingPlayers(
+      [
+        { id: "A", fullName: "A", points: 300, maxMatches: 1 },
+        { id: "B", fullName: "B", points: 100, maxMatches: 1 },
+      ],
+      [
+        { player1Id: "A", player2Id: "B", winnerId: "B" },
+        { player1Id: "A", player2Id: "B", winnerId: "B" },
+      ],
+    );
+
+    expect(top.points).toBe(300);
+    expect(bottom.points).toBe(100);
+    expect(top.matchmakingScore).toBeGreaterThan(0);
+    expect(bottom.matchmakingScore).toBeGreaterThan(0);
+    expect(top.matchmakingScore).not.toBe(top.points);
   });
 });

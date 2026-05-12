@@ -11,7 +11,7 @@ import {
   rankingEvents,
   weeks,
 } from "@/lib/db/schema";
-import { proposeFixture } from "@/lib/fixture/propose";
+import { buildMatchmakingPlayers, proposeFixture } from "@/lib/fixture/propose";
 import { AddPlayersDialog } from "../add-players-dialog";
 import type { SerializedPair } from "./actions";
 import { FixtureEditor } from "./editor";
@@ -82,6 +82,15 @@ export default async function FixturePage({
     )
     .orderBy(desc(sql<number>`coalesce(sum(${rankingEvents.delta}), 0)`));
 
+  const confirmedMatchRows = await db
+    .select({
+      player1Id: matches.player1Id,
+      player2Id: matches.player2Id,
+      winnerId: matches.winnerId,
+    })
+    .from(matches)
+    .where(eq(matches.status, "confirmado"));
+
   const allActiveM = allPlayersRaw
     .filter((p) => p.gender === "M")
     .map((p) => ({
@@ -100,29 +109,33 @@ export default async function FixturePage({
       maxMatches: p.maxMatches ?? 0,
     }));
 
-  const availableM = allPlayersRaw
-    .filter((p) => p.gender === "M" && (p.maxMatches ?? 0) > 0)
-    .map((p) => ({
-      id: p.id,
-      fullName: p.fullName,
-      points: Number(p.points),
-      maxMatches: p.maxMatches ?? 0,
-    }));
+  const availableM = buildMatchmakingPlayers(
+    allPlayersRaw
+      .filter((p) => p.gender === "M" && (p.maxMatches ?? 0) > 0)
+      .map((p) => ({
+        id: p.id,
+        fullName: p.fullName,
+        points: Number(p.points),
+        maxMatches: p.maxMatches ?? 0,
+      })),
+    confirmedMatchRows,
+  );
 
-  const availableF = allPlayersRaw
-    .filter((p) => p.gender === "F" && (p.maxMatches ?? 0) > 0)
-    .map((p) => ({
-      id: p.id,
-      fullName: p.fullName,
-      points: Number(p.points),
-      maxMatches: p.maxMatches ?? 0,
-    }));
+  const availableF = buildMatchmakingPlayers(
+    allPlayersRaw
+      .filter((p) => p.gender === "F" && (p.maxMatches ?? 0) > 0)
+      .map((p) => ({
+        id: p.id,
+        fullName: p.fullName,
+        points: Number(p.points),
+        maxMatches: p.maxMatches ?? 0,
+      })),
+    confirmedMatchRows,
+  );
 
   // Build addable player lists for the dialog
   const addedPlayerIds = new Set(
-    allPlayersRaw
-      .filter((p) => (p.maxMatches ?? 0) > 0)
-      .map((p) => p.id),
+    allPlayersRaw.filter((p) => (p.maxMatches ?? 0) > 0).map((p) => p.id),
   );
 
   const addablePlayers = allPlayersRaw
@@ -135,12 +148,20 @@ export default async function FixturePage({
 
   const addableMen = allPlayersRaw
     .filter((p) => p.gender === "M")
-    .map((p) => ({ id: p.id, fullName: p.fullName, isAdded: addedPlayerIds.has(p.id) }))
+    .map((p) => ({
+      id: p.id,
+      fullName: p.fullName,
+      isAdded: addedPlayerIds.has(p.id),
+    }))
     .sort((a, b) => a.fullName.localeCompare(b.fullName));
 
   const addableWomen = allPlayersRaw
     .filter((p) => p.gender === "F")
-    .map((p) => ({ id: p.id, fullName: p.fullName, isAdded: addedPlayerIds.has(p.id) }))
+    .map((p) => ({
+      id: p.id,
+      fullName: p.fullName,
+      isAdded: addedPlayerIds.has(p.id),
+    }))
     .sort((a, b) => a.fullName.localeCompare(b.fullName));
 
   // Recent opponents (last 30 days) for RN-03 validation
@@ -226,8 +247,12 @@ export default async function FixturePage({
   const hasPublishedMatches = existingMatchRows.length > 0;
 
   // Players sorted by name for the selected list
-  const selectedPlayersM = availableM.slice().sort((a, b) => a.fullName.localeCompare(b.fullName));
-  const selectedPlayersF = availableF.slice().sort((a, b) => a.fullName.localeCompare(b.fullName));
+  const selectedPlayersM = availableM
+    .slice()
+    .sort((a, b) => a.fullName.localeCompare(b.fullName));
+  const selectedPlayersF = availableF
+    .slice()
+    .sort((a, b) => a.fullName.localeCompare(b.fullName));
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6">
@@ -294,7 +319,9 @@ export default async function FixturePage({
                       key={p.id}
                       className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm"
                     >
-                      <span className="font-medium text-slate-900">{p.fullName}</span>
+                      <span className="font-medium text-slate-900">
+                        {p.fullName}
+                      </span>
                       <span className="text-xs text-slate-500">
                         {p.maxMatches} partido{p.maxMatches !== 1 ? "s" : ""}
                       </span>
@@ -321,7 +348,9 @@ export default async function FixturePage({
                       key={p.id}
                       className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm"
                     >
-                      <span className="font-medium text-slate-900">{p.fullName}</span>
+                      <span className="font-medium text-slate-900">
+                        {p.fullName}
+                      </span>
                       <span className="text-xs text-slate-500">
                         {p.maxMatches} partido{p.maxMatches !== 1 ? "s" : ""}
                       </span>

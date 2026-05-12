@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import {
   BarChart2Icon,
   CalendarIcon,
@@ -11,16 +10,16 @@ import {
   PercentIcon,
   ShieldIcon,
   StarIcon,
-  TrendingUpIcon,
   TrophyIcon,
   XIcon,
 } from "lucide-react"
+import { useEffect, useState } from "react"
 
 import { Avatar } from "@/components/ui/avatar"
 import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs"
-import { whatsappUrl } from "@/lib/validation/phone"
 import type { PlayerCardData } from "@/lib/players/get-player-card-data"
+import { whatsappUrl } from "@/lib/validation/phone"
 
 function formatDate(value: string | Date | null) {
   if (!value) return null
@@ -37,17 +36,6 @@ function formatDate(value: string | Date | null) {
 function levelLabel(level: string | null) {
   if (!level) return null
   return level.replaceAll("_", " ")
-}
-
-function computeCurrentStreak(streak: Array<"W" | "L">) {
-  if (!streak.length) return 0
-  const positive = streak[0] === "W"
-  let count = 0
-  for (const r of streak) {
-    if ((r === "W") === positive) count++
-    else break
-  }
-  return positive ? count : -count
 }
 
 export function PlayerCardModal({
@@ -68,7 +56,12 @@ export function PlayerCardModal({
   const p = data.player
   const level = levelLabel(p.level)
   const record = `${data.performance.matchesWon}–${data.performance.matchesLost}`
-  const currentStreak = computeCurrentStreak(data.performance.streak)
+  const performancePercent =
+    data.performance.matchesPlayed > 0
+      ? Math.round(
+          (data.performance.matchesWon / data.performance.matchesPlayed) * 100
+        )
+      : 0
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
@@ -142,7 +135,7 @@ export function PlayerCardModal({
             </div>
           </div>
 
-          <div className="relative grid grid-cols-4 gap-2 px-5 pb-5">
+          <div className="relative grid grid-cols-5 gap-2 px-5 pb-5">
             <HeroStat
               icon={<BarChart2Icon className="size-3.5" />}
               label="Ranking"
@@ -152,6 +145,7 @@ export function PlayerCardModal({
               icon={<ShieldIcon className="size-3.5" />}
               label="Nivel"
               value={level ?? "—"}
+              multiline
             />
             <HeroStat
               icon={<CalendarIcon className="size-3.5" />}
@@ -162,6 +156,11 @@ export function PlayerCardModal({
               icon={<TrophyIcon className="size-3.5" />}
               label="Récord"
               value={record}
+            />
+            <HeroStat
+              icon={<PercentIcon className="size-3.5" />}
+              label="Rend."
+              value={`${performancePercent}%`}
             />
           </div>
         </div>
@@ -209,7 +208,7 @@ export function PlayerCardModal({
                   value={p.age != null ? `${p.age} años` : "—"}
                 />
                 <InfoRow
-                  icon={<HandIcon className="size-4" />}
+                  icon={<RacketIcon />}
                   label="Mano"
                   value={
                     p.dominantHand === "diestro"
@@ -251,102 +250,40 @@ export function PlayerCardModal({
                     value={p.rut}
                   />
                 ) : null}
-                {data.availability.length > 0 ? (
-                  <div className="rounded-xl border border-white/[0.1] bg-white/[0.06] px-4 py-3">
-                    <div className="flex items-center gap-3 text-sm">
-                      <CalendarIcon className="size-4 shrink-0 text-blue-300" />
-                      <span className="font-medium text-white">
-                        Disponibilidad
-                      </span>
-                    </div>
+              </div>
+
+              {data.availability ? (
+                <div className="shrink-0 rounded-xl border border-white/[0.1] bg-white/[0.06] p-4 sm:w-52">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-white">
+                      Disponibilidad
+                    </p>
+                    <CalendarIcon className="size-4 text-blue-300" />
+                  </div>
+
+                  {data.availability.length > 0 ? (
                     <div className="mt-3 space-y-2">
                       {data.availability.map((day) => (
                         <div
                           key={day.day}
-                          className="flex items-start gap-3 text-sm"
+                          className="flex items-start gap-2 text-sm"
                         >
                           <span className="w-9 shrink-0 rounded-full bg-blue-500/20 px-2 py-0.5 text-center text-xs font-semibold text-blue-300">
                             {day.short}
                           </span>
-                          <span className="min-w-0 flex-1 text-white/55">
+                          <span className="min-w-0 flex-1 leading-snug text-white/55">
                             {day.summary}
                           </span>
                         </div>
                       ))}
                     </div>
-                  </div>
-                ) : null}
-              </div>
-
-              {/* Right: compact performance panel */}
-              <div className="shrink-0 rounded-xl border border-white/[0.1] bg-white/[0.06] p-4 sm:w-52">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-white">
-                    Rendimiento
-                  </p>
-                  <TrendingUpIcon className="size-4 text-blue-300" />
-                </div>
-
-                <p className="mt-3 text-xs text-white/55">Últimos 5</p>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {data.performance.streak.slice(0, 5).length > 0 ? (
-                    data.performance.streak.slice(0, 5).map((r, i) => (
-                      <span
-                        key={i}
-                        className={`flex size-8 items-center justify-center rounded-full text-xs font-bold ${
-                          r === "W"
-                            ? "bg-green-900/70 text-green-400 ring-1 ring-green-600/30"
-                            : "bg-orange-950/70 text-orange-400 ring-1 ring-orange-700/30"
-                        }`}
-                      >
-                        {r}
-                      </span>
-                    ))
                   ) : (
-                    <span className="text-xs text-white/40">—</span>
+                    <p className="mt-3 text-xs leading-5 text-white/45">
+                      Sin disponibilidad informada.
+                    </p>
                   )}
                 </div>
-
-                <div className="mt-3 space-y-2.5 border-t border-white/10 pt-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs text-white/55">
-                      Racha actual
-                    </span>
-                    <span
-                      className={`text-sm font-semibold ${
-                        currentStreak > 0
-                          ? "text-green-400"
-                          : currentStreak < 0
-                            ? "text-orange-400"
-                            : "text-white/40"
-                      }`}
-                    >
-                      {currentStreak > 0
-                        ? `+${currentStreak} 🔥`
-                        : currentStreak < 0
-                          ? `${currentStreak}`
-                          : "—"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs text-white/55">
-                      Partidos jugados
-                    </span>
-                    <span className="text-base font-bold text-white">
-                      {data.performance.matchesPlayed}
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("performance")}
-                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-blue-400/40 bg-blue-500/15 px-3 py-2 text-xs font-medium text-blue-300 transition hover:bg-blue-500/25"
-                >
-                  <BarChart2Icon className="size-3.5" />
-                  Ver rendimiento completo
-                </button>
-              </div>
+              ) : null}
             </div>
 
             <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-blue-400/20 bg-blue-500/[0.08] px-4 py-3">
@@ -489,20 +426,30 @@ function HeroStat({
   icon,
   label,
   value,
+  multiline = false,
 }: {
   icon: React.ReactNode
   label: string
   value: string
+  multiline?: boolean
 }) {
   return (
-    <div className="flex flex-col gap-1.5 rounded-xl bg-white/10 p-3">
+    <div className="min-w-0 flex flex-col gap-1.5 rounded-xl bg-white/10 p-2.5 sm:p-3">
       <div className="flex items-center gap-1 text-blue-200/75">
         {icon}
         <span className="truncate text-[10px] font-medium uppercase tracking-wide">
           {label}
         </span>
       </div>
-      <p className="truncate text-sm font-bold text-white">{value}</p>
+      <p
+        className={
+          multiline
+            ? "line-clamp-2 text-sm font-bold leading-tight text-white"
+            : "truncate text-sm font-bold text-white"
+        }
+      >
+        {value}
+      </p>
     </div>
   )
 }
@@ -579,14 +526,18 @@ function RacketIcon() {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.5}
+      strokeWidth={1.7}
       strokeLinecap="round"
+      strokeLinejoin="round"
       className="size-4"
     >
-      <ellipse cx="9.5" cy="9.5" rx="6" ry="6" />
-      <line x1="14" y1="14" x2="20" y2="20" />
-      <line x1="7" y1="9.5" x2="12" y2="9.5" />
-      <line x1="9.5" y1="7" x2="9.5" y2="12" />
+      <ellipse cx="8.5" cy="7.5" rx="4.8" ry="6.2" transform="rotate(35 8.5 7.5)" />
+      <path d="M12.2 12.2 20 20" />
+      <path d="m17.8 19.8 2-2" />
+      <path d="m16.1 18.1 2-2" />
+      <path d="M6 5.2 11.1 10.3" />
+      <path d="M4.3 8.1 8.9 12.7" />
+      <path d="M8.4 3.7 13 8.3" />
     </svg>
   )
 }

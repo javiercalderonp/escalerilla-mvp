@@ -46,7 +46,7 @@ export type PlayerCardData = {
     day: string
     short: string
     summary: string
-  }>
+  }> | null
   recentMatches: Array<{
     id: string
     opponentName: string
@@ -178,6 +178,7 @@ export async function getPlayerCardData(
     (visibility.birthDate === "private" && visibleToOwner)
 
   const canSeeRut = viewerRole === "admin"
+  const canSeeAvailability = viewerRole === "player" || viewerRole === "admin"
 
   const recentMatchesRows = await db
     .select({
@@ -256,13 +257,17 @@ export async function getPlayerCardData(
   const matchesPlayed = recentMatchesRows.length
   const matchesWon = recentMatches.filter((match) => match.result === "W" || match.result === "WO_W").length
   const matchesLost = recentMatches.filter((match) => match.result === "L" || match.result === "WO_L").length
-  const availabilitySlots = buildAvailabilitySlots(player)
-  const availability = hasAnyAvailability(availabilitySlots)
-    ? AVAILABILITY_DAYS.flatMap(({ key, label, short }) => {
-        const summary = summarizeAvailabilityDay(availabilitySlots[key])
-        return summary ? [{ day: label, short, summary }] : []
-      })
-    : []
+  const availability = canSeeAvailability
+    ? (() => {
+        const availabilitySlots = buildAvailabilitySlots(player)
+        return hasAnyAvailability(availabilitySlots)
+          ? AVAILABILITY_DAYS.flatMap(({ key, label, short }) => {
+              const summary = summarizeAvailabilityDay(availabilitySlots[key])
+              return summary ? [{ day: label, short, summary }] : []
+            })
+          : []
+      })()
+    : null
 
   const [deltaWeekRow] = await db
     .select({ value: sql<number>`coalesce(sum(${rankingEvents.delta}), 0)` })

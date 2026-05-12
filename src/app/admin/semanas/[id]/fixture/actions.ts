@@ -14,7 +14,7 @@ import {
   players,
   rankingEvents,
 } from "@/lib/db/schema";
-import { proposeFixture } from "@/lib/fixture/propose";
+import { buildMatchmakingPlayers, proposeFixture } from "@/lib/fixture/propose";
 
 async function requireAdminActor() {
   const session = await auth();
@@ -84,6 +84,15 @@ export async function generateProposalAction(
       ),
     );
 
+  const confirmedMatchRows = await dbClient
+    .select({
+      player1Id: matches.player1Id,
+      player2Id: matches.player2Id,
+      winnerId: matches.winnerId,
+    })
+    .from(matches)
+    .where(eq(matches.status, "confirmado"));
+
   const recentOpponents = new Map<string, Set<string>>();
   for (const m of recentMatchRows) {
     if (!recentOpponents.has(m.player1Id))
@@ -94,15 +103,17 @@ export async function generateProposalAction(
     recentOpponents.get(m.player2Id)?.add(m.player1Id);
   }
 
-  const proposal = proposeFixture(
+  const proposalPlayers = buildMatchmakingPlayers(
     availablePlayers.map((p) => ({
       id: p.id,
       fullName: p.fullName,
       points: Number(p.points),
       maxMatches: p.maxMatches,
     })),
-    recentOpponents,
+    confirmedMatchRows,
   );
+
+  const proposal = proposeFixture(proposalPlayers, recentOpponents);
 
   return proposal.map((pair) => ({
     p1Id: pair.player1.id,
