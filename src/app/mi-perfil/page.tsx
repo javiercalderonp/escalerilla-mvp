@@ -626,7 +626,7 @@ export default async function MiPerfilPage() {
             </div>
           </div>
 
-          <div className="mt-5 grid grid-cols-5 gap-2">
+          <div className="mt-5 -mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
             <MobileProfileFact
               icon={<Activity className="h-5 w-5" />}
               label="Nivel"
@@ -1521,12 +1521,12 @@ function MobileProfileFact({
   value: string;
 }) {
   return (
-    <div className="min-w-0 rounded-xl border border-[#ded6ca] bg-[#fffdfa] px-2 py-3 text-center shadow-sm">
+    <div className="w-[88px] shrink-0 rounded-xl border border-[#ded6ca] bg-[#fffdfa] px-2 py-3 text-center shadow-sm">
       <div className="mx-auto flex h-6 w-6 items-center justify-center text-[#776f66]">
         {icon}
       </div>
-      <p className="mt-1 break-words text-xs leading-tight text-[#776f66]">{label}</p>
-      <p className="mt-0.5 break-words text-sm font-semibold leading-tight text-[#0d1b2a]">
+      <p className="mt-1 text-xs leading-tight text-[#776f66]">{label}</p>
+      <p className="mt-0.5 text-sm font-semibold leading-tight text-[#0d1b2a]">
         {value}
       </p>
     </div>
@@ -1546,13 +1546,13 @@ function MobilePerformanceMetric({
 }) {
   return (
     <div className="min-w-0 px-2 text-center">
-      <p className="mx-auto min-h-10 max-w-24 text-sm leading-tight text-[#776f66]">
+      <p className="mx-auto min-h-10 text-xs leading-tight text-[#776f66]">
         {label}
       </p>
-      <p className="mt-3 text-3xl font-bold tabular-nums text-[#0d1b2a]">
+      <p className="mt-2 whitespace-nowrap text-2xl font-bold tabular-nums text-[#0d1b2a]">
         {value} <span className="text-[#776f66]">/ {target}</span>
       </p>
-      <span className="mt-4 inline-flex max-w-full items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+      <span className="mt-3 inline-flex max-w-full items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700">
         {caption}
       </span>
     </div>
@@ -1588,10 +1588,10 @@ function MobileQuickAction({
   return (
     <Link
       href={href}
-      className="flex min-h-16 min-w-0 items-center justify-center gap-2 rounded-xl border border-[#ded6ca] bg-[#f6f2ea] px-2 py-3 text-center text-sm font-medium text-[#0d1b2a]"
+      className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-[#ded6ca] bg-[#f6f2ea] px-2 py-4 text-center text-sm font-medium text-[#0d1b2a]"
     >
       <span className="shrink-0">{icon}</span>
-      <span className="min-w-0 leading-tight">{label}</span>
+      <span className="leading-tight">{label}</span>
     </Link>
   );
 }
