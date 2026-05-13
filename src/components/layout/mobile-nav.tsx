@@ -17,6 +17,8 @@ import {
 import Link from "next/link";
 import { useState } from "react";
 
+import { AvailabilityToggle } from "./availability-toggle";
+
 type NavItem = { href: string; label: string };
 
 const navIcons: Record<string, LucideIcon> = {
@@ -38,10 +40,12 @@ export function MobileNav({
   items,
   profileItem,
   signOutAction,
+  availabilityToggle,
 }: {
   items: NavItem[];
   profileItem?: NavItem | null;
   signOutAction?: () => Promise<void>;
+  availabilityToggle?: { isMarked: boolean };
 }) {
   const [open, setOpen] = useState(false);
   const loginItem = items.find((item) => item.href === "/login");
@@ -108,6 +112,16 @@ export function MobileNav({
                   </Link>
                 );
               })}
+
+              {availabilityToggle && (
+                <div className="border-t border-white/10">
+                  <AvailabilityToggle
+                    isMarked={availabilityToggle.isMarked}
+                    variant="mobile"
+                    onClose={() => setOpen(false)}
+                  />
+                </div>
+              )}
 
               {loginItem && (
                 <Link

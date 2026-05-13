@@ -89,3 +89,24 @@ export async function upsertAvailabilityAction(formData: FormData) {
 
   redirect("/disponibilidad");
 }
+
+export async function setNextWeekAvailabilityAction(wantsToPlay: boolean) {
+  const session = await auth();
+  if (!session?.user?.email) redirect("/login");
+
+  const dbClient = db;
+  if (!dbClient) throw new Error("Base de datos no configurada");
+
+  const [player] = await dbClient
+    .select({ id: players.id })
+    .from(players)
+    .where(eq(players.email, session.user.email.toLowerCase()))
+    .limit(1);
+
+  if (!player) throw new Error("No estás vinculado a ningún jugador");
+
+  await dbClient
+    .update(players)
+    .set({ wantsToPlayNextWeek: wantsToPlay, updatedAt: new Date() })
+    .where(eq(players.id, player.id));
+}

@@ -141,6 +141,9 @@ export const players = pgTable(
     availFriday: boolean("avail_friday"),
     availSaturday: boolean("avail_saturday"),
     availSunday: boolean("avail_sunday"),
+    wantsToPlayNextWeek: boolean("wants_to_play_next_week")
+      .notNull()
+      .default(false),
     notes: text("notes"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

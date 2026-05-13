@@ -1,8 +1,12 @@
+import { eq } from "drizzle-orm";
 import { LogInIcon, LogOutIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
 import { auth, signOut } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { players } from "@/lib/db/schema";
+import { AvailabilityToggle } from "./availability-toggle";
 import { MobileNav } from "./mobile-nav";
 import { NavLinks } from "./nav-links";
 
@@ -17,6 +21,16 @@ export async function Header() {
   const isAdmin = session?.user?.role === "admin";
   const isPlayer =
     session?.user?.role === "player" || session?.user?.role === "admin";
+
+  let wantsToPlayNextWeek = false;
+  if (isPlayer && session?.user?.email && db) {
+    const [player] = await db
+      .select({ wantsToPlayNextWeek: players.wantsToPlayNextWeek })
+      .from(players)
+      .where(eq(players.email, session.user.email.toLowerCase()))
+      .limit(1);
+    wantsToPlayNextWeek = player?.wantsToPlayNextWeek ?? false;
+  }
 
   const navItems = [
     { href: "/ranking/hombres", label: "Ranking" },
@@ -47,6 +61,11 @@ export async function Header() {
           items={mobileNavItems}
           profileItem={profileItem}
           signOutAction={session?.user ? signOutAction : undefined}
+          availabilityToggle={
+            isPlayer
+              ? { isMarked: wantsToPlayNextWeek }
+              : undefined
+          }
         />
         <Link
           href="/"
@@ -144,7 +163,10 @@ export async function Header() {
           )}
         </nav>
 
-        <div className="shrink-0">
+        <div className="flex shrink-0 items-center gap-3">
+          {isPlayer && (
+            <AvailabilityToggle isMarked={wantsToPlayNextWeek} variant="desktop" />
+          )}
           {!session?.user && (
             <Link
               href="/login"
