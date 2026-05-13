@@ -24,7 +24,7 @@ export default async function Home() {
   return (
     <div className="flex w-full flex-1 flex-col">
       {/* ── Hero ── */}
-      <section className="relative -mt-2 min-h-screen w-full overflow-hidden lg:min-h-[680px]">
+      <section className="relative -mt-2 min-h-svh w-full overflow-hidden lg:min-h-[min(680px,85svh)]">
         {/* Background photo */}
         <div className="absolute inset-0 bg-[#b04d15]">
           <Image
@@ -44,7 +44,7 @@ export default async function Home() {
         <div className="absolute inset-0 bg-gradient-to-t from-[#0d1b2a]/60 via-transparent to-transparent" />
 
         {/* Content */}
-        <div className="relative mx-auto flex h-full min-h-screen max-w-6xl flex-col justify-center gap-8 px-4 py-16 sm:px-6 lg:min-h-[680px] lg:flex-row lg:items-center">
+        <div className="relative mx-auto flex h-full min-h-svh max-w-6xl flex-col justify-center gap-8 px-4 py-16 sm:px-6 lg:min-h-[min(680px,85svh)] lg:flex-row lg:items-center lg:px-8">
           {/* Left: text + CTAs */}
           <div className="flex flex-1 flex-col lg:max-w-xl lg:gap-6">
             {/* Title — stays near top */}
@@ -108,7 +108,7 @@ export default async function Home() {
             aria-hidden="true"
             className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent via-[#0d1b2a]/25 to-[#0d1b2a]"
           />
-          <div className="relative mx-auto mb-6 flex max-w-6xl flex-col gap-4 px-4 sm:flex-row sm:items-end sm:justify-between sm:px-6">
+          <div className="relative mx-auto mb-6 flex max-w-6xl flex-col gap-4 px-4 sm:flex-row sm:items-end sm:justify-between sm:px-6 lg:px-8">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-clay">
                 Resultados
@@ -133,7 +133,7 @@ export default async function Home() {
 
       {/* ── How it works ── */}
       <section className="w-full bg-[#0d1b2a] py-16">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <HowItWorks />
         </div>
       </section>

@@ -261,7 +261,7 @@ export default async function MiPerfilPage() {
 
   if (!db) {
     return (
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-10 sm:px-6">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">
         <div className="rounded-2xl border border-[#ded6ca] bg-[#fffdfa] p-8 text-sm text-[#776f66]">
           Base de datos no configurada.
         </div>
@@ -291,7 +291,7 @@ export default async function MiPerfilPage() {
 
   if (!player) {
     return (
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-10 sm:px-6">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">
         <section className="rounded-2xl border border-[#ded6ca] bg-[#fffdfa] p-8 shadow-sm">
           <h1 className="text-2xl font-semibold text-[#0d1b2a]">Mi perfil</h1>
           <p className="mt-3 text-sm text-[#776f66]">
@@ -888,7 +888,7 @@ export default async function MiPerfilPage() {
         </section>
       </div>
 
-      <main className="mx-auto hidden w-full max-w-5xl flex-1 flex-col gap-5 px-4 py-8 sm:px-6 md:flex">
+      <main className="mx-auto hidden w-full max-w-6xl flex-1 flex-col gap-5 px-4 py-8 sm:px-6 lg:px-8 md:flex">
         {/* ── Hero ── */}
         <section className="rounded-2xl border border-[#ded6ca] bg-[#fffdfa] p-6 shadow-sm">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">

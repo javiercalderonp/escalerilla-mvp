@@ -229,7 +229,7 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
 
   if (!db) {
     return (
-      <div className="mx-auto flex w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
+      <div className="mx-auto flex w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
         <div className="w-full rounded-3xl bg-card p-8 shadow-sm ring-1 ring-black/5">
           <p className="text-sm text-muted-foreground">
             Base de datos no configurada.
@@ -269,7 +269,7 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
 
   if (!isHistoryView && !currentWeek) {
     return (
-      <div className="mx-auto flex w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
+      <div className="mx-auto flex w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
         <EmptyState
           title="Sin partidos"
           description="Esta semana no tiene partidos publicados."
@@ -504,7 +504,7 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
 
   return (
     <div className="flex w-full flex-1 bg-background">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6 lg:px-8">
         {isAdmin ? (
           <div className="fixed bottom-20 right-4 z-40 sm:bottom-8 sm:right-8">
             <AdminMatchesCreateMenu

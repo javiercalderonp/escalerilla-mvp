@@ -132,7 +132,7 @@ export default async function RankingCategoryPage({
         printedAt={printedAt}
       />
 
-      <div className="ranking-screen-only mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-10 sm:px-6">
+      <div className="ranking-screen-only mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">
         {/* ── Hero header — hidden on mobile ── */}
         <div
           className="relative hidden overflow-hidden rounded-3xl shadow-md sm:block"

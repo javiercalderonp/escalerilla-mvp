@@ -91,7 +91,7 @@ export async function Header() {
       </div>
 
       {/* Desktop layout */}
-      <div className="mx-auto hidden w-full max-w-6xl items-center px-6 py-3 md:flex">
+      <div className="mx-auto hidden w-full max-w-6xl items-center px-6 py-3 lg:px-8 md:flex">
         <Link href="/" className="flex shrink-0 items-center gap-3">
           <Image
             src="/logo.png"

@@ -19,7 +19,7 @@ export default async function DisponibilidadPage() {
 
   if (!db) {
     return (
-      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6">
+      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6 lg:px-8">
         <div className="rounded-3xl border border-border bg-card p-8 text-center text-sm text-muted-foreground shadow-sm">
           Base de datos no configurada.
         </div>
@@ -46,7 +46,7 @@ export default async function DisponibilidadPage() {
 
   if (!player) {
     return (
-      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6">
+      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6 lg:px-8">
         <div className="rounded-3xl border border-border bg-card p-8 shadow-sm">
           <h1 className="text-2xl font-semibold text-foreground">
             Mi disponibilidad
@@ -77,7 +77,7 @@ export default async function DisponibilidadPage() {
     : null;
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-3 py-5 sm:px-6 lg:py-9">
+    <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 py-5 sm:px-6 lg:px-8 lg:py-9">
       <section className="rounded-3xl border border-white/70 bg-card/95 p-5 shadow-2xl shadow-court/10 ring-1 ring-border/70 sm:p-7 lg:p-9">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-start gap-5">
