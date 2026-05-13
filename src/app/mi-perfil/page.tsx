@@ -655,16 +655,6 @@ export default async function MiPerfilPage() {
               label="Edad"
               value={age !== null ? `${age} años` : "—"}
             />
-            <MobileProfileFact
-              icon={<Clock className="h-5 w-5" />}
-              label="Años jugando"
-              value={
-                player.yearsPlaying !== null &&
-                player.yearsPlaying !== undefined
-                  ? `${player.yearsPlaying} años`
-                  : "—"
-              }
-            />
           </div>
         </section>
 
