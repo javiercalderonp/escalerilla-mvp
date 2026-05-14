@@ -194,6 +194,7 @@ export async function sendAvailabilityReminders() {
     await wait(250);
     const dedupeKey = makeEmailDedupeKey([
       "availability_reminder",
+      env.emailTestRecipient ? `test:${env.emailTestRecipient}` : null,
       data.weekStartsOn,
       target.id,
     ]);

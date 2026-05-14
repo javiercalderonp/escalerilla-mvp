@@ -1,4 +1,4 @@
-import { and, eq, gte, lte, or, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
 import { revalidateTag } from "next/cache";
 
 import { db } from "@/lib/db";
@@ -121,7 +121,7 @@ export async function GET(request: Request) {
     .from(rankingEvents)
     .where(
       and(
-        sql`${rankingEvents.reason} = ANY(ARRAY['inactivity_month','inactivity_3mo','inactivity_6mo','inactivity_1y'])`,
+        inArray(rankingEvents.reason, inactivityReasons),
         gte(
           rankingEvents.occurredAt,
           new Date(new Date().setFullYear(new Date().getFullYear() - 2)),
