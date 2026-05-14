@@ -184,12 +184,6 @@ function formatPlayerNameHtml(name: string) {
   return `${escapeHtml(parts[0])}<br>${escapeHtml(parts.slice(1).join(" "))}`;
 }
 
-function formatAvatarHtml(name: string, align: "left" | "right") {
-  const borderColor = align === "right" ? "#e8720c" : "#e7dfd6";
-
-  return `<div style="width:72px;height:72px;border-radius:50%;border:3px solid ${borderColor};background:linear-gradient(135deg,#f2e8dc,#0d1b2a);color:#ffffff;font-size:18px;font-weight:900;line-height:72px;text-align:center;margin:0 auto;">${escapeHtml(getInitials(name))}</div>`;
-}
-
 function formatRanking(stats: PlayerEmailStats | undefined) {
   if (!stats) return "Ranking no disponible";
 
@@ -200,6 +194,24 @@ function formatRanking(stats: PlayerEmailStats | undefined) {
 
 function formatRankingPosition(stats: PlayerEmailStats | undefined) {
   return stats ? `#${stats.position}` : "S/R";
+}
+
+function formatDrawPlayerSummaryHtml(
+  player: DrawPlayer,
+  stats: PlayerEmailStats | undefined,
+) {
+  return `<table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+    <tr>
+      <td width="84" valign="middle" style="width:84px;padding:0 16px 0 0;">
+        <div style="width:76px;height:76px;border-radius:50%;background-color:#d8e1ea;color:#0d1b2a;font-size:26px;font-weight:900;line-height:76px;text-align:center;">${escapeHtml(getInitials(player.fullName))}</div>
+      </td>
+      <td valign="middle" style="padding:0;text-align:left;">
+        <p style="margin:0 0 10px;font-size:20px;font-weight:900;color:#0d1b2a;line-height:1.18;">${formatPlayerNameHtml(player.fullName)}</p>
+        <p style="margin:0 0 2px;font-size:14px;color:#697386;line-height:1.2;">Ranking actual</p>
+        <p style="margin:0;font-size:25px;font-weight:900;color:#0d1b2a;line-height:1;">${escapeHtml(formatRankingPosition(stats))}</p>
+      </td>
+    </tr>
+  </table>`;
 }
 
 function formatHeadToHead(stats: HeadToHeadStats | undefined) {
@@ -289,7 +301,7 @@ function getRecommendedTimeOptions(
     getEmailAvailabilitySlots(opponent),
   );
 
-  return sharedRanges.slice(0, 3).map((range, index) => {
+  return sharedRanges.map((range, index) => {
     const dayDate = addDays(weekStartsOn, dayOffsets.get(range.dayKey) ?? 0);
     const compatibility = Math.max(70, 90 - index * 10);
 
@@ -326,10 +338,12 @@ function formatListHtml(lines: string[], color = "#0d1b2a") {
 
 function formatRecommendedCardsHtml(times: RecommendedTimeOption[]) {
   if (times.length === 0) {
-    return `<td style="padding:14px;border:1px solid #e4e8ef;border-radius:8px;background-color:#ffffff;">
-      <p style="margin:0;font-size:13px;font-weight:700;color:#0d1b2a;line-height:1.4;">No hay cruces claros</p>
-      <p style="margin:6px 0 0;font-size:12px;color:#697386;line-height:1.4;">Coordinen directo según sus disponibilidades.</p>
-    </td>`;
+    return `<tr>
+      <td style="padding:14px;border:1px solid #e4e8ef;border-radius:8px;background-color:#ffffff;">
+        <p style="margin:0;font-size:13px;font-weight:700;color:#0d1b2a;line-height:1.4;">No hay cruces claros</p>
+        <p style="margin:6px 0 0;font-size:12px;color:#697386;line-height:1.4;">Coordinen directo según sus disponibilidades.</p>
+      </td>
+    </tr>`;
   }
 
   return times
@@ -339,22 +353,24 @@ function formatRecommendedCardsHtml(times: RecommendedTimeOption[]) {
           ? "Mejor opción"
           : index === 1
             ? "2da opción"
-            : "3ra opción";
+            : `Opción ${index + 1}`;
       const background = index === 0 ? "#f3fbf1" : "#ffffff";
       const border = index === 0 ? "#bfe7bd" : "#e4e8ef";
 
-      return `<td width="33.33%" valign="top" style="padding:0 6px;">
-        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid ${border};border-radius:8px;background-color:${background};">
+      return `<tr>
+        <td style="padding:0 0 8px;">
+          <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid ${border};border-radius:8px;background-color:${background};">
           <tr>
-            <td style="padding:14px 14px 12px;">
+            <td style="padding:14px 16px 12px;">
               <span style="display:inline-block;margin:0 0 8px;padding:3px 7px;border-radius:4px;background-color:#5fbd3f;color:#ffffff;font-size:9px;font-weight:900;text-transform:uppercase;line-height:1;">${escapeHtml(label)}</span>
               <p style="margin:0 0 5px;font-size:12px;color:#0d1b2a;line-height:1.3;">${escapeHtml(time.dayLabel)} ${escapeHtml(time.dateLabel)}</p>
               <p style="margin:0 0 7px;font-size:17px;font-weight:900;color:#0d1b2a;line-height:1.2;">${escapeHtml(time.timeLabel)}</p>
               <p style="margin:0;font-size:11px;color:#2f9e44;line-height:1.3;">&#10003; ${time.compatibility}% compatibilidad</p>
             </td>
           </tr>
-        </table>
-      </td>`;
+          </table>
+        </td>
+      </tr>`;
     })
     .join("");
 }
@@ -479,12 +495,9 @@ export function buildMatchDrawEmail(args: {
 <p style="margin:0 0 24px;font-size:14px;color:#405066;line-height:1.6;text-align:center;">Ya salió el sorteo de la semana. Conoce tu próximo desafío.</p>
 <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid #e4e8ef;border-radius:8px;margin:0 0 16px;background-color:#ffffff;">
   <tr>
-    <td width="42%" align="center" valign="middle" style="padding:18px 14px;">
-      ${formatAvatarHtml(args.player.fullName, "left")}
-      <p style="margin:12px 0 5px;font-size:18px;font-weight:900;color:#0d1b2a;line-height:1.15;">${formatPlayerNameHtml(args.player.fullName)}</p>
-      <p style="margin:0 0 2px;font-size:11px;color:#697386;line-height:1.2;">Ranking actual</p>
-      <p style="margin:0 0 14px;font-size:24px;font-weight:900;color:#0d1b2a;line-height:1;">${escapeHtml(formatRankingPosition(args.playerStats))}</p>
-      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color:#f8fafc;border-radius:8px;">
+    <td width="42%" align="center" valign="middle" class="em-col-42" style="padding:20px 16px;">
+      ${formatDrawPlayerSummaryHtml(args.player, args.playerStats)}
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color:#f8fafc;border-radius:8px;margin-top:16px;">
         <tr>
           <td align="center" style="padding:13px 8px;">
             <p style="margin:0 0 8px;font-size:10px;font-weight:800;color:#697386;text-transform:uppercase;line-height:1.2;">Últimos partidos</p>
@@ -494,18 +507,15 @@ export function buildMatchDrawEmail(args: {
         </tr>
       </table>
     </td>
-    <td width="16%" align="center" valign="middle" style="padding:18px 4px;border-left:1px solid #edf0f5;border-right:1px solid #edf0f5;">
+    <td width="16%" align="center" valign="middle" class="em-col-16" style="padding:18px 4px;border-left:1px solid #edf0f5;border-right:1px solid #edf0f5;">
       <div style="width:44px;height:44px;border:1px solid #d9dee8;border-radius:50%;margin:0 auto 18px;text-align:center;line-height:44px;font-size:15px;font-weight:900;color:#0d1b2a;background-color:#ffffff;">VS</div>
       <p style="margin:0 0 4px;font-size:11px;font-weight:800;color:#e8720c;line-height:1.2;">Historial</p>
       <p style="margin:0 0 3px;font-size:22px;font-weight:900;color:#0d1b2a;line-height:1;">${escapeHtml(formatHeadToHead(args.headToHeadStats))}</p>
       <p style="margin:0;font-size:11px;color:#697386;line-height:1.2;">${escapeHtml(formatHeadToHeadLeader(args.headToHeadStats))}</p>
     </td>
-    <td width="42%" align="center" valign="middle" style="padding:18px 14px;">
-      ${formatAvatarHtml(args.opponent.fullName, "right")}
-      <p style="margin:12px 0 5px;font-size:18px;font-weight:900;color:#0d1b2a;line-height:1.15;">${formatPlayerNameHtml(args.opponent.fullName)}</p>
-      <p style="margin:0 0 2px;font-size:11px;color:#697386;line-height:1.2;">Ranking actual</p>
-      <p style="margin:0 0 14px;font-size:24px;font-weight:900;color:#0d1b2a;line-height:1;">${escapeHtml(formatRankingPosition(args.opponentStats))}</p>
-      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color:#f8fafc;border-radius:8px;">
+    <td width="42%" align="center" valign="middle" class="em-col-42" style="padding:20px 16px;">
+      ${formatDrawPlayerSummaryHtml(args.opponent, args.opponentStats)}
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color:#f8fafc;border-radius:8px;margin-top:16px;">
         <tr>
           <td align="center" style="padding:13px 8px;">
             <p style="margin:0 0 8px;font-size:10px;font-weight:800;color:#697386;text-transform:uppercase;line-height:1.2;">Últimos partidos</p>
@@ -519,15 +529,15 @@ export function buildMatchDrawEmail(args: {
 </table>
 <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid #f1e7da;border-radius:8px;margin:0 0 20px;background-color:#fff9f2;">
   <tr>
-    <td width="33.33%" style="padding:14px 16px;border-right:1px solid #eadfce;">
+    <td width="33.33%" class="em-col-third" style="padding:14px 16px;border-right:1px solid #eadfce;">
       <p style="margin:0 0 4px;font-size:11px;font-weight:900;color:#0d1b2a;text-transform:uppercase;line-height:1.2;">Semana</p>
       <p style="margin:0;font-size:13px;color:#405066;line-height:1.35;">${escapeHtml(formatDate(args.weekStartsOn))} al ${escapeHtml(formatDate(args.weekEndsOn))}</p>
     </td>
-    <td width="33.33%" style="padding:14px 16px;border-right:1px solid #eadfce;">
+    <td width="33.33%" class="em-col-third" style="padding:14px 16px;border-right:1px solid #eadfce;">
       <p style="margin:0 0 4px;font-size:11px;font-weight:900;color:#0d1b2a;text-transform:uppercase;line-height:1.2;">Ronda</p>
       <p style="margin:0;font-size:13px;color:#405066;line-height:1.35;">Sorteo semanal</p>
     </td>
-    <td width="33.33%" style="padding:14px 16px;">
+    <td width="33.33%" class="em-col-third" style="padding:14px 16px;">
       <p style="margin:0 0 4px;font-size:11px;font-weight:900;color:#0d1b2a;text-transform:uppercase;line-height:1.2;">Cancha</p>
       <p style="margin:0;font-size:13px;color:#405066;line-height:1.35;">A confirmar</p>
     </td>
@@ -537,27 +547,47 @@ export function buildMatchDrawEmail(args: {
 ${formatOtherMatchesHtml(otherMatches)}
 <p style="margin:24px 0 12px;font-size:13px;font-weight:900;color:#0d1b2a;text-transform:uppercase;letter-spacing:0.02em;">Horarios recomendados para tu partido</p>
 <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 10px;">
-  <tr>${formatRecommendedCardsHtml(recommendedTimeOptions)}</tr>
+  ${formatRecommendedCardsHtml(recommendedTimeOptions)}
 </table>
 <p style="margin:0 0 20px;font-size:12px;color:#405066;line-height:1.5;">Los horarios se basan en la disponibilidad de ambos jugadores.</p>
 <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.08em;">Últimos partidos del rival</p>
 <ul style="margin:0 0 24px;padding:0;list-style:none;border-top:1px solid #f0ede8;">
   ${formatListHtml(opponentRecentMatches)}
 </ul>
-<p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#e8720c;text-transform:uppercase;letter-spacing:0.08em;">Disponibilidad de ${escapeHtml(args.opponent.fullName)}</p>
-<ul style="margin:0 0 24px;padding:0;list-style:none;border-top:1px solid #f0ede8;">
-  ${formatAvailabilityHtml(args.opponent)}
-</ul>
-<p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.08em;">Tus horarios cargados</p>
-<ul style="margin:0 0 28px;padding:0;list-style:none;border-top:1px solid #f0ede8;">
-  ${formatAvailabilityHtml(args.player)}
-</ul>
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 28px;">
+  <tr>
+    <td width="50%" valign="top" class="em-col-half" style="padding:0 8px 0 0;">
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid #f0ede8;border-radius:8px;background-color:#ffffff;">
+        <tr>
+          <td style="padding:14px 16px 10px;">
+            <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#e8720c;text-transform:uppercase;letter-spacing:0.08em;">Disponibilidad de ${escapeHtml(args.opponent.fullName)}</p>
+            <ul style="margin:0;padding:0;list-style:none;border-top:1px solid #f0ede8;">
+              ${formatAvailabilityHtml(args.opponent)}
+            </ul>
+          </td>
+        </tr>
+      </table>
+    </td>
+    <td width="50%" valign="top" class="em-col-half" style="padding:0 0 0 8px;">
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid #f0ede8;border-radius:8px;background-color:#ffffff;">
+        <tr>
+          <td style="padding:14px 16px 10px;">
+            <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.08em;">Tus horarios cargados</p>
+            <ul style="margin:0;padding:0;list-style:none;border-top:1px solid #f0ede8;">
+              ${formatAvailabilityHtml(args.player)}
+            </ul>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
 <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 0;">
   <tr>
-    <td width="50%" style="padding:0 6px 0 0;">
+    <td width="50%" class="em-full-btn" style="padding:0 6px 0 0;">
       <a href="${escapeHtml(availabilityUrl)}" style="display:block;padding:14px 16px;background-color:#0d1b2a;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;font-size:14px;line-height:1;text-align:center;">Confirmar disponibilidad</a>
     </td>
-    <td width="50%" style="padding:0 0 0 6px;">
+    <td width="50%" class="em-full-btn" style="padding:0 0 0 6px;">
       <a href="${escapeHtml(fixtureUrl)}" style="display:block;padding:12px 16px;background-color:#ffffff;color:#0d1b2a;text-decoration:none;border-radius:8px;font-weight:700;font-size:14px;line-height:1;text-align:center;border:2px solid #0d1b2a;">Ver fixture</a>
     </td>
   </tr>
@@ -568,7 +598,7 @@ ${formatOtherMatchesHtml(otherMatches)}
       <p style="margin:0 0 4px;font-size:15px;font-weight:900;color:#ffffff;line-height:1.3;">Cada partido cuenta</p>
       <p style="margin:0;font-size:12px;color:#d9e6f7;line-height:1.4;">Suma puntos, mejora tu ranking y sube en la Escalerilla.</p>
     </td>
-    <td align="right" style="padding:18px 20px;">
+    <td align="right" class="em-mobile-cta" style="padding:18px 20px;">
       <a href="${escapeHtml(rankingUrl)}" style="display:inline-block;padding:12px 28px;background-color:#e8720c;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:800;font-size:13px;line-height:1;text-align:center;">Ver ranking</a>
     </td>
   </tr>

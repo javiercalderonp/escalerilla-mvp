@@ -15,6 +15,8 @@ import {
   type MatchResultEmailDetails,
 } from "@/lib/email/match-result";
 import { buildWelcomeEmail } from "@/lib/email/welcome";
+import type { RankingEntry } from "@/lib/ranking";
+import { PreviewFrame } from "./preview-frame";
 
 type EmailPreviewKey =
   | "availability"
@@ -115,12 +117,46 @@ const sampleResult: MatchResultEmailDetails = {
   ],
 };
 
+const sampleRanking: RankingEntry[] = [
+  "Alfonso Bou",
+  "Jonathan Budnik",
+  "Francisco Cuevas",
+  "Raimundo Cuevas Ureta",
+  "José Tomás Donoso",
+  "David Geni",
+  "Agustin Achondo",
+  "Jose Luis Halcartegaray",
+  "Boris Kraizel",
+  "Christian Lichtin",
+  "Jorge Lira Mayo",
+].map((fullName, index) => ({
+  id: fullName === samplePlayer.fullName ? samplePlayer.id : `ranking-${index}`,
+  position: index + 1,
+  fullName,
+  points: 180 - index * 7,
+  weeklyDelta: index % 3 === 0 ? 8 : index % 3 === 1 ? -4 : 0,
+  bestRankingPosition: index + 1,
+  bestRankingAchievedAt: null,
+  matchesPlayed: 12 - (index % 4),
+  matchesWon: 8 - (index % 3),
+  matchesLost: 4 + (index % 3),
+  status: "activo",
+  category: "hombres",
+  recentForm: [],
+}));
+
 function makePreviews(): EmailPreview[] {
   const availability = buildAvailabilityReminderEmail({
+    playerId: samplePlayer.id,
     playerName: samplePlayer.fullName,
+    playerFirstName: "Agustin",
     weekStartsOn: "2026-05-18",
     weekEndsOn: "2026-05-24",
     deadline: "2026-05-15",
+    rankingSnippet: {
+      category: "hombres",
+      entries: sampleRanking,
+    },
   });
   const fixture = buildMatchDrawEmail({
     player: samplePlayer,
@@ -353,13 +389,7 @@ export default async function AdminEmailPreviewPage({
             </p>
           </div>
 
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-            <iframe
-              title={`Preview ${selected.label}`}
-              srcDoc={selected.html}
-              className="h-[760px] w-full bg-white"
-            />
-          </div>
+          <PreviewFrame html={selected.html} label={selected.label} />
 
           <details className="mt-4 rounded-lg border border-slate-200 bg-white p-4">
             <summary className="cursor-pointer text-sm font-semibold text-slate-800">
