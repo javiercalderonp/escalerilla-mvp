@@ -21,7 +21,7 @@ export type InactivityWarningTarget = {
   lastMatchDate: string | null;
 };
 
-function buildMessage(target: InactivityWarningTarget) {
+export function buildInactivityWarningEmail(target: InactivityWarningTarget) {
   const fixtureUrl = absoluteUrl("/fixture");
   const title = "Advertencia de inactividad";
   const textLines = [
@@ -34,15 +34,25 @@ function buildMessage(target: InactivityWarningTarget) {
     `Ver partidos: ${fixtureUrl}`,
   ];
   const innerHtml = `
-<h1 style="margin:0 0 24px;font-size:24px;font-weight:800;color:#0d1b2a;line-height:1.3;">${escapeHtml(title)}</h1>
-<p style="margin:0 0 20px;font-size:15px;color:#0d1b2a;line-height:1.6;">Hola <strong>${escapeHtml(target.fullName)}</strong>,</p>
-<div style="background-color:#f6f2ea;border-radius:8px;border:1px solid #ded6ca;padding:20px 24px;margin:0 0 24px;">
-  <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.07em;">Días sin jugar</p>
-  <p style="margin:0;font-size:28px;font-weight:800;color:#0d1b2a;">${target.daysSince}</p>
+<div style="text-align:center;margin:0 0 28px;">
+  <p style="margin:0 0 12px;font-size:12px;font-weight:700;color:#e8720c;letter-spacing:0.1em;text-transform:uppercase;">&#9888;&#65039; AVISO DE INACTIVIDAD</p>
+  <h1 style="margin:0;font-size:26px;font-weight:800;color:#0d1b2a;line-height:1.2;">${escapeHtml(title)}</h1>
+  <div style="width:40px;height:3px;background-color:#e8720c;margin:14px auto 0;"></div>
 </div>
-<p style="margin:0 0 16px;font-size:15px;color:#0d1b2a;line-height:1.6;">Si no jugás pronto, perderás <strong>40 puntos</strong> por inactividad.</p>
-<p style="margin:0 0 28px;font-size:15px;color:#0d1b2a;line-height:1.6;">¡Agendá tu partido esta semana!</p>
-<a href="${escapeHtml(fixtureUrl)}" style="display:inline-block;padding:13px 28px;background-color:#0d1b2a;color:#fffdfa;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;line-height:1;">Ver partidos</a>`;
+<p style="margin:0 0 20px;font-size:15px;color:#0d1b2a;line-height:1.6;text-align:center;">Hola <strong>${escapeHtml(target.fullName)}</strong>,</p>
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid #ede8e2;border-radius:8px;margin:0 0 24px;">
+  <tr>
+    <td style="padding:20px 24px;text-align:center;">
+      <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.08em;">Días sin jugar</p>
+      <p style="margin:0;font-size:48px;font-weight:900;color:#e8720c;line-height:1;">${target.daysSince}</p>
+    </td>
+  </tr>
+</table>
+<p style="margin:0 0 16px;font-size:15px;color:#0d1b2a;line-height:1.6;text-align:center;">Si no jugás pronto, perderás <strong>40 puntos</strong> por inactividad.</p>
+<p style="margin:0 0 28px;font-size:15px;color:#776f66;line-height:1.6;text-align:center;">¡Agendá tu partido esta semana!</p>
+<div style="text-align:center;">
+  <a href="${escapeHtml(fixtureUrl)}" style="display:inline-block;padding:15px 40px;background-color:#e8720c;color:#ffffff;text-decoration:none;border-radius:50px;font-weight:700;font-size:15px;line-height:1;">Ver partidos</a>
+</div>`;
 
   return {
     subject: title,
@@ -99,7 +109,7 @@ export async function sendInactivityWarningEmails(
     }
 
     try {
-      const message = buildMessage(target);
+      const message = buildInactivityWarningEmail(target);
 
       await sendTransactionalEmail({
         to: email,

@@ -20,7 +20,7 @@ function formatDate(date: Date) {
   return date.toISOString().slice(0, 10).split("-").reverse().join("-");
 }
 
-function buildMessage(args: {
+export function buildChallengeEmail(args: {
   challengedName: string;
   challengerName: string;
   deadline: Date;
@@ -37,16 +37,30 @@ function buildMessage(args: {
     `Ver partido: ${fixtureUrl}`,
   ];
   const innerHtml = `
-<h1 style="margin:0 0 24px;font-size:24px;font-weight:800;color:#0d1b2a;line-height:1.3;">${escapeHtml(title)}</h1>
-<p style="margin:0 0 20px;font-size:15px;color:#0d1b2a;line-height:1.6;">Hola <strong>${escapeHtml(args.challengedName)}</strong>,</p>
-<p style="margin:0 0 24px;font-size:15px;color:#0d1b2a;line-height:1.6;"><strong>${escapeHtml(args.challengerName)}</strong> te ha desafiado a un partido. Coordinen para jugar lo antes posible.</p>
-<div style="background-color:#f6f2ea;border-radius:8px;border:1px solid #ded6ca;padding:20px 24px;margin:0 0 28px;">
-  <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.07em;">Tu rival</p>
-  <p style="margin:0 0 16px;font-size:16px;font-weight:700;color:#0d1b2a;">${escapeHtml(args.challengerName)}</p>
-  <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.07em;">Fecha límite</p>
-  <p style="margin:0;font-size:15px;font-weight:600;color:#0d1b2a;">${escapeHtml(deadline)}</p>
+<div style="text-align:center;margin:0 0 28px;">
+  <p style="margin:0 0 12px;font-size:12px;font-weight:700;color:#e8720c;letter-spacing:0.1em;text-transform:uppercase;">&#127936; NUEVO DESAFÍO</p>
+  <h1 style="margin:0;font-size:26px;font-weight:800;color:#0d1b2a;line-height:1.2;">${escapeHtml(title)}</h1>
+  <div style="width:40px;height:3px;background-color:#e8720c;margin:14px auto 0;"></div>
 </div>
-<a href="${escapeHtml(fixtureUrl)}" style="display:inline-block;padding:13px 28px;background-color:#0d1b2a;color:#fffdfa;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;line-height:1;">Ver partido</a>`;
+<p style="margin:0 0 8px;font-size:15px;color:#0d1b2a;line-height:1.6;text-align:center;">Hola <strong>${escapeHtml(args.challengedName)}</strong>,</p>
+<p style="margin:0 0 24px;font-size:15px;color:#776f66;line-height:1.6;text-align:center;"><strong style="color:#0d1b2a;">${escapeHtml(args.challengerName)}</strong> te ha desafiado a un partido.<br>Coordinen para jugar lo antes posible.</p>
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid #ede8e2;border-radius:8px;margin:0 0 28px;">
+  <tr>
+    <td style="padding:16px 20px;border-bottom:1px solid #f0ede8;">
+      <p style="margin:0 0 3px;font-size:11px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.08em;">Tu rival</p>
+      <p style="margin:0;font-size:16px;font-weight:800;color:#0d1b2a;">${escapeHtml(args.challengerName)}</p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:16px 20px;">
+      <p style="margin:0 0 3px;font-size:11px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.08em;">Fecha límite</p>
+      <p style="margin:0;font-size:15px;font-weight:700;color:#e8720c;">${escapeHtml(deadline)}</p>
+    </td>
+  </tr>
+</table>
+<div style="text-align:center;">
+  <a href="${escapeHtml(fixtureUrl)}" style="display:inline-block;padding:15px 40px;background-color:#e8720c;color:#ffffff;text-decoration:none;border-radius:50px;font-weight:700;font-size:15px;line-height:1;">Ver partido</a>
+</div>`;
 
   return {
     subject: title,
@@ -130,7 +144,7 @@ export async function notifyChallengeCreated(matchId: string) {
   try {
     const deadline = new Date(match.createdAt);
     deadline.setDate(deadline.getDate() + 7);
-    const message = buildMessage({
+    const message = buildChallengeEmail({
       challengedName: challenged.fullName,
       challengerName: challenger.fullName,
       deadline,

@@ -51,6 +51,8 @@ export function wait(ms: number) {
 
 export function buildEmailLayout(title: string, bodyHtml: string): string {
   const homeUrl = absoluteUrl("/");
+  const logoUrl = absoluteUrl("/logo.png");
+  const bannerUrl = absoluteUrl("/imagen-mail.png");
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -62,23 +64,54 @@ export function buildEmailLayout(title: string, bodyHtml: string): string {
 <body style="margin:0;padding:0;background-color:#f6f2ea;font-family:Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased;">
   <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color:#f6f2ea;">
     <tr>
-      <td align="center" style="padding:40px 16px 32px;">
-        <table cellpadding="0" cellspacing="0" role="presentation" style="max-width:560px;width:100%;">
+      <td align="center" style="padding:32px 16px 24px;">
+        <table cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;width:100%;">
           <tr>
-            <td align="center" style="padding-bottom:28px;">
-              <a href="${homeUrl}" style="text-decoration:none;">
-                <span style="font-size:17px;font-weight:900;color:#0d1b2a;letter-spacing:0.1em;text-transform:uppercase;">Escalerilla</span>
-              </a>
+            <td style="background-color:#0d1b2a;border-radius:12px 12px 0 0;padding:0;overflow:hidden;">
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+                <tr>
+                  <td valign="middle" style="padding:18px 16px 18px 24px;">
+                    <a href="${homeUrl}" style="text-decoration:none;">
+                      <table cellpadding="0" cellspacing="0" role="presentation">
+                        <tr>
+                          <td valign="middle" style="padding-right:14px;">
+                            <img src="${logoUrl}" alt="Club La Dehesa" width="52" height="52" style="display:block;border:0;border-radius:6px;">
+                          </td>
+                          <td valign="middle">
+                            <span style="font-size:15px;font-weight:900;color:#ffffff;letter-spacing:0.03em;text-transform:uppercase;display:block;line-height:1.2;">Club de Golf La Dehesa</span>
+                            <span style="font-size:10px;font-weight:700;color:#e8720c;letter-spacing:0.14em;text-transform:uppercase;display:block;margin-top:5px;">Escalerilla Tenis</span>
+                          </td>
+                        </tr>
+                      </table>
+                    </a>
+                  </td>
+                  <td align="right" valign="top" style="padding:0;line-height:0;font-size:0;width:220px;">
+                    <img src="${bannerUrl}" alt="" width="220" height="88" style="display:block;border:0;border-radius:0 12px 0 0;" role="presentation">
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
           <tr>
-            <td style="background-color:#fffdfa;border-radius:12px;border:1px solid #ded6ca;padding:36px 40px;">
+            <td style="background-color:#ffffff;border-radius:0 0 12px 12px;padding:40px 40px 36px;">
               ${bodyHtml}
             </td>
           </tr>
           <tr>
-            <td align="center" style="padding-top:20px;">
-              <p style="margin:0;font-size:12px;color:#776f66;line-height:1.6;text-align:center;">Correo automático · Club Escalerilla · No responder</p>
+            <td align="center" style="padding:24px 0 16px;">
+              <p style="margin:0 0 14px;font-size:13px;font-weight:600;color:#0d1b2a;text-align:center;letter-spacing:0.02em;">Escalerilla de Tenis · Club de Golf La Dehesa</p>
+              <table align="center" cellpadding="0" cellspacing="0" role="presentation">
+                <tr>
+                  <td style="padding:0 5px;"><a href="${homeUrl}" style="display:block;width:34px;height:34px;background-color:#dedad4;border-radius:50%;text-align:center;line-height:34px;font-size:11px;font-weight:700;text-decoration:none;color:#0d1b2a;">IG</a></td>
+                  <td style="padding:0 5px;"><a href="${homeUrl}" style="display:block;width:34px;height:34px;background-color:#dedad4;border-radius:50%;text-align:center;line-height:34px;font-size:11px;font-weight:700;text-decoration:none;color:#0d1b2a;">WA</a></td>
+                  <td style="padding:0 5px;"><a href="${homeUrl}" style="display:block;width:34px;height:34px;background-color:#dedad4;border-radius:50%;text-align:center;line-height:34px;font-size:11px;font-weight:700;text-decoration:none;color:#0d1b2a;">WEB</a></td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="background-color:#0d1b2a;border-radius:8px;padding:14px 20px;">
+              <p style="margin:0;font-size:12px;color:#8a9aaa;text-align:center;">Correo automático · Club Escalerilla · No responder</p>
             </td>
           </tr>
         </table>

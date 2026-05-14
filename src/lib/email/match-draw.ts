@@ -1,12 +1,15 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
 
 import {
   AVAILABILITY_DAYS,
+  type AvailabilitySlots,
   buildAvailabilitySlots,
+  getSharedAvailabilityRanges,
+  SLOT_COUNT,
   summarizeAvailabilityDay,
 } from "@/lib/availability";
 import { db } from "@/lib/db";
-import { matches, players, weeks } from "@/lib/db/schema";
+import { matches, matchSets, players, weeks } from "@/lib/db/schema";
 import {
   makeEmailDedupeKey,
   markEmailEventFailed,
@@ -21,11 +24,13 @@ import {
   wait,
 } from "@/lib/email/shared";
 import { env } from "@/lib/env";
+import { getRanking } from "@/lib/ranking";
 
-type DrawPlayer = {
+export type DrawPlayer = {
   id: string;
   fullName: string;
   email: string | null;
+  gender: "M" | "F";
   availMonday: boolean | null;
   availTuesday: boolean | null;
   availWednesday: boolean | null;
@@ -39,10 +44,60 @@ type DrawPlayer = {
   } | null;
 };
 
-type DrawMatch = {
+export type DrawMatch = {
   id: string;
   player1Id: string;
   player2Id: string;
+  category: "M" | "F";
+};
+
+type PlayerEmailStats = {
+  position: number;
+  points: number;
+  weeklyDelta: number;
+  matchesPlayed: number;
+  matchesWon: number;
+  matchesLost: number;
+  recentForm: Array<"W" | "L" | "D">;
+};
+
+type HeadToHeadStats = {
+  playerWins: number;
+  opponentWins: number;
+  draws: number;
+};
+
+type RecentMatchSummary = {
+  id: string;
+  playedOn: string | null;
+  status: "confirmado" | "wo" | "empate";
+  winnerId: string | null;
+  player1Id: string;
+  player2Id: string;
+  player1Name: string;
+  player2Name: string;
+  sets: Array<{
+    setNumber: number;
+    gamesP1: number;
+    gamesP2: number;
+    tiebreakP1: number | null;
+    tiebreakP2: number | null;
+  }>;
+};
+
+type RecommendedTimeOption = {
+  dayLabel: string;
+  dateLabel: string;
+  timeLabel: string;
+  compatibility: number;
+};
+
+type OtherWeekMatch = {
+  id: string;
+  player1Name: string;
+  player2Name: string;
+  player1Ranking: number | null;
+  player2Ranking: number | null;
 };
 
 function formatDate(value: string) {
@@ -53,6 +108,274 @@ function formatDate(value: string) {
   }
 
   return `${day}-${month}-${year}`;
+}
+
+function formatLongDate(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return value;
+
+  return new Intl.DateTimeFormat("es-CL", {
+    day: "numeric",
+    month: "long",
+    timeZone: "America/Santiago",
+  }).format(new Date(Date.UTC(year, month - 1, day)));
+}
+
+function addDays(value: string, days: number) {
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return value;
+
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function formatDelta(delta: number) {
+  if (delta > 0) return `+${delta}`;
+  if (delta < 0) return String(delta);
+  return "0";
+}
+
+function formatForm(form: Array<"W" | "L" | "D">) {
+  if (form.length === 0) return "Sin partidos recientes";
+
+  return form
+    .map((result) => {
+      if (result === "W") return "G";
+      if (result === "L") return "P";
+      return "E";
+    })
+    .join(" ");
+}
+
+function formatFormHtml(form: Array<"W" | "L" | "D">) {
+  if (form.length === 0) {
+    return `<span style="font-size:12px;color:#776f66;">Sin partidos recientes</span>`;
+  }
+
+  return form
+    .map((result) => {
+      const label = result === "W" ? "W" : result === "L" ? "L" : "E";
+      const color =
+        result === "W" ? "#5fbd3f" : result === "L" ? "#f04452" : "#9aa3af";
+
+      return `<span style="display:inline-block;width:18px;height:18px;margin:0 3px;border-radius:50%;background-color:${color};color:#ffffff;font-size:10px;font-weight:800;line-height:18px;text-align:center;">${label}</span>`;
+    })
+    .join("");
+}
+
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+function formatFirstName(name: string) {
+  return name.split(" ").filter(Boolean)[0] ?? name;
+}
+
+function formatPlayerNameHtml(name: string) {
+  const parts = name.split(" ").filter(Boolean);
+  if (parts.length <= 1) return escapeHtml(name);
+
+  return `${escapeHtml(parts[0])}<br>${escapeHtml(parts.slice(1).join(" "))}`;
+}
+
+function formatAvatarHtml(name: string, align: "left" | "right") {
+  const borderColor = align === "right" ? "#e8720c" : "#e7dfd6";
+
+  return `<div style="width:72px;height:72px;border-radius:50%;border:3px solid ${borderColor};background:linear-gradient(135deg,#f2e8dc,#0d1b2a);color:#ffffff;font-size:18px;font-weight:900;line-height:72px;text-align:center;margin:0 auto;">${escapeHtml(getInitials(name))}</div>`;
+}
+
+function formatRanking(stats: PlayerEmailStats | undefined) {
+  if (!stats) return "Ranking no disponible";
+
+  return `#${stats.position} · ${stats.points} pts · semana ${formatDelta(
+    stats.weeklyDelta,
+  )} · ${stats.matchesWon}G-${stats.matchesLost}P`;
+}
+
+function formatRankingPosition(stats: PlayerEmailStats | undefined) {
+  return stats ? `#${stats.position}` : "S/R";
+}
+
+function formatHeadToHead(stats: HeadToHeadStats | undefined) {
+  if (!stats) return "0 - 0";
+  return `${stats.playerWins} - ${stats.opponentWins}`;
+}
+
+function formatHeadToHeadLeader(stats: HeadToHeadStats | undefined) {
+  if (!stats || stats.playerWins + stats.opponentWins + stats.draws === 0) {
+    return "Sin historial";
+  }
+  if (stats.playerWins === stats.opponentWins) return "Historial parejo";
+  return stats.playerWins > stats.opponentWins
+    ? "Lideras tú"
+    : "Lidera tu rival";
+}
+
+function formatSetScore(set: RecentMatchSummary["sets"][number]) {
+  const base = `${set.gamesP1}-${set.gamesP2}`;
+  if (set.tiebreakP1 == null || set.tiebreakP2 == null) return base;
+
+  return `${base} (${set.tiebreakP1}-${set.tiebreakP2})`;
+}
+
+function formatMatchScore(match: RecentMatchSummary) {
+  if (match.status === "wo") return "W.O.";
+  if (match.status === "empate") return "Empate";
+  if (match.sets.length === 0) return "Resultado confirmado";
+
+  return match.sets.map(formatSetScore).join(", ");
+}
+
+function getMatchResult(match: RecentMatchSummary, playerId: string) {
+  if (match.status === "empate" || !match.winnerId) return "empató";
+  return match.winnerId === playerId ? "ganó" : "perdió";
+}
+
+function getOpponentName(match: RecentMatchSummary, playerId: string) {
+  return match.player1Id === playerId ? match.player2Name : match.player1Name;
+}
+
+function formatRecentMatch(match: RecentMatchSummary, playerId: string) {
+  const date = match.playedOn ? formatDate(match.playedOn) : "Sin fecha";
+  return `${date}: ${getMatchResult(match, playerId)} vs ${getOpponentName(
+    match,
+    playerId,
+  )} · ${formatMatchScore(match)}`;
+}
+
+function formatRecentMatches(
+  matchesToFormat: RecentMatchSummary[] | undefined,
+  playerId: string,
+) {
+  if (!matchesToFormat?.length) {
+    return ["Sin partidos registrados recientemente."];
+  }
+
+  return matchesToFormat
+    .slice(0, 3)
+    .map((match) => formatRecentMatch(match, playerId));
+}
+
+function makeAllAvailabilitySlots(): AvailabilitySlots {
+  return AVAILABILITY_DAYS.reduce((acc, { key }) => {
+    acc[key] = Array.from({ length: SLOT_COUNT }, () => true);
+    return acc;
+  }, {} as AvailabilitySlots);
+}
+
+function getEmailAvailabilitySlots(player: DrawPlayer) {
+  return player.alwaysAvailable
+    ? makeAllAvailabilitySlots()
+    : buildAvailabilitySlots(player);
+}
+
+const dayOffsets = new Map(
+  AVAILABILITY_DAYS.map(({ key }, index) => [key, index] as const),
+);
+
+function getRecommendedTimeOptions(
+  player: DrawPlayer,
+  opponent: DrawPlayer,
+  weekStartsOn: string,
+) {
+  const sharedRanges = getSharedAvailabilityRanges(
+    getEmailAvailabilitySlots(player),
+    getEmailAvailabilitySlots(opponent),
+  );
+
+  return sharedRanges.slice(0, 3).map((range, index) => {
+    const dayDate = addDays(weekStartsOn, dayOffsets.get(range.dayKey) ?? 0);
+    const compatibility = Math.max(70, 90 - index * 10);
+
+    return {
+      dayLabel: range.dayLabel,
+      dateLabel: formatLongDate(dayDate),
+      timeLabel: range.label.replace(`${range.dayLabel} `, ""),
+      compatibility,
+    };
+  });
+}
+
+function formatRecommendedTimes(times: RecommendedTimeOption[]) {
+  return times.length > 0
+    ? times.map(
+        (time) =>
+          `${time.dayLabel} ${time.dateLabel}: ${time.timeLabel} (${time.compatibility}% compatibilidad)`,
+      )
+    : ["No hay cruces claros de disponibilidad; coordinen directo."];
+}
+
+function formatListText(title: string, lines: string[]) {
+  return [title, ...lines.map((line) => `- ${line}`)].join("\n");
+}
+
+function formatListHtml(lines: string[], color = "#0d1b2a") {
+  return lines
+    .map(
+      (line) =>
+        `<li style="padding:8px 0;font-size:14px;color:${color};line-height:1.5;border-bottom:1px solid #f0ede8;">${escapeHtml(line)}</li>`,
+    )
+    .join("\n");
+}
+
+function formatRecommendedCardsHtml(times: RecommendedTimeOption[]) {
+  if (times.length === 0) {
+    return `<td style="padding:14px;border:1px solid #e4e8ef;border-radius:8px;background-color:#ffffff;">
+      <p style="margin:0;font-size:13px;font-weight:700;color:#0d1b2a;line-height:1.4;">No hay cruces claros</p>
+      <p style="margin:6px 0 0;font-size:12px;color:#697386;line-height:1.4;">Coordinen directo según sus disponibilidades.</p>
+    </td>`;
+  }
+
+  return times
+    .map((time, index) => {
+      const label =
+        index === 0
+          ? "Mejor opción"
+          : index === 1
+            ? "2da opción"
+            : "3ra opción";
+      const background = index === 0 ? "#f3fbf1" : "#ffffff";
+      const border = index === 0 ? "#bfe7bd" : "#e4e8ef";
+
+      return `<td width="33.33%" valign="top" style="padding:0 6px;">
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid ${border};border-radius:8px;background-color:${background};">
+          <tr>
+            <td style="padding:14px 14px 12px;">
+              <span style="display:inline-block;margin:0 0 8px;padding:3px 7px;border-radius:4px;background-color:#5fbd3f;color:#ffffff;font-size:9px;font-weight:900;text-transform:uppercase;line-height:1;">${escapeHtml(label)}</span>
+              <p style="margin:0 0 5px;font-size:12px;color:#0d1b2a;line-height:1.3;">${escapeHtml(time.dayLabel)} ${escapeHtml(time.dateLabel)}</p>
+              <p style="margin:0 0 7px;font-size:17px;font-weight:900;color:#0d1b2a;line-height:1.2;">${escapeHtml(time.timeLabel)}</p>
+              <p style="margin:0;font-size:11px;color:#2f9e44;line-height:1.3;">&#10003; ${time.compatibility}% compatibilidad</p>
+            </td>
+          </tr>
+        </table>
+      </td>`;
+    })
+    .join("");
+}
+
+function formatOtherMatchesHtml(matchesToFormat: OtherWeekMatch[]) {
+  if (matchesToFormat.length === 0) {
+    return `<p style="margin:0;font-size:13px;color:#697386;line-height:1.5;">No hay otros partidos publicados en esta semana.</p>`;
+  }
+
+  return `<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid #edf0f5;border-radius:8px;background-color:#ffffff;">
+    ${matchesToFormat
+      .slice(0, 4)
+      .map(
+        (match) => `<tr>
+          <td style="padding:10px 12px;border-bottom:1px solid #edf0f5;font-size:13px;color:#0d1b2a;line-height:1.3;">${escapeHtml(match.player1Name)}${match.player1Ranking ? ` (${match.player1Ranking}°)` : ""}</td>
+          <td align="center" style="padding:10px 6px;border-bottom:1px solid #edf0f5;font-size:10px;font-weight:900;color:#697386;line-height:1.3;">VS</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #edf0f5;font-size:13px;color:#0d1b2a;line-height:1.3;">${escapeHtml(match.player2Name)}${match.player2Ranking ? ` (${match.player2Ranking}°)` : ""}</td>
+        </tr>`,
+      )
+      .join("")}
+  </table>`;
 }
 
 function formatAvailability(player: DrawPlayer) {
@@ -76,27 +399,67 @@ function formatAvailabilityHtml(player: DrawPlayer) {
     .split("\n")
     .map(
       (line) =>
-        `<li style="padding:5px 0;font-size:14px;color:#0d1b2a;line-height:1.5;border-bottom:1px solid #ded6ca;">${escapeHtml(line)}</li>`,
+        `<li style="padding:8px 0;font-size:14px;color:#0d1b2a;line-height:1.5;border-bottom:1px solid #f0ede8;">${escapeHtml(line)}</li>`,
     )
     .join("\n");
 }
 
-function buildMessage(args: {
+export function buildMatchDrawEmail(args: {
   player: DrawPlayer;
   opponent: DrawPlayer;
   match: DrawMatch;
   weekStartsOn: string;
   weekEndsOn: string;
+  playerStats?: PlayerEmailStats;
+  opponentStats?: PlayerEmailStats;
+  headToHeadStats?: HeadToHeadStats;
+  opponentRecentMatches?: RecentMatchSummary[];
+  otherMatches?: OtherWeekMatch[];
+  recommendedTimes?: RecommendedTimeOption[];
 }) {
   const fixtureUrl = absoluteUrl("/fixture");
-  const title = `Tienes partido contra ${args.opponent.fullName}`;
+  const rankingUrl = absoluteUrl(
+    `/ranking/${args.player.gender === "M" ? "hombres" : "mujeres"}`,
+  );
+  const availabilityUrl = absoluteUrl("/disponibilidad");
+  const title = "Tienes partido esta semana";
   const opponentAvailability = formatAvailability(args.opponent);
   const playerAvailability = formatAvailability(args.player);
+  const recommendedTimeOptions =
+    args.recommendedTimes ??
+    getRecommendedTimeOptions(args.player, args.opponent, args.weekStartsOn);
+  const recommendedTimeLines = formatRecommendedTimes(recommendedTimeOptions);
+  const otherMatches = args.otherMatches ?? [];
+  const firstName = formatFirstName(args.player.fullName);
+  const textRecommendedTimes = formatListText(
+    "Horarios recomendados:",
+    recommendedTimeLines,
+  );
+  const opponentRecentMatches = formatRecentMatches(
+    args.opponentRecentMatches,
+    args.opponent.id,
+  );
   const textLines = [
     `Hola ${args.player.fullName},`,
     "",
-    title,
+    `Tienes partido contra ${args.opponent.fullName}.`,
     `Semana: ${formatDate(args.weekStartsOn)} al ${formatDate(args.weekEndsOn)}.`,
+    "",
+    "Ranking:",
+    `${args.player.fullName}: ${formatRanking(args.playerStats)}`,
+    `${args.opponent.fullName}: ${formatRanking(args.opponentStats)}`,
+    "",
+    `Forma reciente de ${args.player.fullName}: ${formatForm(
+      args.playerStats?.recentForm ?? [],
+    )}`,
+    `Forma reciente de ${args.opponent.fullName}: ${formatForm(
+      args.opponentStats?.recentForm ?? [],
+    )}`,
+    `Historial entre ambos: ${formatHeadToHead(args.headToHeadStats)} (${formatHeadToHeadLeader(args.headToHeadStats)})`,
+    "",
+    formatListText("Últimos partidos del rival:", opponentRecentMatches),
+    "",
+    textRecommendedTimes,
     "",
     `Horarios disponibles de ${args.opponent.fullName}:`,
     opponentAvailability,
@@ -107,24 +470,112 @@ function buildMessage(args: {
     `Ver fixture: ${fixtureUrl}`,
   ];
   const innerHtml = `
-<h1 style="margin:0 0 24px;font-size:24px;font-weight:800;color:#0d1b2a;line-height:1.3;">${escapeHtml(title)}</h1>
-<p style="margin:0 0 20px;font-size:15px;color:#0d1b2a;line-height:1.6;">Hola <strong>${escapeHtml(args.player.fullName)}</strong>,</p>
-<div style="background-color:#f6f2ea;border-radius:8px;border:1px solid #ded6ca;padding:20px 24px;margin:0 0 28px;">
-  <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.07em;">Semana</p>
-  <p style="margin:0;font-size:15px;font-weight:700;color:#0d1b2a;">${escapeHtml(formatDate(args.weekStartsOn))} al ${escapeHtml(formatDate(args.weekEndsOn))}</p>
+<div style="text-align:center;margin:0 0 24px;">
+  <p style="margin:0 0 12px;font-size:12px;font-weight:800;color:#e8720c;letter-spacing:0.1em;text-transform:uppercase;">&#9822; SORTEO PUBLICADO</p>
+  <h1 style="margin:0;font-size:28px;font-weight:900;color:#0d1b2a;line-height:1.2;">${escapeHtml(title)}</h1>
+  <div style="width:40px;height:3px;background-color:#e8720c;margin:14px auto 0;"></div>
 </div>
-<h2 style="margin:0 0 8px;font-size:13px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.07em;">Disponibilidad de ${escapeHtml(args.opponent.fullName)}</h2>
-<ul style="margin:0 0 24px;padding:0;list-style:none;border-top:1px solid #ded6ca;">
+<p style="margin:0 0 4px;font-size:15px;color:#0d1b2a;line-height:1.6;text-align:center;">Hola ${escapeHtml(firstName)},</p>
+<p style="margin:0 0 24px;font-size:14px;color:#405066;line-height:1.6;text-align:center;">Ya salió el sorteo de la semana. Conoce tu próximo desafío.</p>
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid #e4e8ef;border-radius:8px;margin:0 0 16px;background-color:#ffffff;">
+  <tr>
+    <td width="42%" align="center" valign="middle" style="padding:18px 14px;">
+      ${formatAvatarHtml(args.player.fullName, "left")}
+      <p style="margin:12px 0 5px;font-size:18px;font-weight:900;color:#0d1b2a;line-height:1.15;">${formatPlayerNameHtml(args.player.fullName)}</p>
+      <p style="margin:0 0 2px;font-size:11px;color:#697386;line-height:1.2;">Ranking actual</p>
+      <p style="margin:0 0 14px;font-size:24px;font-weight:900;color:#0d1b2a;line-height:1;">${escapeHtml(formatRankingPosition(args.playerStats))}</p>
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color:#f8fafc;border-radius:8px;">
+        <tr>
+          <td align="center" style="padding:13px 8px;">
+            <p style="margin:0 0 8px;font-size:10px;font-weight:800;color:#697386;text-transform:uppercase;line-height:1.2;">Últimos partidos</p>
+            <p style="margin:0 0 8px;line-height:1;">${formatFormHtml(args.playerStats?.recentForm ?? [])}</p>
+            <p style="margin:0;font-size:11px;color:#405066;line-height:1.3;">Forma: ${escapeHtml(formatForm(args.playerStats?.recentForm ?? []))}</p>
+          </td>
+        </tr>
+      </table>
+    </td>
+    <td width="16%" align="center" valign="middle" style="padding:18px 4px;border-left:1px solid #edf0f5;border-right:1px solid #edf0f5;">
+      <div style="width:44px;height:44px;border:1px solid #d9dee8;border-radius:50%;margin:0 auto 18px;text-align:center;line-height:44px;font-size:15px;font-weight:900;color:#0d1b2a;background-color:#ffffff;">VS</div>
+      <p style="margin:0 0 4px;font-size:11px;font-weight:800;color:#e8720c;line-height:1.2;">Historial</p>
+      <p style="margin:0 0 3px;font-size:22px;font-weight:900;color:#0d1b2a;line-height:1;">${escapeHtml(formatHeadToHead(args.headToHeadStats))}</p>
+      <p style="margin:0;font-size:11px;color:#697386;line-height:1.2;">${escapeHtml(formatHeadToHeadLeader(args.headToHeadStats))}</p>
+    </td>
+    <td width="42%" align="center" valign="middle" style="padding:18px 14px;">
+      ${formatAvatarHtml(args.opponent.fullName, "right")}
+      <p style="margin:12px 0 5px;font-size:18px;font-weight:900;color:#0d1b2a;line-height:1.15;">${formatPlayerNameHtml(args.opponent.fullName)}</p>
+      <p style="margin:0 0 2px;font-size:11px;color:#697386;line-height:1.2;">Ranking actual</p>
+      <p style="margin:0 0 14px;font-size:24px;font-weight:900;color:#0d1b2a;line-height:1;">${escapeHtml(formatRankingPosition(args.opponentStats))}</p>
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color:#f8fafc;border-radius:8px;">
+        <tr>
+          <td align="center" style="padding:13px 8px;">
+            <p style="margin:0 0 8px;font-size:10px;font-weight:800;color:#697386;text-transform:uppercase;line-height:1.2;">Últimos partidos</p>
+            <p style="margin:0 0 8px;line-height:1;">${formatFormHtml(args.opponentStats?.recentForm ?? [])}</p>
+            <p style="margin:0;font-size:11px;color:#405066;line-height:1.3;">Forma: ${escapeHtml(formatForm(args.opponentStats?.recentForm ?? []))}</p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid #f1e7da;border-radius:8px;margin:0 0 20px;background-color:#fff9f2;">
+  <tr>
+    <td width="33.33%" style="padding:14px 16px;border-right:1px solid #eadfce;">
+      <p style="margin:0 0 4px;font-size:11px;font-weight:900;color:#0d1b2a;text-transform:uppercase;line-height:1.2;">Semana</p>
+      <p style="margin:0;font-size:13px;color:#405066;line-height:1.35;">${escapeHtml(formatDate(args.weekStartsOn))} al ${escapeHtml(formatDate(args.weekEndsOn))}</p>
+    </td>
+    <td width="33.33%" style="padding:14px 16px;border-right:1px solid #eadfce;">
+      <p style="margin:0 0 4px;font-size:11px;font-weight:900;color:#0d1b2a;text-transform:uppercase;line-height:1.2;">Ronda</p>
+      <p style="margin:0;font-size:13px;color:#405066;line-height:1.35;">Sorteo semanal</p>
+    </td>
+    <td width="33.33%" style="padding:14px 16px;">
+      <p style="margin:0 0 4px;font-size:11px;font-weight:900;color:#0d1b2a;text-transform:uppercase;line-height:1.2;">Cancha</p>
+      <p style="margin:0;font-size:13px;color:#405066;line-height:1.35;">A confirmar</p>
+    </td>
+  </tr>
+</table>
+<p style="margin:0 0 12px;font-size:13px;font-weight:900;color:#0d1b2a;text-transform:uppercase;letter-spacing:0.02em;">Otros partidos de la semana</p>
+${formatOtherMatchesHtml(otherMatches)}
+<p style="margin:24px 0 12px;font-size:13px;font-weight:900;color:#0d1b2a;text-transform:uppercase;letter-spacing:0.02em;">Horarios recomendados para tu partido</p>
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 10px;">
+  <tr>${formatRecommendedCardsHtml(recommendedTimeOptions)}</tr>
+</table>
+<p style="margin:0 0 20px;font-size:12px;color:#405066;line-height:1.5;">Los horarios se basan en la disponibilidad de ambos jugadores.</p>
+<p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.08em;">Últimos partidos del rival</p>
+<ul style="margin:0 0 24px;padding:0;list-style:none;border-top:1px solid #f0ede8;">
+  ${formatListHtml(opponentRecentMatches)}
+</ul>
+<p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#e8720c;text-transform:uppercase;letter-spacing:0.08em;">Disponibilidad de ${escapeHtml(args.opponent.fullName)}</p>
+<ul style="margin:0 0 24px;padding:0;list-style:none;border-top:1px solid #f0ede8;">
   ${formatAvailabilityHtml(args.opponent)}
 </ul>
-<h2 style="margin:0 0 8px;font-size:13px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.07em;">Tus horarios cargados</h2>
-<ul style="margin:0 0 28px;padding:0;list-style:none;border-top:1px solid #ded6ca;">
+<p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.08em;">Tus horarios cargados</p>
+<ul style="margin:0 0 28px;padding:0;list-style:none;border-top:1px solid #f0ede8;">
   ${formatAvailabilityHtml(args.player)}
 </ul>
-<a href="${escapeHtml(fixtureUrl)}" style="display:inline-block;padding:13px 28px;background-color:#0d1b2a;color:#fffdfa;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;line-height:1;">Ver fixture</a>`;
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 0;">
+  <tr>
+    <td width="50%" style="padding:0 6px 0 0;">
+      <a href="${escapeHtml(availabilityUrl)}" style="display:block;padding:14px 16px;background-color:#0d1b2a;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;font-size:14px;line-height:1;text-align:center;">Confirmar disponibilidad</a>
+    </td>
+    <td width="50%" style="padding:0 0 0 6px;">
+      <a href="${escapeHtml(fixtureUrl)}" style="display:block;padding:12px 16px;background-color:#ffffff;color:#0d1b2a;text-decoration:none;border-radius:8px;font-weight:700;font-size:14px;line-height:1;text-align:center;border:2px solid #0d1b2a;">Ver fixture</a>
+    </td>
+  </tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:20px 0 0;background-color:#0d3566;border-radius:8px;">
+  <tr>
+    <td style="padding:18px 20px;">
+      <p style="margin:0 0 4px;font-size:15px;font-weight:900;color:#ffffff;line-height:1.3;">Cada partido cuenta</p>
+      <p style="margin:0;font-size:12px;color:#d9e6f7;line-height:1.4;">Suma puntos, mejora tu ranking y sube en la Escalerilla.</p>
+    </td>
+    <td align="right" style="padding:18px 20px;">
+      <a href="${escapeHtml(rankingUrl)}" style="display:inline-block;padding:12px 28px;background-color:#e8720c;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:800;font-size:13px;line-height:1;text-align:center;">Ver ranking</a>
+    </td>
+  </tr>
+</table>`;
 
   return {
-    subject: title,
+    subject: `Tienes partido contra ${args.opponent.fullName}`,
     text: textLines.join("\n"),
     html: buildEmailLayout(title, innerHtml),
   };
@@ -136,6 +587,12 @@ async function sendDrawEmail(args: {
   match: DrawMatch;
   weekStartsOn: string;
   weekEndsOn: string;
+  playerStats?: PlayerEmailStats;
+  opponentStats?: PlayerEmailStats;
+  headToHeadStats?: HeadToHeadStats;
+  opponentRecentMatches?: RecentMatchSummary[];
+  otherMatches?: OtherWeekMatch[];
+  recommendedTimes?: RecommendedTimeOption[];
 }) {
   const email = args.player.email?.trim().toLowerCase();
 
@@ -162,7 +619,7 @@ async function sendDrawEmail(args: {
   }
 
   try {
-    const message = buildMessage(args);
+    const message = buildMatchDrawEmail(args);
 
     await sendTransactionalEmail({
       to: email,
@@ -177,6 +634,207 @@ async function sendDrawEmail(args: {
     console.error("Failed to send fixture published email", error);
     return "failed" as const;
   }
+}
+
+function getRecentResult(match: RecentMatchSummary, playerId: string) {
+  if (match.status === "empate" || !match.winnerId) return "D" as const;
+  return match.winnerId === playerId ? ("W" as const) : ("L" as const);
+}
+
+function groupRecentMatchesByPlayer(matchesToGroup: RecentMatchSummary[]) {
+  const byPlayer = new Map<string, RecentMatchSummary[]>();
+
+  for (const match of matchesToGroup) {
+    for (const playerId of [match.player1Id, match.player2Id]) {
+      const current = byPlayer.get(playerId) ?? [];
+      current.push(match);
+      byPlayer.set(playerId, current);
+    }
+  }
+
+  return byPlayer;
+}
+
+function getPairKey(playerId: string, opponentId: string) {
+  return [playerId, opponentId].sort().join(":");
+}
+
+async function fetchHeadToHeadByPair(drawMatches: DrawMatch[]) {
+  if (!db || drawMatches.length === 0)
+    return new Map<string, Map<string, number>>();
+
+  const playerIds = [
+    ...new Set(
+      drawMatches.flatMap((match) => [match.player1Id, match.player2Id]),
+    ),
+  ];
+
+  const completedMatches = await db
+    .select({
+      player1Id: matches.player1Id,
+      player2Id: matches.player2Id,
+      winnerId: matches.winnerId,
+      status: matches.status,
+    })
+    .from(matches)
+    .where(
+      and(
+        or(
+          inArray(matches.player1Id, playerIds),
+          inArray(matches.player2Id, playerIds),
+        ),
+        sql`${matches.status} in ('confirmado', 'empate', 'wo')`,
+      ),
+    );
+
+  const scheduledPairs = new Set(
+    drawMatches.map((match) => getPairKey(match.player1Id, match.player2Id)),
+  );
+  const winsByPair = new Map<string, Map<string, number>>();
+
+  for (const match of completedMatches) {
+    const pairKey = getPairKey(match.player1Id, match.player2Id);
+    if (!scheduledPairs.has(pairKey)) continue;
+
+    const pairWins = winsByPair.get(pairKey) ?? new Map<string, number>();
+    if (match.status === "empate" || !match.winnerId) {
+      pairWins.set("draws", (pairWins.get("draws") ?? 0) + 1);
+    } else {
+      pairWins.set(match.winnerId, (pairWins.get(match.winnerId) ?? 0) + 1);
+    }
+    winsByPair.set(pairKey, pairWins);
+  }
+
+  return winsByPair;
+}
+
+function getHeadToHeadStats(
+  winsByPair: Map<string, Map<string, number>>,
+  playerId: string,
+  opponentId: string,
+): HeadToHeadStats {
+  const pairWins = winsByPair.get(getPairKey(playerId, opponentId));
+
+  return {
+    playerWins: pairWins?.get(playerId) ?? 0,
+    opponentWins: pairWins?.get(opponentId) ?? 0,
+    draws: pairWins?.get("draws") ?? 0,
+  };
+}
+
+async function fetchRecentMatchesByPlayer(playerIds: string[]) {
+  if (!db || playerIds.length === 0)
+    return new Map<string, RecentMatchSummary[]>();
+
+  const recentMatches = (await db
+    .select({
+      id: matches.id,
+      playedOn: matches.playedOn,
+      status: matches.status,
+      winnerId: matches.winnerId,
+      player1Id: matches.player1Id,
+      player2Id: matches.player2Id,
+      player1Name: players.fullName,
+      player2Name: sql<string>`players_p2.full_name`,
+      confirmedAt: matches.confirmedAt,
+      createdAt: matches.createdAt,
+    })
+    .from(matches)
+    .innerJoin(players, eq(matches.player1Id, players.id))
+    .innerJoin(
+      sql`players as players_p2`,
+      sql`${matches.player2Id} = players_p2.id`,
+    )
+    .where(
+      and(
+        or(
+          inArray(matches.player1Id, playerIds),
+          inArray(matches.player2Id, playerIds),
+        ),
+        sql`${matches.status} in ('confirmado', 'empate', 'wo')`,
+      ),
+    )
+    .orderBy(
+      desc(matches.playedOn),
+      desc(matches.confirmedAt),
+      desc(matches.createdAt),
+    )
+    .limit(Math.max(playerIds.length * 8, 40))) as Array<
+    Omit<RecentMatchSummary, "sets"> & {
+      confirmedAt: Date | null;
+      createdAt: Date;
+    }
+  >;
+
+  if (recentMatches.length === 0) return new Map();
+
+  const recentMatchIds = recentMatches.map((match) => match.id);
+  const setRows = await db
+    .select({
+      matchId: matchSets.matchId,
+      setNumber: matchSets.setNumber,
+      gamesP1: matchSets.gamesP1,
+      gamesP2: matchSets.gamesP2,
+      tiebreakP1: matchSets.tiebreakP1,
+      tiebreakP2: matchSets.tiebreakP2,
+    })
+    .from(matchSets)
+    .where(inArray(matchSets.matchId, recentMatchIds));
+
+  const setsByMatch = new Map<string, typeof setRows>();
+  for (const set of setRows) {
+    const current = setsByMatch.get(set.matchId) ?? [];
+    current.push(set);
+    setsByMatch.set(set.matchId, current);
+  }
+
+  return groupRecentMatchesByPlayer(
+    recentMatches.map(
+      ({ confirmedAt: _confirmedAt, createdAt: _createdAt, ...match }) => ({
+        ...match,
+        sets: (setsByMatch.get(match.id) ?? []).sort(
+          (a, b) => a.setNumber - b.setNumber,
+        ),
+      }),
+    ),
+  );
+}
+
+async function buildPlayerStatsById(
+  matchPlayers: DrawPlayer[],
+  recentMatchesByPlayer: Map<string, RecentMatchSummary[]>,
+) {
+  const [hombresRanking, mujeresRanking] = await Promise.all([
+    getRanking("hombres"),
+    getRanking("mujeres"),
+  ]);
+  const rankingById = new Map(
+    [...hombresRanking, ...mujeresRanking].map((entry) => [entry.id, entry]),
+  );
+
+  return new Map(
+    matchPlayers.map((player) => {
+      const ranking = rankingById.get(player.id);
+      const recentMatches = recentMatchesByPlayer.get(player.id) ?? [];
+
+      return [
+        player.id,
+        ranking
+          ? {
+              position: ranking.position,
+              points: ranking.points,
+              weeklyDelta: ranking.weeklyDelta,
+              matchesPlayed: ranking.matchesPlayed,
+              matchesWon: ranking.matchesWon,
+              matchesLost: ranking.matchesLost,
+              recentForm: recentMatches
+                .slice(0, 5)
+                .map((match) => getRecentResult(match, player.id)),
+            }
+          : undefined,
+      ];
+    }),
+  );
 }
 
 export async function notifyFixturePublished(weekId: string) {
@@ -213,6 +871,7 @@ export async function notifyFixturePublished(weekId: string) {
       id: matches.id,
       player1Id: matches.player1Id,
       player2Id: matches.player2Id,
+      category: matches.category,
     })
     .from(matches)
     .where(
@@ -238,6 +897,7 @@ export async function notifyFixturePublished(weekId: string) {
       id: players.id,
       fullName: players.fullName,
       email: players.email,
+      gender: players.gender,
       availMonday: players.availMonday,
       availTuesday: players.availTuesday,
       availWednesday: players.availWednesday,
@@ -253,6 +913,30 @@ export async function notifyFixturePublished(weekId: string) {
   const playersById = new Map(
     matchPlayers.map((player) => [player.id, player]),
   );
+  const recentMatchesByPlayer = await fetchRecentMatchesByPlayer(playerIds);
+  const headToHeadByPair = await fetchHeadToHeadByPair(drawMatches);
+  const statsByPlayerId = await buildPlayerStatsById(
+    matchPlayers,
+    recentMatchesByPlayer,
+  );
+  const getOtherMatches = (currentMatchId: string): OtherWeekMatch[] =>
+    drawMatches
+      .filter((match) => match.id !== currentMatchId)
+      .map((match) => {
+        const player1 = playersById.get(match.player1Id);
+        const player2 = playersById.get(match.player2Id);
+
+        return player1 && player2
+          ? {
+              id: match.id,
+              player1Name: player1.fullName,
+              player2Name: player2.fullName,
+              player1Ranking: statsByPlayerId.get(player1.id)?.position ?? null,
+              player2Ranking: statsByPlayerId.get(player2.id)?.position ?? null,
+            }
+          : null;
+      })
+      .filter((match): match is OtherWeekMatch => Boolean(match));
   const deliveries = drawMatches.flatMap((match) => {
     const player1 = playersById.get(match.player1Id);
     const player2 = playersById.get(match.player2Id);
@@ -262,8 +946,44 @@ export async function notifyFixturePublished(weekId: string) {
     }
 
     return [
-      { player: player1, opponent: player2, match },
-      { player: player2, opponent: player1, match },
+      {
+        player: player1,
+        opponent: player2,
+        match,
+        playerStats: statsByPlayerId.get(player1.id),
+        opponentStats: statsByPlayerId.get(player2.id),
+        headToHeadStats: getHeadToHeadStats(
+          headToHeadByPair,
+          player1.id,
+          player2.id,
+        ),
+        opponentRecentMatches: recentMatchesByPlayer.get(player2.id),
+        otherMatches: getOtherMatches(match.id),
+        recommendedTimes: getRecommendedTimeOptions(
+          player1,
+          player2,
+          week.startsOn,
+        ),
+      },
+      {
+        player: player2,
+        opponent: player1,
+        match,
+        playerStats: statsByPlayerId.get(player2.id),
+        opponentStats: statsByPlayerId.get(player1.id),
+        headToHeadStats: getHeadToHeadStats(
+          headToHeadByPair,
+          player2.id,
+          player1.id,
+        ),
+        opponentRecentMatches: recentMatchesByPlayer.get(player1.id),
+        otherMatches: getOtherMatches(match.id),
+        recommendedTimes: getRecommendedTimeOptions(
+          player2,
+          player1,
+          week.startsOn,
+        ),
+      },
     ];
   });
 

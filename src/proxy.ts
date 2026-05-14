@@ -10,8 +10,15 @@ export default auth((req) => {
 
   const isLoggedIn = !!session?.user;
   const isAdmin = session?.user?.role === "admin";
+  const isLocalEmailPreview =
+    process.env.NODE_ENV !== "production" &&
+    pathname.startsWith("/admin/emails/preview");
 
   if (pathname.startsWith("/admin")) {
+    if (isLocalEmailPreview) {
+      return;
+    }
+
     if (!isAdmin) {
       return Response.redirect(new URL("/", req.nextUrl));
     }
