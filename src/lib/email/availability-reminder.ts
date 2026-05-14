@@ -11,6 +11,7 @@ import {
 } from "@/lib/email/events";
 import {
   absoluteUrl,
+  buildEmailLayout,
   escapeHtml,
   sendTransactionalEmail,
   uniqueRecipients,
@@ -71,19 +72,22 @@ function buildMessage(args: {
     "",
     `Confirmar disponibilidad: ${availabilityUrl}`,
   ];
-  const html = [
-    `<h1>${escapeHtml(title)}</h1>`,
-    `<p>Hola ${escapeHtml(args.playerName)},</p>`,
-    "<p>Aún no has confirmado si puedes jugar la próxima semana.</p>",
-    `<p>Semana: ${escapeHtml(formatDate(args.weekStartsOn))} al ${escapeHtml(formatDate(args.weekEndsOn))}.</p>`,
-    `<p>Por favor márcalo antes del viernes (${escapeHtml(formatDate(args.deadline))}).</p>`,
-    `<p><a href="${escapeHtml(availabilityUrl)}">Confirmar disponibilidad</a></p>`,
-  ].join("\n");
+  const innerHtml = `
+<h1 style="margin:0 0 24px;font-size:24px;font-weight:800;color:#0d1b2a;line-height:1.3;">${escapeHtml(title)}</h1>
+<p style="margin:0 0 20px;font-size:15px;color:#0d1b2a;line-height:1.6;">Hola <strong>${escapeHtml(args.playerName)}</strong>,</p>
+<p style="margin:0 0 24px;font-size:15px;color:#0d1b2a;line-height:1.6;">Aún no confirmaste si podés jugar la próxima semana.</p>
+<div style="background-color:#f6f2ea;border-radius:8px;border:1px solid #ded6ca;padding:20px 24px;margin:0 0 28px;">
+  <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.07em;">Semana</p>
+  <p style="margin:0 0 16px;font-size:15px;font-weight:700;color:#0d1b2a;">${escapeHtml(formatDate(args.weekStartsOn))} al ${escapeHtml(formatDate(args.weekEndsOn))}</p>
+  <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.07em;">Plazo límite</p>
+  <p style="margin:0;font-size:15px;font-weight:600;color:#0d1b2a;">${escapeHtml(formatDate(args.deadline))}</p>
+</div>
+<a href="${escapeHtml(availabilityUrl)}" style="display:inline-block;padding:13px 28px;background-color:#0d1b2a;color:#fffdfa;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;line-height:1;">Confirmar disponibilidad</a>`;
 
   return {
     subject: title,
     text: textLines.join("\n"),
-    html,
+    html: buildEmailLayout(title, innerHtml),
   };
 }
 

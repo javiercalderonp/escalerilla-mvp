@@ -10,6 +10,7 @@ import {
 } from "@/lib/email/events";
 import {
   absoluteUrl,
+  buildEmailLayout,
   escapeHtml,
   sendTransactionalEmail,
 } from "@/lib/email/shared";
@@ -33,23 +34,24 @@ function buildMessage(playerName: string) {
     "",
     `Reglamento: ${rulesUrl}`,
   ];
-  const html = [
-    `<h1>${escapeHtml(title)}</h1>`,
-    `<p>Hola ${escapeHtml(playerName)},</p>`,
-    "<p>Bienvenido al club. Tu perfil ya quedó listo.</p>",
-    "<p>Para participar cada semana:</p>",
-    "<ul>",
-    `<li><a href="${escapeHtml(availabilityUrl)}">Confirma tu disponibilidad</a></li>`,
-    `<li><a href="${escapeHtml(fixtureUrl)}">Revisa tus partidos publicados</a></li>`,
-    `<li><a href="${escapeHtml(resultUrl)}">Sube tus resultados cuando termines de jugar</a></li>`,
-    "</ul>",
-    `<p><a href="${escapeHtml(rulesUrl)}">Ver reglamento</a></p>`,
-  ].join("\n");
+  const innerHtml = `
+<h1 style="margin:0 0 24px;font-size:24px;font-weight:800;color:#0d1b2a;line-height:1.3;">${escapeHtml(title)}</h1>
+<p style="margin:0 0 20px;font-size:15px;color:#0d1b2a;line-height:1.6;">Hola <strong>${escapeHtml(playerName)}</strong>,</p>
+<p style="margin:0 0 24px;font-size:15px;color:#0d1b2a;line-height:1.6;">Tu perfil ya quedó listo para participar en las competencias semanales.</p>
+<div style="background-color:#f6f2ea;border-radius:8px;border:1px solid #ded6ca;padding:20px 24px;margin:0 0 28px;">
+  <p style="margin:0 0 14px;font-size:11px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.07em;">Para participar cada semana</p>
+  <p style="margin:0 0 10px;font-size:14px;color:#0d1b2a;line-height:1.5;">1. <a href="${escapeHtml(availabilityUrl)}" style="color:#0d1b2a;font-weight:600;">Confirma tu disponibilidad</a> — indicá cuándo podés jugar.</p>
+  <p style="margin:0 0 10px;font-size:14px;color:#0d1b2a;line-height:1.5;">2. <a href="${escapeHtml(fixtureUrl)}" style="color:#0d1b2a;font-weight:600;">Revisá tus partidos</a> — una vez publicado el sorteo.</p>
+  <p style="margin:0;font-size:14px;color:#0d1b2a;line-height:1.5;">3. <a href="${escapeHtml(resultUrl)}" style="color:#0d1b2a;font-weight:600;">Subí tus resultados</a> — cuando termines de jugar.</p>
+</div>
+<a href="${escapeHtml(availabilityUrl)}" style="display:inline-block;padding:13px 28px;background-color:#0d1b2a;color:#fffdfa;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;line-height:1;">Confirmar disponibilidad</a>
+<hr style="border:none;border-top:1px solid #ded6ca;margin:28px 0 20px;">
+<p style="margin:0;font-size:13px;color:#776f66;line-height:1.6;"><a href="${escapeHtml(rulesUrl)}" style="color:#776f66;">Ver reglamento del club</a></p>`;
 
   return {
     subject: title,
     text: textLines.join("\n"),
-    html,
+    html: buildEmailLayout(title, innerHtml),
   };
 }
 

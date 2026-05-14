@@ -10,6 +10,7 @@ import {
 } from "@/lib/email/events";
 import {
   absoluteUrl,
+  buildEmailLayout,
   escapeHtml,
   sendTransactionalEmail,
 } from "@/lib/email/shared";
@@ -35,18 +36,22 @@ function buildMessage(args: {
     "",
     `Ver partido: ${fixtureUrl}`,
   ];
-  const html = [
-    `<h1>${escapeHtml(title)}</h1>`,
-    `<p>Hola ${escapeHtml(args.challengedName)},</p>`,
-    `<p>Te han desafiado a un partido. Tu rival es ${escapeHtml(args.challengerName)}.</p>`,
-    `<p>Coordina con él para jugar antes de ${escapeHtml(deadline)}.</p>`,
-    `<p><a href="${escapeHtml(fixtureUrl)}">Ver partido</a></p>`,
-  ].join("\n");
+  const innerHtml = `
+<h1 style="margin:0 0 24px;font-size:24px;font-weight:800;color:#0d1b2a;line-height:1.3;">${escapeHtml(title)}</h1>
+<p style="margin:0 0 20px;font-size:15px;color:#0d1b2a;line-height:1.6;">Hola <strong>${escapeHtml(args.challengedName)}</strong>,</p>
+<p style="margin:0 0 24px;font-size:15px;color:#0d1b2a;line-height:1.6;"><strong>${escapeHtml(args.challengerName)}</strong> te ha desafiado a un partido. Coordinen para jugar lo antes posible.</p>
+<div style="background-color:#f6f2ea;border-radius:8px;border:1px solid #ded6ca;padding:20px 24px;margin:0 0 28px;">
+  <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.07em;">Tu rival</p>
+  <p style="margin:0 0 16px;font-size:16px;font-weight:700;color:#0d1b2a;">${escapeHtml(args.challengerName)}</p>
+  <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.07em;">Fecha límite</p>
+  <p style="margin:0;font-size:15px;font-weight:600;color:#0d1b2a;">${escapeHtml(deadline)}</p>
+</div>
+<a href="${escapeHtml(fixtureUrl)}" style="display:inline-block;padding:13px 28px;background-color:#0d1b2a;color:#fffdfa;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;line-height:1;">Ver partido</a>`;
 
   return {
     subject: title,
     text: textLines.join("\n"),
-    html,
+    html: buildEmailLayout(title, innerHtml),
   };
 }
 

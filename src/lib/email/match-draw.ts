@@ -15,6 +15,7 @@ import {
 } from "@/lib/email/events";
 import {
   absoluteUrl,
+  buildEmailLayout,
   escapeHtml,
   sendTransactionalEmail,
   wait,
@@ -73,7 +74,10 @@ function formatAvailability(player: DrawPlayer) {
 function formatAvailabilityHtml(player: DrawPlayer) {
   return formatAvailability(player)
     .split("\n")
-    .map((line) => `<li>${escapeHtml(line)}</li>`)
+    .map(
+      (line) =>
+        `<li style="padding:5px 0;font-size:14px;color:#0d1b2a;line-height:1.5;border-bottom:1px solid #ded6ca;">${escapeHtml(line)}</li>`,
+    )
     .join("\n");
 }
 
@@ -102,21 +106,27 @@ function buildMessage(args: {
     "",
     `Ver fixture: ${fixtureUrl}`,
   ];
-  const html = [
-    `<h1>${escapeHtml(title)}</h1>`,
-    `<p>Hola ${escapeHtml(args.player.fullName)},</p>`,
-    `<p>Semana: ${escapeHtml(formatDate(args.weekStartsOn))} al ${escapeHtml(formatDate(args.weekEndsOn))}.</p>`,
-    `<h2>Horarios disponibles de ${escapeHtml(args.opponent.fullName)}</h2>`,
-    `<ul>${formatAvailabilityHtml(args.opponent)}</ul>`,
-    "<h2>Tus horarios cargados</h2>",
-    `<ul>${formatAvailabilityHtml(args.player)}</ul>`,
-    `<p><a href="${escapeHtml(fixtureUrl)}">Ver fixture</a></p>`,
-  ].join("\n");
+  const innerHtml = `
+<h1 style="margin:0 0 24px;font-size:24px;font-weight:800;color:#0d1b2a;line-height:1.3;">${escapeHtml(title)}</h1>
+<p style="margin:0 0 20px;font-size:15px;color:#0d1b2a;line-height:1.6;">Hola <strong>${escapeHtml(args.player.fullName)}</strong>,</p>
+<div style="background-color:#f6f2ea;border-radius:8px;border:1px solid #ded6ca;padding:20px 24px;margin:0 0 28px;">
+  <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.07em;">Semana</p>
+  <p style="margin:0;font-size:15px;font-weight:700;color:#0d1b2a;">${escapeHtml(formatDate(args.weekStartsOn))} al ${escapeHtml(formatDate(args.weekEndsOn))}</p>
+</div>
+<h2 style="margin:0 0 8px;font-size:13px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.07em;">Disponibilidad de ${escapeHtml(args.opponent.fullName)}</h2>
+<ul style="margin:0 0 24px;padding:0;list-style:none;border-top:1px solid #ded6ca;">
+  ${formatAvailabilityHtml(args.opponent)}
+</ul>
+<h2 style="margin:0 0 8px;font-size:13px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.07em;">Tus horarios cargados</h2>
+<ul style="margin:0 0 28px;padding:0;list-style:none;border-top:1px solid #ded6ca;">
+  ${formatAvailabilityHtml(args.player)}
+</ul>
+<a href="${escapeHtml(fixtureUrl)}" style="display:inline-block;padding:13px 28px;background-color:#0d1b2a;color:#fffdfa;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;line-height:1;">Ver fixture</a>`;
 
   return {
     subject: title,
     text: textLines.join("\n"),
-    html,
+    html: buildEmailLayout(title, innerHtml),
   };
 }
 

@@ -10,6 +10,7 @@ import {
 } from "@/lib/email/events";
 import {
   absoluteUrl,
+  buildEmailLayout,
   type EmailRecipient,
   escapeHtml,
   sendTransactionalEmail,
@@ -187,19 +188,23 @@ function buildMessage(
     `Ver partido: ${matchUrl}`,
   ];
 
-  const htmlLines = [
-    `<h1>${escapeHtml(title)}</h1>`,
-    `<p>${escapeHtml(intro)}</p>`,
-    `<p>${escapeHtml(formatType(details.type))} - ${escapeHtml(formatDate(details.playedOn))}</p>`,
-    `<p><strong>${escapeHtml(formatOutcome(details))}</strong></p>`,
-    `<p>Marcador: ${escapeHtml(score)}</p>`,
-    `<p><a href="${escapeHtml(matchUrl)}">Ver partido</a></p>`,
-  ];
+  const innerHtml = `
+<h1 style="margin:0 0 24px;font-size:24px;font-weight:800;color:#0d1b2a;line-height:1.3;">${escapeHtml(title)}</h1>
+<p style="margin:0 0 24px;font-size:15px;color:#0d1b2a;line-height:1.6;">${escapeHtml(intro)}</p>
+<div style="background-color:#f6f2ea;border-radius:8px;border:1px solid #ded6ca;padding:20px 24px;margin:0 0 28px;">
+  <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.07em;">Tipo · Fecha</p>
+  <p style="margin:0 0 16px;font-size:14px;color:#0d1b2a;">${escapeHtml(formatType(details.type))} · ${escapeHtml(formatDate(details.playedOn))}</p>
+  <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.07em;">Resultado</p>
+  <p style="margin:0 0 16px;font-size:16px;font-weight:700;color:#0d1b2a;">${escapeHtml(formatOutcome(details))}</p>
+  <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.07em;">Marcador</p>
+  <p style="margin:0;font-size:15px;font-weight:600;color:#0d1b2a;">${escapeHtml(score)}</p>
+</div>
+<a href="${escapeHtml(matchUrl)}" style="display:inline-block;padding:13px 28px;background-color:#0d1b2a;color:#fffdfa;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;line-height:1;">Ver partido</a>`;
 
   return {
     subject: title,
     text: textLines.join("\n"),
-    html: htmlLines.join("\n"),
+    html: buildEmailLayout(title, innerHtml),
   };
 }
 
