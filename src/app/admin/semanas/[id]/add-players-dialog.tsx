@@ -1,7 +1,7 @@
 "use client";
 
-import { Plus, Search } from "lucide-react";
-import { useMemo, useState, useTransition } from "react";
+import { Check, Plus, Search } from "lucide-react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -41,6 +41,13 @@ export function AddPlayersDialog({
   const [maxMatches, setMaxMatches] = useState("1");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+
+  useEffect(() => {
+    if (!showSuccessToast) return;
+    const t = setTimeout(() => setShowSuccessToast(false), 3000);
+    return () => clearTimeout(t);
+  }, [showSuccessToast]);
 
   const filteredPlayers = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -85,6 +92,7 @@ export function AddPlayersDialog({
           maxMatches: Number(maxMatches),
         });
         handleOpenChange(false);
+        setShowSuccessToast(true);
       } catch (err) {
         setError(
           err instanceof Error
@@ -96,6 +104,14 @@ export function AddPlayersDialog({
   }
 
   return (
+    <>
+      {showSuccessToast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-xl bg-slate-950 px-4 py-3 text-sm font-medium text-white shadow-lg">
+          <Check className="size-4 text-emerald-400" />
+          Jugadores agregados exitosamente
+        </div>
+      )}
+
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <Button
         type="button"
@@ -203,5 +219,6 @@ export function AddPlayersDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    </>
   );
 }

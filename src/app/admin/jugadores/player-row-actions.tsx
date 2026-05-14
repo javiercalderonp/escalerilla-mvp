@@ -3,12 +3,13 @@
 import {
   Check,
   EllipsisVertical,
+  Loader2,
   Pencil,
   Trash2,
   Undo2,
   UserMinus,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import {
   approvePlayerAction,
@@ -129,15 +130,57 @@ function PlayerFields({ player }: { player: PlayerRowActionData }) {
   );
 }
 
+function SaveToast({
+  status,
+  onDismiss,
+}: {
+  status: "saving" | "saved";
+  onDismiss: () => void;
+}) {
+  useEffect(() => {
+    if (status !== "saved") return;
+    const t = setTimeout(onDismiss, 3000);
+    return () => clearTimeout(t);
+  }, [status, onDismiss]);
+
+  return (
+    <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-xl bg-slate-950 px-4 py-3 text-sm font-medium text-white shadow-lg">
+      {status === "saving" ? (
+        <Loader2 className="size-4 animate-spin text-slate-400" />
+      ) : (
+        <Check className="size-4 text-emerald-400" />
+      )}
+      {status === "saving" ? "Guardando..." : "Cambios guardados exitosamente"}
+    </div>
+  );
+}
+
 function EditPlayerDialog({
   player,
   open,
   onOpenChange,
+  onSaving,
+  onSuccess,
 }: {
   player: PlayerRowActionData;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSaving: () => void;
+  onSuccess: () => void;
 }) {
+  const [isPending, startTransition] = useTransition();
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    onOpenChange(false);
+    onSaving();
+    startTransition(async () => {
+      await updatePlayerAction(formData);
+      onSuccess();
+    });
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
@@ -146,13 +189,14 @@ function EditPlayerDialog({
           <DialogDescription>{player.fullName}</DialogDescription>
         </DialogHeader>
 
-        <form action={updatePlayerAction} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <input type="hidden" name="playerId" value={player.id} />
           <PlayerFields player={player} />
           <div className="flex justify-end">
             <button
               type="submit"
-              className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+              disabled={isPending}
+              className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
             >
               Guardar cambios
             </button>
@@ -203,6 +247,7 @@ export function PlayerRowActions({ player }: { player: PlayerRowActionData }) {
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [toast, setToast] = useState<"saving" | "saved" | null>(null);
   const isRetired = player.status === "retirado";
   const nextStatus = isRetired ? "activo" : "retirado";
   const retireLabel = isRetired ? "Reactivar" : "Retirar";
@@ -276,10 +321,16 @@ export function PlayerRowActions({ player }: { player: PlayerRowActionData }) {
         </div>
       ) : null}
 
+      {toast !== null && (
+        <SaveToast status={toast} onDismiss={() => setToast(null)} />
+      )}
+
       <EditPlayerDialog
         player={player}
         open={editOpen}
         onOpenChange={setEditOpen}
+        onSaving={() => setToast("saving")}
+        onSuccess={() => setToast("saved")}
       />
       <DeletePlayerDialog
         player={player}

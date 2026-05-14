@@ -1,9 +1,9 @@
 "use client";
 
-import { CalendarPlus, Plus, Swords } from "lucide-react";
+import { CalendarPlus, Check, Loader2, Plus, Swords } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useState, useTransition } from "react";
 
 import { createWeekAction } from "@/app/admin/semanas/actions";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,10 @@ export function AdminMatchesCreateMenu({
   const [isCreatingMatch, setIsCreatingMatch] = useState(false);
   const [createMatchError, setCreateMatchError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [programmingToast, setProgrammingToast] = useState<
+    "saving" | "saved" | null
+  >(null);
+  const [isProgrammingPending, startProgrammingTransition] = useTransition();
 
   useEffect(() => {
     if (!successMessage) return;
@@ -61,6 +65,18 @@ export function AdminMatchesCreateMenu({
       setMode(null);
       setCreateMatchError(null);
     }
+  }
+
+  function handleProgrammingSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    setOpen(false);
+    setMode(null);
+    setProgrammingToast("saving");
+    startProgrammingTransition(async () => {
+      await createWeekAction(formData);
+      setProgrammingToast("saved");
+    });
   }
 
   async function handleCreateMatchSubmit(event: FormEvent<HTMLFormElement>) {
@@ -88,6 +104,19 @@ export function AdminMatchesCreateMenu({
 
   return (
     <>
+      {programmingToast !== null && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-xl bg-slate-950 px-4 py-3 text-sm font-medium text-white shadow-lg">
+          {programmingToast === "saving" ? (
+            <Loader2 className="size-4 animate-spin text-slate-400" />
+          ) : (
+            <Check className="size-4 text-emerald-400" />
+          )}
+          {programmingToast === "saving"
+            ? "Creando programación..."
+            : "Programación creada"}
+        </div>
+      )}
+
       {successMessage ? (
         <div
           role="status"
@@ -186,7 +215,7 @@ export function AdminMatchesCreateMenu({
           ) : null}
 
           {mode === "programming" ? (
-            <form action={createWeekAction} className="space-y-4">
+            <form onSubmit={handleProgrammingSubmit} className="space-y-4">
               <label className="block space-y-2 text-sm text-slate-700">
                 <span className="font-medium">Inicio de semana</span>
                 <input
@@ -203,10 +232,13 @@ export function AdminMatchesCreateMenu({
                   type="button"
                   variant="outline"
                   onClick={() => setMode(null)}
+                  disabled={isProgrammingPending}
                 >
                   Volver
                 </Button>
-                <Button type="submit">Crear y agregar jugadores</Button>
+                <Button type="submit" disabled={isProgrammingPending}>
+                  Crear y agregar jugadores
+                </Button>
               </DialogFooter>
             </form>
           ) : null}

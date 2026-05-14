@@ -1,14 +1,16 @@
 "use client";
 
 import {
+  Check,
   CircleSlash,
   EllipsisVertical,
+  Loader2,
   Pencil,
   Swords,
   Trash2,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import {
   correctDrawAction,
@@ -196,9 +198,36 @@ function SubmitButton({
   );
 }
 
+function SaveToast({
+  status,
+  onDismiss,
+}: {
+  status: "saving" | "saved";
+  onDismiss: () => void;
+}) {
+  useEffect(() => {
+    if (status !== "saved") return;
+    const t = setTimeout(onDismiss, 3000);
+    return () => clearTimeout(t);
+  }, [status, onDismiss]);
+
+  return (
+    <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-xl bg-slate-950 px-4 py-3 text-sm font-medium text-white shadow-lg">
+      {status === "saving" ? (
+        <Loader2 className="size-4 animate-spin text-slate-400" />
+      ) : (
+        <Check className="size-4 text-emerald-400" />
+      )}
+      {status === "saving" ? "Guardando..." : "Resultado guardado exitosamente"}
+    </div>
+  );
+}
+
 export function FixtureAdminActions({ match, sets }: FixtureAdminActionsProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [resultOpen, setResultOpen] = useState(false);
+  const [toast, setToast] = useState<"saving" | "saved" | null>(null);
+  const [isPending, startTransition] = useTransition();
   const [mode, setMode] = useState<ResultMode>(() => {
     if (match.status === "wo") return "walkover";
     if (match.status === "empate") return "draw";
@@ -230,8 +259,33 @@ export function FixtureAdminActions({ match, sets }: FixtureAdminActionsProps) {
       : "Confirmar resultado";
   const defaultPlayedOn = match.playedOn ?? getTodayInSantiago();
 
+  function handleWalkoverSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    setResultOpen(false);
+    setToast("saving");
+    startTransition(async () => {
+      await walkoverAction(formData);
+      setToast("saved");
+    });
+  }
+
+  function handleMainSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    setResultOpen(false);
+    setToast("saving");
+    startTransition(async () => {
+      await mainAction(formData);
+      setToast("saved");
+    });
+  }
+
   return (
     <div className="relative">
+      {toast !== null && (
+        <SaveToast status={toast} onDismiss={() => setToast(null)} />
+      )}
       <button
         type="button"
         aria-label="Opciones del partido"
@@ -321,7 +375,7 @@ export function FixtureAdminActions({ match, sets }: FixtureAdminActionsProps) {
 
             {isWalkoverMode ? (
               <form
-                action={walkoverAction}
+                onSubmit={handleWalkoverSubmit}
                 className="space-y-4 rounded-lg border border-destructive/20 bg-destructive/5 p-4"
               >
                 <input type="hidden" name="matchId" value={match.id} />
@@ -366,7 +420,7 @@ export function FixtureAdminActions({ match, sets }: FixtureAdminActionsProps) {
                 </SubmitButton>
               </form>
             ) : (
-              <form action={mainAction} className="space-y-4">
+              <form onSubmit={handleMainSubmit} className="space-y-4">
                 <input type="hidden" name="matchId" value={match.id} />
                 <input type="hidden" name="format" value={mainFormat} />
 

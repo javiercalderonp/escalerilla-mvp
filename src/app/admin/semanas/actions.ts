@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -11,6 +11,7 @@ import { db } from "@/lib/db";
 import {
   auditLog,
   availability,
+  matches,
   players,
   seasons,
   weeks,
@@ -231,4 +232,76 @@ export async function addPlayersToWeekAvailabilityAction(args: {
 
   revalidatePath(`/admin/semanas/${weekId}`);
   revalidatePath(`/admin/semanas/${weekId}/fixture`);
+}
+
+export async function removePlayerFromWeekAvailabilityAction(args: {
+  weekId: string;
+  playerId: string;
+}) {
+  const { actorId, dbClient } = await requireAdminActor();
+
+  const weekId = z.string().uuid().parse(args.weekId);
+  const playerId = z.string().uuid().parse(args.playerId);
+
+  const playerMatches = await dbClient
+    .select({
+      id: matches.id,
+      type: matches.type,
+      status: matches.status,
+    })
+    .from(matches)
+    .where(
+      and(
+        eq(matches.weekId, weekId),
+        or(eq(matches.player1Id, playerId), eq(matches.player2Id, playerId)),
+      ),
+    );
+
+  const hasLockedMatch = playerMatches.some(
+    (match) => match.type !== "sorteo" || match.status !== "pendiente",
+  );
+
+  if (hasLockedMatch) {
+    throw new Error(
+      "No se puede quitar un jugador con partidos reportados, confirmados o no pertenecientes al sorteo.",
+    );
+  }
+
+  const removedMatches = await dbClient
+    .delete(matches)
+    .where(
+      and(
+        eq(matches.weekId, weekId),
+        eq(matches.type, "sorteo"),
+        eq(matches.status, "pendiente"),
+        or(eq(matches.player1Id, playerId), eq(matches.player2Id, playerId)),
+      ),
+    )
+    .returning({ id: matches.id });
+
+  const [removedAvailability] = await dbClient
+    .delete(availability)
+    .where(
+      and(eq(availability.weekId, weekId), eq(availability.playerId, playerId)),
+    )
+    .returning({ id: availability.id });
+
+  if (!removedAvailability) {
+    throw new Error("El jugador no estaba agregado a esta semana");
+  }
+
+  await dbClient.insert(auditLog).values({
+    actorId,
+    action: "week.admin_remove_availability",
+    entityType: "week",
+    entityId: weekId,
+    payload: {
+      playerId,
+      removedMatchIds: removedMatches.map((match) => match.id),
+    },
+  });
+
+  revalidatePath(`/admin/semanas/${weekId}`);
+  revalidatePath(`/admin/semanas/${weekId}/fixture`);
+  revalidatePath("/fixture");
 }

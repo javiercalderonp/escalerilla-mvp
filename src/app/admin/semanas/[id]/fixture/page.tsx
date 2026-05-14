@@ -13,6 +13,7 @@ import {
 } from "@/lib/db/schema";
 import { buildMatchmakingPlayers, proposeFixture } from "@/lib/fixture/propose";
 import { AddPlayersDialog } from "../add-players-dialog";
+import { RemoveWeekPlayerButton } from "../remove-week-player-button";
 import type { SerializedPair } from "./actions";
 import { FixtureEditor } from "./editor";
 
@@ -322,9 +323,17 @@ export default async function FixturePage({
                       <span className="font-medium text-slate-900">
                         {p.fullName}
                       </span>
-                      <span className="text-xs text-slate-500">
-                        {p.maxMatches} partido{p.maxMatches !== 1 ? "s" : ""}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500">
+                          {p.maxMatches} partido
+                          {p.maxMatches !== 1 ? "s" : ""}
+                        </span>
+                        <RemoveWeekPlayerButton
+                          weekId={weekId}
+                          playerId={p.id}
+                          playerName={p.fullName}
+                        />
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -351,9 +360,17 @@ export default async function FixturePage({
                       <span className="font-medium text-slate-900">
                         {p.fullName}
                       </span>
-                      <span className="text-xs text-slate-500">
-                        {p.maxMatches} partido{p.maxMatches !== 1 ? "s" : ""}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500">
+                          {p.maxMatches} partido
+                          {p.maxMatches !== 1 ? "s" : ""}
+                        </span>
+                        <RemoveWeekPlayerButton
+                          weekId={weekId}
+                          playerId={p.id}
+                          playerName={p.fullName}
+                        />
+                      </div>
                     </li>
                   ))}
                 </ul>

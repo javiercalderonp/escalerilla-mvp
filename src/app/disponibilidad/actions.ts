@@ -109,12 +109,17 @@ export async function setNextWeekAvailabilityAction(
 
   if (!player) throw new Error("No estás vinculado a ningún jugador");
 
+  const nextWantsMultipleMatches = wantsToPlay
+    ? (wantsMultipleMatches ?? false)
+    : false;
+  const nextAlwaysAvailable = wantsToPlay ? (alwaysAvailable ?? false) : false;
+
   await dbClient
     .update(players)
     .set({
       wantsToPlayNextWeek: wantsToPlay,
-      ...(wantsMultipleMatches !== undefined && { wantsMultipleMatches }),
-      ...(alwaysAvailable !== undefined && { alwaysAvailable }),
+      wantsMultipleMatches: nextWantsMultipleMatches,
+      alwaysAvailable: nextAlwaysAvailable,
       updatedAt: new Date(),
     })
     .where(eq(players.id, player.id));

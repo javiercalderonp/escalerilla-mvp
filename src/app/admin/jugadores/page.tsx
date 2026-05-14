@@ -1,18 +1,9 @@
 import { asc, eq, sql } from "drizzle-orm";
-import { Plus } from "lucide-react";
 import { redirect } from "next/navigation";
 
-import { createPlayerAction } from "@/app/admin/jugadores/actions";
+import { CreatePlayerDialog } from "@/app/admin/jugadores/create-player-dialog";
 import { PlayerRowActions } from "@/app/admin/jugadores/player-row-actions";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -196,36 +187,6 @@ function PlayerFields({ player }: { player?: PlayerRow }) {
   );
 }
 
-function CreatePlayerDialog() {
-  return (
-    <Dialog>
-      <DialogTrigger className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-slate-950/20">
-        <Plus className="size-5" />
-        Nuevo jugador
-      </DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Agregar jugador</DialogTitle>
-          <DialogDescription>
-            Crea un alta individual para el plantel.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form action={createPlayerAction} className="space-y-5">
-          <PlayerFields />
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
-            >
-              Guardar jugador
-            </button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 export default async function AdminPlayersPage() {
   const session = await auth();
