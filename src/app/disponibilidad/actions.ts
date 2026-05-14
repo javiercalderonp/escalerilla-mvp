@@ -90,7 +90,11 @@ export async function upsertAvailabilityAction(formData: FormData) {
   redirect("/disponibilidad");
 }
 
-export async function setNextWeekAvailabilityAction(wantsToPlay: boolean) {
+export async function setNextWeekAvailabilityAction(
+  wantsToPlay: boolean,
+  wantsMultipleMatches?: boolean,
+  alwaysAvailable?: boolean,
+) {
   const session = await auth();
   if (!session?.user?.email) redirect("/login");
 
@@ -107,6 +111,11 @@ export async function setNextWeekAvailabilityAction(wantsToPlay: boolean) {
 
   await dbClient
     .update(players)
-    .set({ wantsToPlayNextWeek: wantsToPlay, updatedAt: new Date() })
+    .set({
+      wantsToPlayNextWeek: wantsToPlay,
+      ...(wantsMultipleMatches !== undefined && { wantsMultipleMatches }),
+      ...(alwaysAvailable !== undefined && { alwaysAvailable }),
+      updatedAt: new Date(),
+    })
     .where(eq(players.id, player.id));
 }

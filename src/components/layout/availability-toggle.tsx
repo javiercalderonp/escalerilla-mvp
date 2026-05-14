@@ -2,45 +2,57 @@
 
 import { CalendarCheck2, CalendarPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 
 import { setNextWeekAvailabilityAction } from "@/app/disponibilidad/actions";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 
 export function AvailabilityToggle({
   isMarked,
+  wantsMultipleMatches = false,
+  alwaysAvailable = false,
   variant = "desktop",
   onClose,
 }: {
   isMarked: boolean;
+  wantsMultipleMatches?: boolean;
+  alwaysAvailable?: boolean;
   variant?: "desktop" | "mobile";
   onClose?: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   function handleOpen() {
+    setError(null);
     setOpen(true);
   }
 
-  function handleConfirm() {
-    startTransition(async () => {
-      await setNextWeekAvailabilityAction(!isMarked);
+  async function handleConfirm(wantsMultiple: boolean, alwaysAvail: boolean) {
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      await setNextWeekAvailabilityAction(!isMarked, wantsMultiple, alwaysAvail);
       setOpen(false);
       onClose?.();
       if (!isMarked) {
         router.push("/disponibilidad");
       }
       router.refresh();
-    });
+    } catch {
+      setError("No se pudo guardar. Inténtalo de nuevo.");
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   if (variant === "mobile") {
@@ -67,8 +79,11 @@ export function AvailabilityToggle({
           open={open}
           onOpenChange={setOpen}
           isMarked={isMarked}
-          isPending={isPending}
+          isPending={isSaving}
+          error={error}
           onConfirm={handleConfirm}
+          wantsMultipleMatches={wantsMultipleMatches}
+          alwaysAvailable={alwaysAvailable}
         />
       </>
     );
@@ -97,8 +112,11 @@ export function AvailabilityToggle({
         open={open}
         onOpenChange={setOpen}
         isMarked={isMarked}
-        isPending={isPending}
+        isPending={isSaving}
+        error={error}
         onConfirm={handleConfirm}
+        wantsMultipleMatches={wantsMultipleMatches}
+        alwaysAvailable={alwaysAvailable}
       />
     </>
   );
@@ -109,45 +127,115 @@ function AvailabilityDialog({
   onOpenChange,
   isMarked,
   isPending,
+  error,
   onConfirm,
+  wantsMultipleMatches: initialWantsMultiple,
+  alwaysAvailable: initialAlwaysAvailable,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   isMarked: boolean;
   isPending: boolean;
-  onConfirm: () => void;
+  error: string | null;
+  onConfirm: (wantsMultiple: boolean, alwaysAvailable: boolean) => void | Promise<void>;
+  wantsMultipleMatches: boolean;
+  alwaysAvailable: boolean;
 }) {
+  const [wantsMultiple, setWantsMultiple] = useState(initialWantsMultiple);
+  const [alwaysAvail, setAlwaysAvail] = useState(initialAlwaysAvailable);
+
+  useEffect(() => {
+    if (open) {
+      setWantsMultiple(initialWantsMultiple);
+      setAlwaysAvail(initialAlwaysAvailable);
+    }
+  }, [open, initialWantsMultiple, initialAlwaysAvailable]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="max-w-sm">
-        <DialogHeader>
-          <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-full bg-clay/10">
+      <DialogContent
+        showCloseButton={false}
+        className="w-[min(calc(100%-2rem),26rem)] gap-4 rounded-2xl p-5"
+      >
+        <DialogHeader className="gap-2">
+          <div className="mx-auto flex size-11 items-center justify-center rounded-full bg-clay/10">
             {isMarked ? (
-              <CalendarCheck2 className="size-6 text-emerald-400" />
+              <CalendarCheck2 className="size-5 text-emerald-400" />
             ) : (
-              <CalendarPlus className="size-6 text-clay" />
+              <CalendarPlus className="size-5 text-clay" />
             )}
           </div>
-          <DialogTitle className="text-center text-base">
+          <DialogTitle className="text-center text-base font-semibold leading-snug">
             {isMarked
-              ? "Estás disponible para la próxima semana"
+              ? "¿Retirarte de la próxima semana?"
               : "¿Disponible para la próxima semana?"}
           </DialogTitle>
-          <DialogDescription className="text-center">
+          <DialogDescription className="text-center text-sm leading-relaxed text-white/55">
             {isMarked
-              ? "El admin ya te tiene en la lista de programación. ¿Quieres retirarte?"
-              : "¿Quieres marcarte como disponible para jugar la próxima semana? Quedarás en la lista para la programación."}
+              ? "El admin te tiene en la lista. Si te retiras quedarás fuera de la programación."
+              : "Quedarás en la lista para que el admin te programe la próxima semana."}
           </DialogDescription>
         </DialogHeader>
 
-        <DialogFooter className="border-t-0 bg-transparent px-0 pb-0 sm:flex-row sm:justify-center">
+        {!isMarked && (
+          <div className="flex flex-col divide-y divide-white/10 rounded-xl border border-white/10 bg-white/5">
+            <label className="flex cursor-pointer items-start gap-3 p-3.5">
+              <input
+                type="checkbox"
+                checked={wantsMultiple}
+                onChange={(e) => setWantsMultiple(e.target.checked)}
+                className="mt-0.5 size-4 shrink-0 accent-clay"
+              />
+              <span className="flex flex-col gap-0.5">
+                <span className="text-sm font-medium leading-snug text-white">
+                  Jugar más de un partido
+                </span>
+                <span className="text-xs leading-relaxed text-white/50">
+                  Si hay jugadores impares, puedo entrar dos veces.
+                </span>
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-3 p-3.5">
+              <input
+                type="checkbox"
+                checked={alwaysAvail}
+                onChange={(e) => setAlwaysAvail(e.target.checked)}
+                className="mt-0.5 size-4 shrink-0 accent-clay"
+              />
+              <span className="flex flex-col gap-0.5">
+                <span className="text-sm font-medium leading-snug text-white">
+                  Disponible automáticamente
+                </span>
+                <span className="text-xs leading-relaxed text-white/50">
+                  Marcarme disponible cada semana sin tener que confirmarlo.
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
+
+        {error && (
+          <p className="rounded-lg bg-red-500/10 px-3 py-2 text-center text-xs text-red-400">
+            {error}
+          </p>
+        )}
+
+        <div className="flex flex-col-reverse gap-2 sm:flex-row">
           <button
             type="button"
-            onClick={onConfirm}
+            onClick={() => onOpenChange(false)}
             disabled={isPending}
-            className={`inline-flex h-10 flex-1 items-center justify-center rounded-xl px-5 text-sm font-semibold transition disabled:opacity-60 sm:flex-none sm:min-w-32 ${
+            className="flex h-10 flex-1 items-center justify-center rounded-xl border border-white/15 text-sm font-medium text-white/60 transition hover:border-white/25 hover:text-white disabled:opacity-60"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={() => onConfirm(wantsMultiple, alwaysAvail)}
+            disabled={isPending}
+            className={`flex h-10 flex-1 items-center justify-center rounded-xl text-sm font-semibold transition disabled:opacity-60 ${
               isMarked
-                ? "bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                ? "bg-red-500/15 text-red-400 hover:bg-red-500/25"
                 : "bg-clay text-white hover:bg-clay/90"
             }`}
           >
@@ -157,15 +245,7 @@ function AvailabilityDialog({
                 ? "Sí, retirarme"
                 : "Sí, quiero jugar"}
           </button>
-          <button
-            type="button"
-            onClick={() => onOpenChange(false)}
-            disabled={isPending}
-            className="inline-flex h-10 flex-1 items-center justify-center rounded-xl border border-border bg-background px-5 text-sm font-semibold text-muted-foreground transition hover:text-foreground disabled:opacity-60 sm:flex-none sm:min-w-24"
-          >
-            No
-          </button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

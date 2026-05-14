@@ -45,7 +45,7 @@ export function MobileNav({
   items: NavItem[];
   profileItem?: NavItem | null;
   signOutAction?: () => Promise<void>;
-  availabilityToggle?: { isMarked: boolean };
+  availabilityToggle?: { isMarked: boolean; wantsMultipleMatches?: boolean; alwaysAvailable?: boolean };
 }) {
   const [open, setOpen] = useState(false);
   const loginItem = items.find((item) => item.href === "/login");
@@ -117,6 +117,8 @@ export function MobileNav({
                 <div className="border-t border-white/10">
                   <AvailabilityToggle
                     isMarked={availabilityToggle.isMarked}
+                    wantsMultipleMatches={availabilityToggle.wantsMultipleMatches}
+                    alwaysAvailable={availabilityToggle.alwaysAvailable}
                     variant="mobile"
                     onClose={() => setOpen(false)}
                   />

@@ -23,13 +23,25 @@ export async function Header() {
     session?.user?.role === "player" || session?.user?.role === "admin";
 
   let wantsToPlayNextWeek = false;
+  let wantsMultipleMatches = false;
+  let alwaysAvailable = false;
   if (isPlayer && session?.user?.email && db) {
-    const [player] = await db
-      .select({ wantsToPlayNextWeek: players.wantsToPlayNextWeek })
-      .from(players)
-      .where(eq(players.email, session.user.email.toLowerCase()))
-      .limit(1);
-    wantsToPlayNextWeek = player?.wantsToPlayNextWeek ?? false;
+    try {
+      const [player] = await db
+        .select({
+          wantsToPlayNextWeek: players.wantsToPlayNextWeek,
+          wantsMultipleMatches: players.wantsMultipleMatches,
+          alwaysAvailable: players.alwaysAvailable,
+        })
+        .from(players)
+        .where(eq(players.email, session.user.email.toLowerCase()))
+        .limit(1);
+      wantsToPlayNextWeek = player?.wantsToPlayNextWeek ?? false;
+      wantsMultipleMatches = player?.wantsMultipleMatches ?? false;
+      alwaysAvailable = player?.alwaysAvailable ?? false;
+    } catch {
+      // Column may not exist yet if migration is pending
+    }
   }
 
   const navItems = [
@@ -63,7 +75,7 @@ export async function Header() {
           signOutAction={session?.user ? signOutAction : undefined}
           availabilityToggle={
             isPlayer
-              ? { isMarked: wantsToPlayNextWeek }
+              ? { isMarked: wantsToPlayNextWeek, wantsMultipleMatches, alwaysAvailable }
               : undefined
           }
         />
@@ -165,7 +177,12 @@ export async function Header() {
 
         <div className="flex shrink-0 items-center gap-3">
           {isPlayer && (
-            <AvailabilityToggle isMarked={wantsToPlayNextWeek} variant="desktop" />
+            <AvailabilityToggle
+                isMarked={wantsToPlayNextWeek}
+                wantsMultipleMatches={wantsMultipleMatches}
+                alwaysAvailable={alwaysAvailable}
+                variant="desktop"
+              />
           )}
           {!session?.user && (
             <Link
