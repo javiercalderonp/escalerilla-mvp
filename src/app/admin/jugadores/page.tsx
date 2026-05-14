@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/table";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { players, rankingEvents } from "@/lib/db/schema";
+import { players, rankingEvents, users } from "@/lib/db/schema";
 
 async function getPlayers() {
   if (!db) {
@@ -38,6 +38,7 @@ async function getPlayers() {
     .select()
     .from(players)
     .leftJoin(pointTotals, eq(pointTotals.playerId, players.id))
+    .leftJoin(users, eq(users.playerId, players.id))
     .orderBy(asc(players.gender), asc(players.fullName));
 }
 
@@ -244,14 +245,15 @@ export default async function AdminPlayersPage() {
             <div className="rounded-2xl border border-slate-200">
               <Table className="table-fixed text-xs sm:text-sm">
                 <colgroup>
-                  <col className="w-[19%]" />
-                  <col className="w-[22%]" />
-                  <col className="w-[9%]" />
-                  <col className="w-[12%]" />
-                  <col className="w-[13%]" />
-                  <col className="w-[6%]" />
-                  <col className="w-[7%]" />
+                  <col className="w-[18%]" />
+                  <col className="w-[20%]" />
                   <col className="w-[8%]" />
+                  <col className="w-[11%]" />
+                  <col className="w-[12%]" />
+                  <col className="w-[6%]" />
+                  <col className="w-[6%]" />
+                  <col className="w-[8%]" />
+                  <col className="w-[7%]" />
                   <col className="w-[4%]" />
                 </colgroup>
                 <TableHeader className="bg-slate-50">
@@ -264,6 +266,7 @@ export default async function AdminPlayersPage() {
                     <TableHead className="px-1.5 text-right">Edad</TableHead>
                     <TableHead className="px-1.5 text-right">Pts.</TableHead>
                     <TableHead className="px-1.5">Estado</TableHead>
+                    <TableHead className="px-1.5">Cuenta</TableHead>
                     <TableHead className="px-2 text-right">
                       <span className="sr-only">Opciones</span>
                     </TableHead>
@@ -312,6 +315,13 @@ export default async function AdminPlayersPage() {
                           <div className="truncate">
                             {statusBadge(player.status)}
                           </div>
+                        </TableCell>
+                        <TableCell className="px-1.5">
+                          {row.users !== null ? (
+                            <Badge className="bg-blue-100 text-blue-800">Activa</Badge>
+                          ) : (
+                            <span className="text-sm text-slate-400">—</span>
+                          )}
                         </TableCell>
                         <TableCell className="px-2">
                           <PlayerRowActions

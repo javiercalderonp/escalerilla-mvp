@@ -8,6 +8,7 @@ import { auth } from "@/lib/auth";
 import { ensureAppUser } from "@/lib/auth/ensure-app-user";
 import { db } from "@/lib/db";
 import { DEFAULT_VISIBILITY, players, users } from "@/lib/db/schema";
+import { notifyWelcomeEmail } from "@/lib/email/welcome";
 import { isAdminEmail } from "@/lib/env";
 import { onboardingFullSchema } from "@/lib/validation/player";
 
@@ -46,6 +47,7 @@ export async function submitOnboarding(input: unknown) {
   const fullName = `${data.firstName} ${data.lastName}`.trim();
   const today = new Date().toISOString().slice(0, 10);
   const birthDate = data.birthDate.toISOString().slice(0, 10);
+  let onboardedPlayerId = user.playerId;
 
   try {
     if (!user.playerId) {
@@ -133,6 +135,7 @@ export async function submitOnboarding(input: unknown) {
             role: isAdminEmail(email) ? "admin" : "player",
           })
           .where(eq(users.id, user.id));
+        onboardedPlayerId = existingPlayer.id;
       } else {
         const [created] = await db
           .insert(players)
@@ -171,6 +174,7 @@ export async function submitOnboarding(input: unknown) {
             role: isAdminEmail(email) ? "admin" : "player",
           })
           .where(eq(users.id, user.id));
+        onboardedPlayerId = created.id;
       }
     } else {
       const [currentPlayer] = await db
@@ -213,6 +217,7 @@ export async function submitOnboarding(input: unknown) {
         .update(users)
         .set({ role: isAdminEmail(email) ? "admin" : "player" })
         .where(eq(users.id, user.id));
+      onboardedPlayerId = user.playerId;
     }
   } catch (error: unknown) {
     if (
@@ -234,5 +239,14 @@ export async function submitOnboarding(input: unknown) {
   revalidatePath("/");
   revalidatePath("/ranking");
   revalidatePath("/mi-perfil");
+
+  if (onboardedPlayerId) {
+    try {
+      await notifyWelcomeEmail(onboardedPlayerId);
+    } catch (error) {
+      console.error("Failed to send welcome email", error);
+    }
+  }
+
   redirect("/ranking/hombres");
 }

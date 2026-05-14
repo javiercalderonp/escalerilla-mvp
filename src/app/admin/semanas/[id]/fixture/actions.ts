@@ -14,6 +14,7 @@ import {
   players,
   rankingEvents,
 } from "@/lib/db/schema";
+import { notifyFixturePublished } from "@/lib/email/match-draw";
 import { buildMatchmakingPlayers, proposeFixture } from "@/lib/fixture/propose";
 
 async function requireAdminActor() {
@@ -235,6 +236,15 @@ export async function publishFixtureAction(
     entityId: weekId,
     payload: { pairsCount: validPairs.length },
   });
+
+  try {
+    await notifyFixturePublished(weekId);
+  } catch (error) {
+    console.error(
+      "Failed to send fixture published notification emails",
+      error,
+    );
+  }
 
   revalidatePath(`/admin/semanas/${weekId}/fixture`);
   revalidatePath("/fixture");

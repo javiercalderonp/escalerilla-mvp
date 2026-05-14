@@ -13,6 +13,11 @@ export const env = {
   appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
   matchResultEmailsEnabled: process.env.MATCH_RESULT_EMAILS_ENABLED === "true",
   matchResultEmailFrom: process.env.MATCH_RESULT_EMAIL_FROM ?? "",
+  emailsEnabled:
+    process.env.EMAILS_ENABLED === "true" ||
+    process.env.MATCH_RESULT_EMAILS_ENABLED === "true",
+  emailFrom:
+    process.env.EMAIL_FROM ?? process.env.MATCH_RESULT_EMAIL_FROM ?? "",
   resendApiKey: process.env.RESEND_API_KEY ?? "",
 };
 

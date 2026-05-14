@@ -8,6 +8,7 @@ import { auth } from "@/lib/auth";
 import { ensureAppUser } from "@/lib/auth/ensure-app-user";
 import { db } from "@/lib/db";
 import { auditLog, matches, players, rankingEvents } from "@/lib/db/schema";
+import { notifyChallengeCreated } from "@/lib/email/challenge";
 
 const schema = z.object({
   player1Id: z.string().uuid(),
@@ -167,6 +168,12 @@ export async function createChallengeAction(formData: FormData) {
       overrideNote: overrideNote ?? null,
     },
   });
+
+  try {
+    await notifyChallengeCreated(match.id);
+  } catch (error) {
+    console.error("Failed to send challenge notification email", error);
+  }
 
   revalidatePath("/admin/desafios");
   revalidatePath("/fixture");

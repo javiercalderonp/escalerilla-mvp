@@ -9,6 +9,10 @@ import {
   players,
   rankingEvents,
 } from "@/lib/db/schema";
+import {
+  type InactivityWarningTarget,
+  sendInactivityWarningEmails,
+} from "@/lib/email/inactivity-warning";
 import { refreshHistoricalBestRanking } from "@/lib/ranking";
 
 function today() {
@@ -45,13 +49,14 @@ export async function GET(request: Request) {
     .select({
       id: players.id,
       fullName: players.fullName,
+      email: players.email,
       gender: players.gender,
       points: sql<number>`coalesce(sum(${rankingEvents.delta}), 0)`,
     })
     .from(players)
     .leftJoin(rankingEvents, eq(rankingEvents.playerId, players.id))
     .where(eq(players.status, "activo"))
-    .groupBy(players.id, players.fullName, players.gender);
+    .groupBy(players.id, players.fullName, players.email, players.gender);
 
   // Last match date per player — fetch all completed matches and aggregate in JS
   const allRelevantMatches = await db
@@ -145,6 +150,7 @@ export async function GET(request: Request) {
     reason: InactivityReason;
     note: string;
   }> = [];
+  const warningTargets: InactivityWarningTarget[] = [];
 
   for (const player of activePlayers) {
     const currentPoints = Number(player.points);
@@ -170,6 +176,16 @@ export async function GET(request: Request) {
 
     const penaltyMap =
       lastPenaltyMap.get(player.id) ?? new Map<string, string>();
+
+    if (lastMatchDate && daysSince >= 22 && daysSince <= 29) {
+      warningTargets.push({
+        playerId: player.id,
+        fullName: player.fullName,
+        email: player.email,
+        daysSince,
+        lastMatchDate,
+      });
+    }
 
     // -40 monthly (repeat monthly, idempotent: last penalty must be >30 days ago or not exist after last match)
     if (daysSince >= 30) {
@@ -288,11 +304,17 @@ export async function GET(request: Request) {
     revalidateTag("ranking", "max");
   }
 
+  const inactivityWarnings =
+    warningTargets.length > 0
+      ? await sendInactivityWarningEmails(warningTargets)
+      : { sent: 0, skipped: 0, failed: 0, totalTargets: 0 };
+
   return Response.json({
     ok: true,
     date: todayStr,
     applied,
     skipped,
+    inactivityWarnings,
     totalPlayers: activePlayers.length,
   });
 }

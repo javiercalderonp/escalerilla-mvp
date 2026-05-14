@@ -74,6 +74,14 @@ export const rankingEventReasonEnum = pgEnum("ranking_event_reason", [
   "manual_adjustment",
   "match_correction",
 ]);
+export const emailEventTypeEnum = pgEnum("email_event_type", [
+  "availability_reminder",
+  "fixture_published",
+  "match_result",
+  "welcome",
+  "inactivity_warning",
+  "challenge",
+]);
 
 export const users = pgTable(
   "users",
@@ -437,6 +445,41 @@ export const playerScheduleSlots = pgTable(
       table.hour,
     ),
     playerIdx: index("player_schedule_slot_player_idx").on(table.playerId),
+  }),
+);
+
+export const emailEvents = pgTable(
+  "email_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    type: emailEventTypeEnum("type").notNull(),
+    dedupeKey: text("dedupe_key").notNull().unique(),
+    playerId: uuid("player_id").references(() => players.id, {
+      onDelete: "set null",
+    }),
+    recipientEmail: text("recipient_email").notNull(),
+    entityType: text("entity_type"),
+    entityId: uuid("entity_id"),
+    status: text("status").notNull().default("pending"),
+    error: text("error"),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    typeIdx: index("email_events_type_idx").on(table.type),
+    playerTypeIdx: index("email_events_player_type_idx").on(
+      table.playerId,
+      table.type,
+    ),
+    entityIdx: index("email_events_entity_idx").on(
+      table.entityType,
+      table.entityId,
+    ),
   }),
 );
 

@@ -1,7 +1,20 @@
 import { eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { matches, matchSets, players } from "@/lib/db/schema";
+import { matches, matchSets, players, users } from "@/lib/db/schema";
+import {
+  makeEmailDedupeKey,
+  markEmailEventFailed,
+  markEmailEventSent,
+  reserveEmailEvent,
+} from "@/lib/email/events";
+import {
+  absoluteUrl,
+  type EmailRecipient,
+  escapeHtml,
+  sendTransactionalEmail,
+  uniqueRecipients,
+} from "@/lib/email/shared";
 import { env } from "@/lib/env";
 
 type MatchSet = {
@@ -19,6 +32,7 @@ type MatchResultEmailDetails = {
   playedOn: string | null;
   winnerId: string | null;
   woLoserId: string | null;
+  reportedByPlayerId: string | null;
   player1: {
     id: string;
     fullName: string;
@@ -31,43 +45,6 @@ type MatchResultEmailDetails = {
   };
   sets: MatchSet[];
 };
-
-type EmailRecipient = {
-  email: string;
-  kind: "admin" | "player";
-  name?: string;
-};
-
-const RESEND_EMAIL_API_URL = "https://api.resend.com/emails";
-
-function normalizeEmail(email?: string | null) {
-  return email?.trim().toLowerCase() || null;
-}
-
-function uniqueRecipients(recipients: EmailRecipient[]) {
-  const seen = new Set<string>();
-
-  return recipients.filter((recipient) => {
-    const email = normalizeEmail(recipient.email);
-
-    if (!email || seen.has(email)) {
-      return false;
-    }
-
-    seen.add(email);
-    recipient.email = email;
-    return true;
-  });
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
 
 function formatType(type: MatchResultEmailDetails["type"]) {
   const labels: Record<MatchResultEmailDetails["type"], string> = {
@@ -137,36 +114,85 @@ function formatOutcome(details: MatchResultEmailDetails) {
 }
 
 function buildMatchUrl(matchId: string, recipientKind: EmailRecipient["kind"]) {
-  const baseUrl = env.appUrl.replace(/\/$/, "");
-
   if (recipientKind === "admin") {
-    return `${baseUrl}/fixture`;
+    return absoluteUrl("/fixture");
   }
 
-  return `${baseUrl}/mi-perfil/partidos/${matchId}`;
+  return absoluteUrl(`/mi-perfil/partidos/${matchId}`);
+}
+
+function getOpponentName(details: MatchResultEmailDetails, playerId: string) {
+  return playerId === details.player1.id
+    ? details.player2.fullName
+    : details.player1.fullName;
+}
+
+function getReporterName(details: MatchResultEmailDetails) {
+  if (details.reportedByPlayerId === details.player1.id) {
+    return details.player1.fullName;
+  }
+
+  if (details.reportedByPlayerId === details.player2.id) {
+    return details.player2.fullName;
+  }
+
+  return null;
+}
+
+function buildPlayerIntro(
+  details: MatchResultEmailDetails,
+  recipient: EmailRecipient,
+) {
+  if (!recipient.playerId) {
+    return `Se registró el resultado de ${details.player1.fullName} vs ${details.player2.fullName}.`;
+  }
+
+  const opponentName = getOpponentName(details, recipient.playerId);
+
+  if (details.reportedByPlayerId === recipient.playerId) {
+    return `Registraste el resultado de tu partido contra ${opponentName}. Si hay un error, contacta al admin.`;
+  }
+
+  const reporterName = getReporterName(details) ?? "Tu rival";
+
+  return `${reporterName} ha subido el resultado de su partido contra ti. ¿Es correcto? Si no, contacta al admin.`;
 }
 
 function buildMessage(
   details: MatchResultEmailDetails,
-  recipientKind: EmailRecipient["kind"],
+  recipient: EmailRecipient,
 ) {
-  const title = `Resultado registrado: ${details.player1.fullName} vs ${details.player2.fullName}`;
-  const matchUrl = buildMatchUrl(details.id, recipientKind);
+  const score = formatScore(details);
+  const opponentName =
+    recipient.kind === "player" && recipient.playerId
+      ? getOpponentName(details, recipient.playerId)
+      : null;
+  const title = opponentName
+    ? `Resultado registrado vs ${opponentName}`
+    : `Resultado registrado: ${details.player1.fullName} vs ${details.player2.fullName}`;
+  const intro =
+    recipient.kind === "player"
+      ? buildPlayerIntro(details, recipient)
+      : `Resultado registrado para ${details.player1.fullName} vs ${details.player2.fullName}.`;
+  const matchUrl = buildMatchUrl(details.id, recipient.kind);
   const textLines = [
     title,
     "",
+    intro,
+    "",
     `${formatType(details.type)} - ${formatDate(details.playedOn)}`,
     formatOutcome(details),
-    `Marcador: ${formatScore(details)}`,
+    `Marcador: ${score}`,
     "",
     `Ver partido: ${matchUrl}`,
   ];
 
   const htmlLines = [
     `<h1>${escapeHtml(title)}</h1>`,
+    `<p>${escapeHtml(intro)}</p>`,
     `<p>${escapeHtml(formatType(details.type))} - ${escapeHtml(formatDate(details.playedOn))}</p>`,
     `<p><strong>${escapeHtml(formatOutcome(details))}</strong></p>`,
-    `<p>Marcador: ${escapeHtml(formatScore(details))}</p>`,
+    `<p>Marcador: ${escapeHtml(score)}</p>`,
     `<p><a href="${escapeHtml(matchUrl)}">Ver partido</a></p>`,
   ];
 
@@ -192,6 +218,7 @@ async function loadMatchResultDetails(matchId: string) {
       playedOn: matches.playedOn,
       winnerId: matches.winnerId,
       woLoserId: matches.woLoserId,
+      reportedById: matches.reportedById,
       player1Id: matches.player1Id,
       player2Id: matches.player2Id,
     })
@@ -208,7 +235,7 @@ async function loadMatchResultDetails(matchId: string) {
     return null;
   }
 
-  const [player1, player2, sets] = await Promise.all([
+  const [player1, player2, sets, reporter] = await Promise.all([
     dbClient
       .select({
         id: players.id,
@@ -237,6 +264,13 @@ async function loadMatchResultDetails(matchId: string) {
       })
       .from(matchSets)
       .where(eq(matchSets.matchId, match.id)),
+    match.reportedById
+      ? dbClient
+          .select({ playerId: users.playerId })
+          .from(users)
+          .where(eq(users.id, match.reportedById))
+          .limit(1)
+      : Promise.resolve([]),
   ]);
 
   if (!player1[0] || !player2[0]) {
@@ -250,6 +284,7 @@ async function loadMatchResultDetails(matchId: string) {
     playedOn: match.playedOn,
     winnerId: match.winnerId,
     woLoserId: match.woLoserId,
+    reportedByPlayerId: reporter[0]?.playerId ?? null,
     player1: player1[0],
     player2: player2[0],
     sets: sets.sort((a, b) => a.setNumber - b.setNumber),
@@ -260,26 +295,37 @@ async function sendEmail(
   recipient: EmailRecipient,
   details: MatchResultEmailDetails,
 ) {
-  const message = buildMessage(details, recipient.kind);
+  const message = buildMessage(details, recipient);
+  const dedupeKey = makeEmailDedupeKey([
+    "match_result",
+    details.id,
+    recipient.playerId ?? recipient.email,
+  ]);
+  const reserved = await reserveEmailEvent({
+    type: "match_result",
+    dedupeKey,
+    recipientEmail: recipient.email,
+    playerId: recipient.playerId ?? null,
+    entityType: "match",
+    entityId: details.id,
+  });
 
-  const response = await fetch(RESEND_EMAIL_API_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${env.resendApiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: env.matchResultEmailFrom,
-      to: [recipient.email],
+  if (!reserved) {
+    return;
+  }
+
+  try {
+    await sendTransactionalEmail({
+      to: recipient.email,
+      from: env.matchResultEmailFrom || env.emailFrom,
       subject: message.subject,
       html: message.html,
       text: message.text,
-    }),
-  });
-
-  if (!response.ok) {
-    const responseText = await response.text();
-    throw new Error(`Resend ${response.status}: ${responseText}`);
+    });
+    await markEmailEventSent(dedupeKey);
+  } catch (error) {
+    await markEmailEventFailed(dedupeKey, error);
+    throw error;
   }
 }
 
@@ -308,11 +354,13 @@ export async function notifyMatchResultRegistered(matchId: string) {
         email: details.player1.email ?? "",
         kind: "player" as const,
         name: details.player1.fullName,
+        playerId: details.player1.id,
       },
       {
         email: details.player2.email ?? "",
         kind: "player" as const,
         name: details.player2.fullName,
+        playerId: details.player2.id,
       },
     ]);
 
