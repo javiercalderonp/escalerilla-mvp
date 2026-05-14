@@ -15,6 +15,7 @@ import {
   players,
   rankingEvents,
 } from "@/lib/db/schema";
+import { notifyChallengeCreated } from "@/lib/email/challenge";
 import { notifyMatchResultRegistered } from "@/lib/email/match-result";
 import { refreshHistoricalBestRanking } from "@/lib/ranking";
 import {
@@ -390,6 +391,14 @@ export async function createMatchAction(formData: FormData) {
       type: parsed.data.isChallenge ? "desafio" : "sorteo",
     },
   });
+
+  if (parsed.data.isChallenge) {
+    try {
+      await notifyChallengeCreated(match.id);
+    } catch (error) {
+      console.error("Failed to send challenge notification email", error);
+    }
+  }
 
   revalidatePath("/fixture");
 }

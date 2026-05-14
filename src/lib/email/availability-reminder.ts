@@ -14,6 +14,7 @@ import {
   escapeHtml,
   sendTransactionalEmail,
   uniqueRecipients,
+  wait,
 } from "@/lib/email/shared";
 import { env } from "@/lib/env";
 
@@ -178,60 +179,63 @@ export async function sendAvailabilityReminders() {
     return { sent: 0, skipped: 0, failed: 0, reason: "db_not_configured" };
   }
 
+  const targets = env.emailTestRecipient
+    ? data.targets.slice(0, 1)
+    : data.targets;
   let sent = 0;
   let skipped = 0;
   let failed = 0;
 
-  await Promise.all(
-    data.targets.map(async (target) => {
-      const dedupeKey = makeEmailDedupeKey([
-        "availability_reminder",
-        data.weekStartsOn,
-        target.id,
-      ]);
-      const reserved = await reserveEmailEvent({
-        type: "availability_reminder",
-        dedupeKey,
-        recipientEmail: target.email,
-        playerId: target.id,
-        entityType: data.weekId ? "week" : "week_start",
-        entityId: data.weekId,
+  for (const target of targets) {
+    await wait(250);
+    const dedupeKey = makeEmailDedupeKey([
+      "availability_reminder",
+      data.weekStartsOn,
+      target.id,
+    ]);
+    const reserved = await reserveEmailEvent({
+      type: "availability_reminder",
+      dedupeKey,
+      recipientEmail: target.email,
+      playerId: target.id,
+      entityType: data.weekId ? "week" : "week_start",
+      entityId: data.weekId,
+    });
+
+    if (!reserved) {
+      skipped += 1;
+      continue;
+    }
+
+    try {
+      const message = buildMessage({
+        playerName: target.fullName,
+        weekStartsOn: data.weekStartsOn,
+        weekEndsOn: data.weekEndsOn,
+        deadline: data.deadline,
       });
 
-      if (!reserved) {
-        skipped += 1;
-        return;
-      }
-
-      try {
-        const message = buildMessage({
-          playerName: target.fullName,
-          weekStartsOn: data.weekStartsOn,
-          weekEndsOn: data.weekEndsOn,
-          deadline: data.deadline,
-        });
-
-        await sendTransactionalEmail({
-          to: target.email,
-          subject: message.subject,
-          html: message.html,
-          text: message.text,
-        });
-        await markEmailEventSent(dedupeKey);
-        sent += 1;
-      } catch (error) {
-        await markEmailEventFailed(dedupeKey, error);
-        failed += 1;
-        console.error("Failed to send availability reminder email", error);
-      }
-    }),
-  );
+      await sendTransactionalEmail({
+        to: target.email,
+        subject: message.subject,
+        html: message.html,
+        text: message.text,
+      });
+      await markEmailEventSent(dedupeKey);
+      sent += 1;
+    } catch (error) {
+      await markEmailEventFailed(dedupeKey, error);
+      failed += 1;
+      console.error("Failed to send availability reminder email", error);
+    }
+  }
 
   return {
     sent,
     skipped,
     failed,
-    totalTargets: data.targets.length,
+    totalTargets: targets.length,
+    suppressedTargets: data.targets.length - targets.length,
     weekStartsOn: data.weekStartsOn,
     weekEndsOn: data.weekEndsOn,
     deadline: data.deadline,

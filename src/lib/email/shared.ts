@@ -45,6 +45,10 @@ export function absoluteUrl(path: string) {
   return `${baseUrl}${normalizedPath}`;
 }
 
+export function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function sendTransactionalEmail(args: {
   to: string;
   subject: string;
@@ -52,6 +56,18 @@ export async function sendTransactionalEmail(args: {
   text: string;
   from?: string;
 }) {
+  const testRecipient = normalizeEmail(env.emailTestRecipient);
+  const to = testRecipient ?? args.to;
+  const subject = testRecipient
+    ? `[TEST -> ${args.to}] ${args.subject}`
+    : args.subject;
+  const html = testRecipient
+    ? `<p><strong>Modo prueba.</strong> Destinatario original: ${escapeHtml(args.to)}</p>\n${args.html}`
+    : args.html;
+  const text = testRecipient
+    ? `Modo prueba. Destinatario original: ${args.to}\n\n${args.text}`
+    : args.text;
+
   const response = await fetch(RESEND_EMAIL_API_URL, {
     method: "POST",
     headers: {
@@ -60,10 +76,10 @@ export async function sendTransactionalEmail(args: {
     },
     body: JSON.stringify({
       from: args.from ?? env.emailFrom,
-      to: [args.to],
-      subject: args.subject,
-      html: args.html,
-      text: args.text,
+      to: [to],
+      subject,
+      html,
+      text,
     }),
   });
 

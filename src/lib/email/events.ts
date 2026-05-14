@@ -27,6 +27,29 @@ export async function reserveEmailEvent(args: {
     return true;
   }
 
+  const [existing] = await db
+    .select({ status: emailEvents.status })
+    .from(emailEvents)
+    .where(eq(emailEvents.dedupeKey, args.dedupeKey))
+    .limit(1);
+
+  if (existing?.status === "sent" || existing?.status === "pending") {
+    return false;
+  }
+
+  if (existing?.status === "failed") {
+    await db
+      .update(emailEvents)
+      .set({
+        status: "pending",
+        error: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(emailEvents.dedupeKey, args.dedupeKey));
+
+    return true;
+  }
+
   const inserted = await db
     .insert(emailEvents)
     .values({

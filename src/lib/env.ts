@@ -18,6 +18,7 @@ export const env = {
     process.env.MATCH_RESULT_EMAILS_ENABLED === "true",
   emailFrom:
     process.env.EMAIL_FROM ?? process.env.MATCH_RESULT_EMAIL_FROM ?? "",
+  emailTestRecipient: process.env.EMAIL_TEST_RECIPIENT ?? "",
   resendApiKey: process.env.RESEND_API_KEY ?? "",
 };
 

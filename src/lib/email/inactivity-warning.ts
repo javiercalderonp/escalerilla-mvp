@@ -8,6 +8,7 @@ import {
   absoluteUrl,
   escapeHtml,
   sendTransactionalEmail,
+  wait,
 } from "@/lib/email/shared";
 import { env } from "@/lib/env";
 
@@ -61,56 +62,62 @@ export async function sendInactivityWarningEmails(
     return { sent: 0, skipped: 0, failed: 0, reason: "email_env_missing" };
   }
 
+  const testTargets = env.emailTestRecipient ? targets.slice(0, 1) : targets;
   let sent = 0;
   let skipped = 0;
   let failed = 0;
 
-  await Promise.all(
-    targets.map(async (target) => {
-      const email = target.email?.trim().toLowerCase();
+  for (const target of testTargets) {
+    await wait(250);
+    const email = target.email?.trim().toLowerCase();
 
-      if (!email) {
-        skipped += 1;
-        return;
-      }
+    if (!email) {
+      skipped += 1;
+      continue;
+    }
 
-      const dedupeKey = makeEmailDedupeKey([
-        "inactivity_warning",
-        target.playerId,
-        target.lastMatchDate ?? "never",
-      ]);
-      const reserved = await reserveEmailEvent({
-        type: "inactivity_warning",
-        dedupeKey,
-        recipientEmail: email,
-        playerId: target.playerId,
-        entityType: "player",
-        entityId: target.playerId,
+    const dedupeKey = makeEmailDedupeKey([
+      "inactivity_warning",
+      target.playerId,
+      target.lastMatchDate ?? "never",
+    ]);
+    const reserved = await reserveEmailEvent({
+      type: "inactivity_warning",
+      dedupeKey,
+      recipientEmail: email,
+      playerId: target.playerId,
+      entityType: "player",
+      entityId: target.playerId,
+    });
+
+    if (!reserved) {
+      skipped += 1;
+      continue;
+    }
+
+    try {
+      const message = buildMessage(target);
+
+      await sendTransactionalEmail({
+        to: email,
+        subject: message.subject,
+        html: message.html,
+        text: message.text,
       });
+      await markEmailEventSent(dedupeKey);
+      sent += 1;
+    } catch (error) {
+      await markEmailEventFailed(dedupeKey, error);
+      failed += 1;
+      console.error("Failed to send inactivity warning email", error);
+    }
+  }
 
-      if (!reserved) {
-        skipped += 1;
-        return;
-      }
-
-      try {
-        const message = buildMessage(target);
-
-        await sendTransactionalEmail({
-          to: email,
-          subject: message.subject,
-          html: message.html,
-          text: message.text,
-        });
-        await markEmailEventSent(dedupeKey);
-        sent += 1;
-      } catch (error) {
-        await markEmailEventFailed(dedupeKey, error);
-        failed += 1;
-        console.error("Failed to send inactivity warning email", error);
-      }
-    }),
-  );
-
-  return { sent, skipped, failed, totalTargets: targets.length };
+  return {
+    sent,
+    skipped,
+    failed,
+    totalTargets: testTargets.length,
+    suppressedTargets: targets.length - testTargets.length,
+  };
 }

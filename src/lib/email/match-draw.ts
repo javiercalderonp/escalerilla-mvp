@@ -17,6 +17,7 @@ import {
   absoluteUrl,
   escapeHtml,
   sendTransactionalEmail,
+  wait,
 } from "@/lib/email/shared";
 import { env } from "@/lib/env";
 
@@ -256,19 +257,26 @@ export async function notifyFixturePublished(weekId: string) {
     ];
   });
 
-  const results = await Promise.all(
-    deliveries.map((delivery) =>
-      sendDrawEmail({
+  const testDeliveries = env.emailTestRecipient
+    ? deliveries.slice(0, 1)
+    : deliveries;
+  const results = [];
+
+  for (const delivery of testDeliveries) {
+    await wait(250);
+    results.push(
+      await sendDrawEmail({
         ...delivery,
         weekStartsOn: week.startsOn,
         weekEndsOn: week.endsOn,
       }),
-    ),
-  );
+    );
+  }
 
   return {
     sent: results.filter((result) => result === "sent").length,
     skipped: results.filter((result) => result === "skipped").length,
     failed: results.filter((result) => result === "failed").length,
+    suppressed: deliveries.length - testDeliveries.length,
   };
 }
