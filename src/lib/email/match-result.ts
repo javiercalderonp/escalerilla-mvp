@@ -17,7 +17,7 @@ import {
   uniqueRecipients,
 } from "@/lib/email/shared";
 import { env } from "@/lib/env";
-import { getRanking, rankingCategoryFromGender } from "@/lib/ranking";
+import { getFreshRanking, rankingCategoryFromGender } from "@/lib/ranking";
 
 export type MatchSet = {
   setNumber: number;
@@ -178,6 +178,10 @@ function getCompactScore(details: MatchResultEmailDetails) {
   return details.sets.length > 0
     ? `(${details.sets.map(formatSet).join(", ")})`
     : "";
+}
+
+function getSetsScoreHtml(details: MatchResultEmailDetails) {
+  return `${escapeHtml(getSetsWon(details, details.player1.id))}&nbsp;-&nbsp;${escapeHtml(getSetsWon(details, details.player2.id))}`;
 }
 
 function getInitials(fullName: string) {
@@ -379,6 +383,7 @@ function buildOpponentResultEmail(
       .em-email-kicker{margin-bottom:8px!important;font-size:10px!important;letter-spacing:0.08em!important;line-height:1.2!important;}
       .em-email-title{font-size:22px!important;line-height:1.12!important;}
       .em-email-intro{margin-top:10px!important;margin-bottom:14px!important;font-size:12px!important;line-height:1.45!important;}
+      .em-match-score{font-size:30px!important;white-space:nowrap!important;}
       .em-col-half{display:block!important;width:100%!important;box-sizing:border-box!important;border-right:none!important;}
       .em-col-third{display:block!important;width:100%!important;box-sizing:border-box!important;border-right:none!important;padding-top:8px!important;}
       .em-full-btn{display:block!important;width:100%!important;box-sizing:border-box!important;padding-left:0!important;padding-right:0!important;}
@@ -429,7 +434,7 @@ function buildOpponentResultEmail(
                               </td>
                               <td align="center" style="padding:0 12px;width:160px;">
                                 <div style="display:inline-block;background:#e8f6eb;color:#2b8b3f;font-size:11px;font-weight:900;text-transform:uppercase;border-radius:999px;padding:5px 10px;margin-bottom:8px;">${escapeHtml(details.status === "empate" ? "Empate" : winner.id === details.player1.id ? "Ganador" : "Resultado")}</div>
-                                <div style="font-size:40px;line-height:1;font-weight:900;color:#07182a;">${escapeHtml(getSetsWon(details, details.player1.id))} - ${escapeHtml(getSetsWon(details, details.player2.id))}</div>
+                                <div class="em-match-score" style="font-size:34px;line-height:1;font-weight:900;color:#07182a;white-space:nowrap;">${getSetsScoreHtml(details)}</div>
                                 <div style="font-size:16px;font-weight:800;color:#0d1b2a;margin-top:7px;">${escapeHtml(compactScore)}</div>
                               </td>
                               <td align="right" style="padding-right:12px;">
@@ -501,7 +506,8 @@ function buildOpponentResultEmail(
                       Puedes aceptar el resultado o solicitar una corrección antes del sorteo de la próxima semana.
                     </div>
 
-                    <p style="margin:24px 0 12px;text-align:center;font-size:14px;font-weight:900;color:#0d1b2a;">Escalerilla de Tenis Club de Golf La Dehesa</p>
+                    <img src="${logoUrl}" alt="Club de Golf La Dehesa" width="58" height="58" style="display:block;border:0;border-radius:4px;margin:24px auto 12px;">
+                    <p style="margin:0 0 12px;text-align:center;font-size:14px;font-weight:900;color:#0d1b2a;">Escalerilla de Tenis Club de Golf La Dehesa</p>
                   </td>
                 </tr>
                 <tr>
@@ -592,7 +598,7 @@ export function buildMatchResultEmail(
           </td>
           <td align="center" style="padding:0 12px;width:160px;">
             <div style="display:inline-block;background:#e8f6eb;color:#2b8b3f;font-size:11px;font-weight:900;text-transform:uppercase;border-radius:999px;padding:5px 10px;margin-bottom:8px;">${escapeHtml(details.status === "empate" ? "Empate" : winner.id === details.player1.id ? "Ganador" : "Resultado")}</div>
-            <div style="font-size:40px;line-height:1;font-weight:900;color:#07182a;">${escapeHtml(getSetsWon(details, details.player1.id))} - ${escapeHtml(getSetsWon(details, details.player2.id))}</div>
+            <div class="em-match-score" style="font-size:34px;line-height:1;font-weight:900;color:#07182a;white-space:nowrap;">${getSetsScoreHtml(details)}</div>
             <div style="font-size:16px;font-weight:800;color:#0d1b2a;margin-top:7px;">${escapeHtml(compactScore)}</div>
           </td>
           <td align="right" style="padding-right:12px;">
@@ -746,7 +752,9 @@ async function loadMatchResultDetails(matchId: string) {
     return null;
   }
 
-  const ranking = await getRanking(rankingCategoryFromGender(match.category));
+  const ranking = await getFreshRanking(
+    rankingCategoryFromGender(match.category),
+  );
   const rankingByPlayerId = new Map(ranking.map((entry) => [entry.id, entry]));
   const player1Ranking = rankingByPlayerId.get(player1[0].id);
   const player2Ranking = rankingByPlayerId.get(player2[0].id);

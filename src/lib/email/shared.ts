@@ -68,8 +68,10 @@ export function buildEmailLayout(title: string, bodyHtml: string): string {
       .em-hero{height:98px!important;padding-left:16px!important;padding-right:16px!important;}
       .em-hero-logo{width:42px!important;height:42px!important;}
       .em-hero-logo-cell{padding-right:10px!important;}
+      .em-hero-brand{margin-top:-8px!important;}
       .em-hero-title{font-size:15px!important;line-height:1.08!important;}
       .em-hero-subtitle{font-size:10px!important;line-height:1.2!important;}
+      .em-body-card{margin-top:-18px!important;}
       .em-email-heading,.em-draw-heading{margin-bottom:14px!important;}
       .em-email-kicker,.em-draw-kicker{margin-bottom:8px!important;font-size:10px!important;letter-spacing:0.08em!important;line-height:1.2!important;}
       .em-email-title,.em-draw-title{font-size:22px!important;line-height:1.12!important;}
@@ -79,6 +81,7 @@ export function buildEmailLayout(title: string, bodyHtml: string): string {
       .em-email-greeting,.em-draw-greeting{margin-bottom:2px!important;font-size:13px!important;line-height:1.35!important;}
       .em-email-intro,.em-draw-intro{margin-bottom:14px!important;font-size:12px!important;line-height:1.45!important;}
       .em-email-section-label{margin-bottom:12px!important;font-size:10px!important;}
+      .em-match-score{font-size:30px!important;white-space:nowrap!important;}
       .em-email-icon-card{width:44px!important;height:44px!important;margin-bottom:8px!important;font-size:20px!important;line-height:44px!important;}
       .em-email-action{padding:12px 18px!important;font-size:13px!important;}
       .em-email-action-large{padding:13px 18px!important;font-size:15px!important;}
@@ -119,7 +122,7 @@ export function buildEmailLayout(title: string, bodyHtml: string): string {
           <tr>
             <td background="${bannerUrl}" class="em-hero" style="background-color:#07182a;background-image:linear-gradient(90deg,rgba(7,24,42,0.94) 0%,rgba(7,24,42,0.82) 38%,rgba(7,24,42,0.34) 72%,rgba(7,24,42,0.08) 100%),url('${bannerUrl}');background-size:cover;background-position:center;height:154px;padding:0 40px;">
               <a href="${homeUrl}" style="text-decoration:none;">
-                <table cellpadding="0" cellspacing="0" role="presentation">
+                <table cellpadding="0" cellspacing="0" role="presentation" class="em-hero-brand">
                   <tr>
                     <td valign="middle" class="em-hero-logo-cell" style="padding-right:22px;">
                       <img src="${logoUrl}" alt="Club de Golf La Dehesa" width="70" height="70" class="em-hero-logo" style="display:block;border:0;border-radius:4px;">
@@ -135,7 +138,7 @@ export function buildEmailLayout(title: string, bodyHtml: string): string {
           </tr>
           <tr>
             <td align="center" class="em-card-gutter" style="padding:0 28px 0;background:#07182a;">
-              <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-top:-32px;background:#ffffff;border-radius:8px;box-shadow:0 14px 36px rgba(15,28,42,0.14);">
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation" class="em-body-card" style="margin-top:-32px;background:#ffffff;border-radius:8px;box-shadow:0 14px 36px rgba(15,28,42,0.14);">
                 <tr>
                   <td class="em-card-pad" style="padding:40px 40px 36px;">
                     ${bodyHtml}
@@ -146,14 +149,8 @@ export function buildEmailLayout(title: string, bodyHtml: string): string {
           </tr>
           <tr>
             <td align="center" style="background:#07182a;padding:24px 0 16px;">
-              <p style="margin:0 0 14px;font-size:13px;font-weight:600;color:#ffffff;text-align:center;letter-spacing:0.02em;">Escalerilla de Tenis · Club de Golf La Dehesa</p>
-              <table align="center" cellpadding="0" cellspacing="0" role="presentation">
-                <tr>
-                  <td style="padding:0 5px;"><a href="${homeUrl}" style="display:block;width:34px;height:34px;background-color:#ffffff;border-radius:50%;text-align:center;line-height:34px;font-size:11px;font-weight:700;text-decoration:none;color:#07182a;">IG</a></td>
-                  <td style="padding:0 5px;"><a href="${homeUrl}" style="display:block;width:34px;height:34px;background-color:#ffffff;border-radius:50%;text-align:center;line-height:34px;font-size:11px;font-weight:700;text-decoration:none;color:#07182a;">WA</a></td>
-                  <td style="padding:0 5px;"><a href="${homeUrl}" style="display:block;width:34px;height:34px;background-color:#ffffff;border-radius:50%;text-align:center;line-height:34px;font-size:11px;font-weight:700;text-decoration:none;color:#07182a;">WEB</a></td>
-                </tr>
-              </table>
+              <img src="${logoUrl}" alt="Club de Golf La Dehesa" width="58" height="58" style="display:block;border:0;border-radius:4px;margin:0 auto 12px;">
+              <p style="margin:0;font-size:13px;font-weight:600;color:#ffffff;text-align:center;letter-spacing:0.02em;">Escalerilla de Tenis · Club de Golf La Dehesa</p>
             </td>
           </tr>
           <tr>

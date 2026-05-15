@@ -64,10 +64,10 @@ export function AvailabilityForm({ existing }: AvailabilityFormProps) {
         onChange={setAvailability}
       />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+      <div className="sticky bottom-0 z-20 -mx-4 border-t border-border/70 bg-background/95 px-4 py-4 shadow-2xl shadow-court/10 backdrop-blur sm:static sm:mx-0 sm:flex sm:flex-wrap sm:gap-3 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-none">
         <button
           type="submit"
-          className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-clay px-7 text-sm font-bold text-clay-foreground shadow-lg shadow-clay/20 transition hover:bg-clay/90 sm:min-w-64"
+          className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-clay px-7 text-base font-bold text-clay-foreground shadow-lg shadow-clay/20 transition hover:bg-clay/90 sm:h-12 sm:w-auto sm:min-w-64 sm:rounded-2xl sm:text-sm"
         >
           {hasExisting ? (
             <Check className="size-4" aria-hidden="true" />
@@ -79,7 +79,7 @@ export function AvailabilityForm({ existing }: AvailabilityFormProps) {
         <button
           type="button"
           onClick={clearSelection}
-          className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-border bg-card px-7 text-sm font-semibold text-muted-foreground shadow-sm transition hover:border-clay/30 hover:text-foreground sm:min-w-52"
+          className="mt-3 hidden h-12 items-center justify-center gap-2 rounded-2xl border border-border bg-card px-7 text-sm font-semibold text-muted-foreground shadow-sm transition hover:border-clay/30 hover:text-foreground sm:mt-0 sm:inline-flex sm:min-w-52"
         >
           <Eraser className="size-4" aria-hidden="true" />
           Limpiar selección

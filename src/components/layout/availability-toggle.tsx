@@ -206,16 +206,41 @@ function AvailabilityDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col divide-y divide-slate-200 rounded-xl border border-slate-200 bg-slate-50">
-          <label className="flex cursor-pointer items-start gap-3 p-3.5">
+        {error && (
+          <p className="rounded-lg bg-red-500/10 px-3 py-2 text-center text-xs text-red-400">
+            {error}
+          </p>
+        )}
+
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => onConfirm(false, false, false)}
+            disabled={isPending}
+            className="flex min-h-14 items-center justify-center rounded-xl border border-slate-200 px-3 text-center text-sm font-semibold leading-tight text-slate-600 transition hover:border-slate-300 hover:text-slate-950 disabled:opacity-60"
+          >
+            No estoy disponible
+          </button>
+          <button
+            type="button"
+            onClick={() => onConfirm(true, wantsMultiple, alwaysAvail)}
+            disabled={isPending}
+            className="flex min-h-14 items-center justify-center rounded-xl bg-clay px-3 text-center text-base font-semibold leading-tight text-white shadow-sm transition hover:bg-clay/90 disabled:opacity-60"
+          >
+            {isPending ? "Guardando..." : "Sí, quiero jugar"}
+          </button>
+        </div>
+
+        <div className="flex flex-col divide-y divide-slate-200 rounded-lg border border-slate-200 bg-slate-50/70">
+          <label className="flex cursor-pointer items-start gap-2.5 p-3">
             <input
               type="checkbox"
               checked={wantsMultiple}
               onChange={(e) => setWantsMultiple(e.target.checked)}
-              className="mt-0.5 size-4 shrink-0 accent-clay"
+              className="mt-0.5 size-3.5 shrink-0 accent-clay"
             />
             <span className="flex flex-col gap-0.5">
-              <span className="text-sm font-medium leading-snug text-slate-950">
+              <span className="text-xs font-medium leading-snug text-slate-800">
                 Jugar más de un partido
               </span>
               <span className="text-xs leading-relaxed text-slate-500">
@@ -223,15 +248,15 @@ function AvailabilityDialog({
               </span>
             </span>
           </label>
-          <label className="flex cursor-pointer items-start gap-3 p-3.5">
+          <label className="flex cursor-pointer items-start gap-2.5 p-3">
             <input
               type="checkbox"
               checked={alwaysAvail}
               onChange={(e) => setAlwaysAvail(e.target.checked)}
-              className="mt-0.5 size-4 shrink-0 accent-clay"
+              className="mt-0.5 size-3.5 shrink-0 accent-clay"
             />
             <span className="flex flex-col gap-0.5">
-              <span className="text-sm font-medium leading-snug text-slate-950">
+              <span className="text-xs font-medium leading-snug text-slate-800">
                 Disponible automáticamente
               </span>
               <span className="text-xs leading-relaxed text-slate-500">
@@ -248,31 +273,6 @@ function AvailabilityDialog({
         >
           Ajustar horarios de disponibilidad
         </Link>
-
-        {error && (
-          <p className="rounded-lg bg-red-500/10 px-3 py-2 text-center text-xs text-red-400">
-            {error}
-          </p>
-        )}
-
-        <div className="flex flex-col-reverse gap-2 sm:flex-row">
-          <button
-            type="button"
-            onClick={() => onConfirm(false, false, false)}
-            disabled={isPending}
-            className="flex h-10 flex-1 items-center justify-center rounded-xl border border-slate-200 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-950 disabled:opacity-60"
-          >
-            No estoy disponible
-          </button>
-          <button
-            type="button"
-            onClick={() => onConfirm(true, wantsMultiple, alwaysAvail)}
-            disabled={isPending}
-            className="flex h-10 flex-1 items-center justify-center rounded-xl bg-clay text-sm font-semibold text-white transition hover:bg-clay/90 disabled:opacity-60"
-          >
-            {isPending ? "Guardando..." : "Sí, quiero jugar"}
-          </button>
-        </div>
       </DialogContent>
     </Dialog>
   );

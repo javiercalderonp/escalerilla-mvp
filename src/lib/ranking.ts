@@ -128,7 +128,9 @@ export function rankingCategoryFromGender(gender: "M" | "F"): RankingCategory {
   return gender === "M" ? "hombres" : "mujeres";
 }
 
-export function rankingGenderFromCategory(category: RankingCategory): "M" | "F" {
+export function rankingGenderFromCategory(
+  category: RankingCategory,
+): "M" | "F" {
   return category === "hombres" ? "M" : "F";
 }
 
@@ -414,6 +416,13 @@ export async function getRanking(
   return fromDb ?? [];
 }
 
+export async function getFreshRanking(
+  category: RankingCategory,
+): Promise<RankingEntry[]> {
+  const fromDb = await fetchRankingFromDb(category);
+  return fromDb ?? [];
+}
+
 export async function getPlayerRankingDetail(
   category: RankingCategory,
   playerId: string,
@@ -655,7 +664,7 @@ export async function getRecentPublicMatches(
     playedOn:
       typeof row.playedOn === "string"
         ? row.playedOn
-        : (row.playedOn as Date | null)?.toISOString().slice(0, 10) ?? null,
+        : ((row.playedOn as Date | null)?.toISOString().slice(0, 10) ?? null),
     type: row.type as RecentPublicMatch["type"],
     winnerId: row.winnerId,
     player1Id: row.player1Id,

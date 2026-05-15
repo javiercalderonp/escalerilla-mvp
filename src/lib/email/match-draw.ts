@@ -247,18 +247,12 @@ function formatMatchScore(match: RecentMatchSummary) {
   return match.sets.map(formatSetScore).join(", ");
 }
 
-function getMatchResult(match: RecentMatchSummary, playerId: string) {
-  if (match.status === "empate" || !match.winnerId) return "empató";
-  return match.winnerId === playerId ? "ganó" : "perdió";
-}
-
 function getOpponentName(match: RecentMatchSummary, playerId: string) {
   return match.player1Id === playerId ? match.player2Name : match.player1Name;
 }
 
 function formatRecentMatch(match: RecentMatchSummary, playerId: string) {
-  const date = match.playedOn ? formatDate(match.playedOn) : "Sin fecha";
-  return `${date}: ${getMatchResult(match, playerId)} vs ${getOpponentName(
+  return `${getRecentResult(match, playerId)} vs ${getOpponentName(
     match,
     playerId,
   )} · ${formatMatchScore(match)}`;
@@ -275,6 +269,34 @@ function formatRecentMatches(
   return matchesToFormat
     .slice(0, 3)
     .map((match) => formatRecentMatch(match, playerId));
+}
+
+function getRecentResultColor(result: "W" | "L" | "D") {
+  if (result === "W") return "#5fbd3f";
+  if (result === "L") return "#f04452";
+  return "#9aa3af";
+}
+
+function formatRecentMatchesHtml(
+  matchesToFormat: RecentMatchSummary[] | undefined,
+  playerId: string,
+) {
+  if (!matchesToFormat?.length) {
+    return `<li style="padding:8px 0;font-size:14px;color:#0d1b2a;line-height:1.5;border-bottom:1px solid #f0ede8;">Sin partidos registrados recientemente.</li>`;
+  }
+
+  return matchesToFormat
+    .slice(0, 3)
+    .map((match) => {
+      const result = getRecentResult(match, playerId);
+      const color = getRecentResultColor(result);
+
+      return `<li style="padding:8px 0;font-size:14px;color:#0d1b2a;line-height:1.5;border-bottom:1px solid #f0ede8;">
+        <span style="display:inline-block;width:22px;height:22px;margin:0 8px 0 0;border-radius:50%;background-color:${color};color:#ffffff;font-size:11px;font-weight:800;line-height:22px;text-align:center;vertical-align:middle;">${result}</span>
+        <span style="vertical-align:middle;">vs ${escapeHtml(getOpponentName(match, playerId))} · ${escapeHtml(formatMatchScore(match))}</span>
+      </li>`;
+    })
+    .join("\n");
 }
 
 function makeAllAvailabilitySlots(): AvailabilitySlots {
@@ -345,15 +367,6 @@ function formatRecommendedTimes(times: RecommendedTimeOption[]) {
 
 function formatListText(title: string, lines: string[]) {
   return [title, ...lines.map((line) => `- ${line}`)].join("\n");
-}
-
-function formatListHtml(lines: string[], color = "#0d1b2a") {
-  return lines
-    .map(
-      (line) =>
-        `<li style="padding:8px 0;font-size:14px;color:${color};line-height:1.5;border-bottom:1px solid #f0ede8;">${escapeHtml(line)}</li>`,
-    )
-    .join("\n");
 }
 
 function formatRecommendedCardsHtml(times: RecommendedTimeOption[]) {
@@ -559,7 +572,7 @@ ${formatOtherMatchesHtml(otherMatches)}
 <p style="margin:0 0 20px;font-size:12px;color:#405066;line-height:1.5;">Estos horarios son bloques en que ambos jugadores marcaron disponibilidad y duran al menos 1 hora y media.</p>
 <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.08em;">Últimos partidos del rival</p>
 <ul style="margin:0 0 24px;padding:0;list-style:none;border-top:1px solid #f0ede8;">
-  ${formatListHtml(opponentRecentMatches)}
+  ${formatRecentMatchesHtml(args.opponentRecentMatches, args.opponent.id)}
 </ul>
 <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 28px;">
   <tr>
