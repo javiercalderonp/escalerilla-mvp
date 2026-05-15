@@ -9,6 +9,7 @@ import {
   Swords,
   Trash2,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useEffect, useState, useTransition } from "react";
 
@@ -21,10 +22,12 @@ import {
   registerResultAction,
   registerWalkoverAction,
 } from "@/app/fixture/match-admin-actions";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -224,8 +227,12 @@ function SaveToast({
 }
 
 export function FixtureAdminActions({ match, sets }: FixtureAdminActionsProps) {
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [resultOpen, setResultOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [toast, setToast] = useState<"saving" | "saved" | null>(null);
   const [isPending, startTransition] = useTransition();
   const [mode, setMode] = useState<ResultMode>(() => {
@@ -281,8 +288,41 @@ export function FixtureAdminActions({ match, sets }: FixtureAdminActionsProps) {
     });
   }
 
+  function handleDeleteConfirm() {
+    setDeleteError(null);
+    setIsDeleting(true);
+    startTransition(async () => {
+      try {
+        const formData = new FormData();
+        formData.set("matchId", match.id);
+        await deleteMatchAction(formData);
+        setDeleteOpen(false);
+        setMenuOpen(false);
+        router.refresh();
+      } catch (err) {
+        setDeleteError(
+          err instanceof Error ? err.message : "No se pudo eliminar el partido",
+        );
+        setIsDeleting(false);
+      }
+    });
+  }
+
   return (
     <div className="relative">
+      {isDeleting && (
+        <div className="fixed inset-0 z-[70] grid place-items-center bg-background/80 backdrop-blur-sm">
+          <div className="flex min-w-56 flex-col items-center gap-3 rounded-xl border border-border bg-popover px-6 py-5 text-popover-foreground shadow-xl">
+            <Loader2 className="size-6 animate-spin text-court" />
+            <div className="text-center">
+              <p className="text-sm font-semibold">Eliminando partido</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Espera un momento...
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       {toast !== null && (
         <SaveToast status={toast} onDismiss={() => setToast(null)} />
       )}
@@ -310,25 +350,67 @@ export function FixtureAdminActions({ match, sets }: FixtureAdminActionsProps) {
             Editar resultado
           </button>
 
-          <form
-            action={deleteMatchAction}
-            onSubmit={(event) => {
-              if (!window.confirm("¿Eliminar este partido definitivamente?")) {
-                event.preventDefault();
-              }
+          <button
+            type="button"
+            onClick={() => {
+              setDeleteError(null);
+              setDeleteOpen(true);
+              setMenuOpen(false);
             }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-destructive transition hover:bg-destructive/10"
           >
-            <input type="hidden" name="matchId" value={match.id} />
-            <button
-              type="submit"
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-destructive transition hover:bg-destructive/10"
-            >
-              <Trash2 className="size-4" />
-              Eliminar partido
-            </button>
-          </form>
+            <Trash2 className="size-4" />
+            Eliminar partido
+          </button>
         </div>
       ) : null}
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="sm:max-w-md" showCloseButton={!isDeleting}>
+          <DialogHeader>
+            <DialogTitle>Eliminar partido</DialogTitle>
+            <DialogDescription>
+              {match.player1Name} vs {match.player2Name}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-foreground">
+            Esta acción eliminará el partido definitivamente y actualizará el
+            ranking asociado.
+          </div>
+
+          {deleteError && (
+            <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm font-medium text-destructive">
+              {deleteError}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeleteOpen(false)}
+              disabled={isDeleting || isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting || isPending}
+              className="gap-2"
+            >
+              {isDeleting ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Trash2 className="size-4" />
+              )}
+              {isDeleting ? "Eliminando" : "Eliminar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={resultOpen} onOpenChange={setResultOpen}>
         <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-3xl">

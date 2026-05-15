@@ -367,6 +367,18 @@ function buildOpponentResultEmail(
   <title>${escapeHtml(title)}</title>
   <style>
     @media only screen and (max-width:480px){
+      .em-shell-gutter{padding-left:10px!important;padding-right:10px!important;}
+      .em-card-gutter{padding-left:10px!important;padding-right:10px!important;}
+      .em-card-pad{padding:20px 12px 24px!important;}
+      .em-hero{height:98px!important;padding-left:16px!important;padding-right:16px!important;}
+      .em-hero-logo{width:42px!important;height:42px!important;}
+      .em-hero-logo-cell{padding-right:10px!important;}
+      .em-hero-title{font-size:15px!important;line-height:1.08!important;}
+      .em-hero-subtitle{font-size:10px!important;line-height:1.2!important;}
+      .em-email-heading{margin-bottom:14px!important;}
+      .em-email-kicker{margin-bottom:8px!important;font-size:10px!important;letter-spacing:0.08em!important;line-height:1.2!important;}
+      .em-email-title{font-size:22px!important;line-height:1.12!important;}
+      .em-email-intro{margin-top:10px!important;margin-bottom:14px!important;font-size:12px!important;line-height:1.45!important;}
       .em-col-half{display:block!important;width:100%!important;box-sizing:border-box!important;border-right:none!important;}
       .em-col-third{display:block!important;width:100%!important;box-sizing:border-box!important;border-right:none!important;padding-top:8px!important;}
       .em-full-btn{display:block!important;width:100%!important;box-sizing:border-box!important;padding-left:0!important;padding-right:0!important;}
@@ -377,17 +389,17 @@ function buildOpponentResultEmail(
 <body style="margin:0;padding:0;background-color:#f5f7fb;font-family:Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased;">
   <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color:#f5f7fb;">
     <tr>
-      <td align="center" style="padding:16px 8px 24px;">
+      <td align="center" class="em-shell-gutter" style="padding:16px 8px 24px;">
         <table width="720" cellpadding="0" cellspacing="0" role="presentation" style="width:720px;max-width:100%;background-color:#07182a;border:1px solid #e5eaf0;">
           <tr>
-            <td background="${bannerUrl}" style="background-color:#07182a;background-image:linear-gradient(90deg,rgba(7,24,42,0.94) 0%,rgba(7,24,42,0.82) 38%,rgba(7,24,42,0.34) 72%,rgba(7,24,42,0.08) 100%),url('${bannerUrl}');background-size:cover;background-position:center;height:154px;padding:0 40px;">
+            <td background="${bannerUrl}" class="em-hero" style="background-color:#07182a;background-image:linear-gradient(90deg,rgba(7,24,42,0.94) 0%,rgba(7,24,42,0.82) 38%,rgba(7,24,42,0.34) 72%,rgba(7,24,42,0.08) 100%),url('${bannerUrl}');background-size:cover;background-position:center;height:154px;padding:0 40px;">
               <a href="${homeUrl}" style="text-decoration:none;">
                 <table cellpadding="0" cellspacing="0" role="presentation">
                   <tr>
-                    <td style="padding-right:22px;"><img src="${logoUrl}" alt="Club de Golf La Dehesa" width="70" height="70" style="display:block;border:0;border-radius:4px;"></td>
+                    <td class="em-hero-logo-cell" style="padding-right:22px;"><img src="${logoUrl}" alt="Club de Golf La Dehesa" width="70" height="70" class="em-hero-logo" style="display:block;border:0;border-radius:4px;"></td>
                     <td>
-                      <div style="font-size:24px;font-weight:900;color:#ffffff;line-height:1.1;text-transform:uppercase;">Club de Golf La Dehesa</div>
-                      <div style="font-size:16px;font-weight:800;color:#ff7a1a;line-height:1.4;text-transform:uppercase;">Escalerilla Tenis</div>
+                      <div class="em-hero-title" style="font-size:24px;font-weight:900;color:#ffffff;line-height:1.1;text-transform:uppercase;">Club de Golf La Dehesa</div>
+                      <div class="em-hero-subtitle" style="font-size:16px;font-weight:800;color:#ff7a1a;line-height:1.4;text-transform:uppercase;">Escalerilla Tenis</div>
                     </td>
                   </tr>
                 </table>
@@ -395,14 +407,14 @@ function buildOpponentResultEmail(
             </td>
           </tr>
           <tr>
-            <td align="center" style="padding:0 36px 0;background:#07182a;">
+            <td align="center" class="em-card-gutter" style="padding:0 36px 0;background:#07182a;">
               <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-top:-32px;background:#ffffff;border-radius:8px;box-shadow:0 14px 36px rgba(15,28,42,0.14);">
                 <tr>
-                  <td style="padding:28px 34px 34px;">
-                    <div style="text-align:center;margin:0 0 20px;">
-                      <p style="margin:0 0 12px;font-size:12px;font-weight:800;color:#3fa34d;letter-spacing:0.08em;text-transform:uppercase;">&#10003; Resultado reportado</p>
-                      <h1 style="margin:0;font-size:26px;font-weight:900;color:#0d1b2a;line-height:1.15;">${escapeHtml(title)}</h1>
-                      <p style="margin:14px auto 0;max-width:560px;font-size:14px;color:#314156;line-height:1.55;">${escapeHtml(intro)}</p>
+                  <td class="em-card-pad" style="padding:28px 34px 34px;">
+                    <div class="em-email-heading" style="text-align:center;margin:0 0 20px;">
+                      <p class="em-email-kicker" style="margin:0 0 12px;font-size:12px;font-weight:800;color:#3fa34d;letter-spacing:0.08em;text-transform:uppercase;">&#10003; Resultado reportado</p>
+                      <h1 class="em-email-title" style="margin:0;font-size:26px;font-weight:900;color:#0d1b2a;line-height:1.15;">${escapeHtml(title)}</h1>
+                      <p class="em-email-intro" style="margin:14px auto 0;max-width:560px;font-size:14px;color:#314156;line-height:1.55;">${escapeHtml(intro)}</p>
                     </div>
 
                     <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid #e2e8f0;border-radius:8px;margin:0 0 16px;">
@@ -562,10 +574,10 @@ export function buildMatchResultEmail(
   ];
 
   const innerHtml = `
-<div style="text-align:center;margin:0 0 20px;">
-  <p style="margin:0 0 12px;font-size:12px;font-weight:800;color:#3fa34d;letter-spacing:0.08em;text-transform:uppercase;">&#10003; Resultado registrado</p>
-  <h1 style="margin:0;font-size:26px;font-weight:900;color:#0d1b2a;line-height:1.15;">${escapeHtml(title)}</h1>
-  <p style="margin:14px auto 0;max-width:560px;font-size:14px;color:#314156;line-height:1.55;">${escapeHtml(intro)}</p>
+<div class="em-email-heading" style="text-align:center;margin:0 0 20px;">
+  <p class="em-email-kicker" style="margin:0 0 12px;font-size:12px;font-weight:800;color:#3fa34d;letter-spacing:0.08em;text-transform:uppercase;">&#10003; Resultado registrado</p>
+  <h1 class="em-email-title" style="margin:0;font-size:26px;font-weight:900;color:#0d1b2a;line-height:1.15;">${escapeHtml(title)}</h1>
+  <p class="em-email-intro" style="margin:14px auto 0;max-width:560px;font-size:14px;color:#314156;line-height:1.55;">${escapeHtml(intro)}</p>
 </div>
 
 <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid #e2e8f0;border-radius:8px;margin:0 0 16px;">

@@ -35,28 +35,28 @@ export function buildWelcomeEmail(playerName: string) {
     `Ver mi perfil: ${profileUrl}`,
   ];
   const innerHtml = `
-<div style="text-align:center;margin:0 0 28px;">
-  <p style="margin:0 0 16px;font-size:28px;line-height:1;">&#127934;</p>
-  <h1 style="margin:0;font-size:28px;font-weight:800;color:#0d1b2a;line-height:1.2;">${escapeHtml(title)}</h1>
-  <div style="width:40px;height:3px;background-color:#e8720c;margin:14px auto 0;"></div>
+<div class="em-email-heading" style="text-align:center;margin:0 0 28px;">
+  <p class="em-email-icon" style="margin:0 0 16px;font-size:28px;line-height:1;">&#127934;</p>
+  <h1 class="em-email-title" style="margin:0;font-size:28px;font-weight:800;color:#0d1b2a;line-height:1.2;">${escapeHtml(title)}</h1>
+  <div class="em-email-rule" style="width:40px;height:3px;background-color:#e8720c;margin:14px auto 0;"></div>
 </div>
-<p style="margin:0 0 8px;font-size:15px;color:#0d1b2a;line-height:1.6;text-align:center;">Hola <strong>${escapeHtml(playerName)}</strong>,</p>
-<p style="margin:0 0 32px;font-size:15px;color:#776f66;line-height:1.6;text-align:center;">Ya formas parte de la Escalerilla de Tenis.<br>Prepárate para competir, mejorar tu ranking y disfrutar cada semana.</p>
-<p style="margin:0 0 20px;font-size:11px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.1em;text-align:center;">Así funciona</p>
+<p class="em-email-greeting" style="margin:0 0 8px;font-size:15px;color:#0d1b2a;line-height:1.6;text-align:center;">Hola <strong>${escapeHtml(playerName)}</strong>,</p>
+<p class="em-email-intro" style="margin:0 0 32px;font-size:15px;color:#776f66;line-height:1.6;text-align:center;">Ya formas parte de la Escalerilla de Tenis.<br>Prepárate para competir, mejorar tu ranking y disfrutar cada semana.</p>
+<p class="em-email-section-label" style="margin:0 0 20px;font-size:11px;font-weight:700;color:#776f66;text-transform:uppercase;letter-spacing:0.1em;text-align:center;">Así funciona</p>
 <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 32px;">
   <tr>
     <td width="33%" align="center" valign="top" style="padding:0 8px;">
-      <div style="width:60px;height:60px;background-color:#f0ede8;border-radius:50%;margin:0 auto 12px;text-align:center;font-size:26px;line-height:60px;">&#128197;</div>
+      <div class="em-email-icon-card" style="width:60px;height:60px;background-color:#f0ede8;border-radius:50%;margin:0 auto 12px;text-align:center;font-size:26px;line-height:60px;">&#128197;</div>
       <p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#0d1b2a;line-height:1.4;text-align:center;">1. Confirma tu disponibilidad</p>
       <p style="margin:0;font-size:13px;color:#776f66;line-height:1.5;text-align:center;">Indicá cuándo podés jugar cada semana.</p>
     </td>
     <td width="33%" align="center" valign="top" style="padding:0 8px;">
-      <div style="width:60px;height:60px;background-color:#f0ede8;border-radius:50%;margin:0 auto 12px;text-align:center;font-size:26px;line-height:60px;">&#127934;</div>
+      <div class="em-email-icon-card" style="width:60px;height:60px;background-color:#f0ede8;border-radius:50%;margin:0 auto 12px;text-align:center;font-size:26px;line-height:60px;">&#127934;</div>
       <p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#0d1b2a;line-height:1.4;text-align:center;">2. Revisá tus partidos</p>
       <p style="margin:0;font-size:13px;color:#776f66;line-height:1.5;text-align:center;">Una vez publicado el sorteo, conocé tu próximo desafío.</p>
     </td>
     <td width="33%" align="center" valign="top" style="padding:0 8px;">
-      <div style="width:60px;height:60px;background-color:#f0ede8;border-radius:50%;margin:0 auto 12px;text-align:center;font-size:26px;line-height:60px;">&#127942;</div>
+      <div class="em-email-icon-card" style="width:60px;height:60px;background-color:#f0ede8;border-radius:50%;margin:0 auto 12px;text-align:center;font-size:26px;line-height:60px;">&#127942;</div>
       <p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#0d1b2a;line-height:1.4;text-align:center;">3. Subí tus resultados</p>
       <p style="margin:0;font-size:13px;color:#776f66;line-height:1.5;text-align:center;">Reportá el resultado al terminar tu partido.</p>
     </td>
@@ -64,7 +64,7 @@ export function buildWelcomeEmail(playerName: string) {
 </table>
 <hr style="border:none;border-top:1px solid #ede8e2;margin:0 0 28px;">
 <div style="text-align:center;margin:0 0 16px;">
-  <a href="${escapeHtml(availabilityUrl)}" style="display:inline-block;padding:15px 40px;background-color:#e8720c;color:#ffffff;text-decoration:none;border-radius:50px;font-weight:700;font-size:15px;line-height:1;">Confirmar disponibilidad</a>
+  <a href="${escapeHtml(availabilityUrl)}" class="em-email-action" style="display:inline-block;padding:15px 40px;background-color:#e8720c;color:#ffffff;text-decoration:none;border-radius:50px;font-weight:700;font-size:15px;line-height:1;">Confirmar disponibilidad</a>
 </div>
 <div style="text-align:center;">
   <a href="${escapeHtml(profileUrl)}" style="font-size:14px;color:#0d1b2a;text-decoration:underline;">Ir a mi perfil</a>

@@ -37,13 +37,13 @@ export function buildChallengeEmail(args: {
     `Ver partido: ${fixtureUrl}`,
   ];
   const innerHtml = `
-<div style="text-align:center;margin:0 0 28px;">
-  <p style="margin:0 0 12px;font-size:12px;font-weight:700;color:#e8720c;letter-spacing:0.1em;text-transform:uppercase;">&#127936; NUEVO DESAFÍO</p>
-  <h1 style="margin:0;font-size:26px;font-weight:800;color:#0d1b2a;line-height:1.2;">${escapeHtml(title)}</h1>
-  <div style="width:40px;height:3px;background-color:#e8720c;margin:14px auto 0;"></div>
+<div class="em-email-heading" style="text-align:center;margin:0 0 28px;">
+  <p class="em-email-kicker" style="margin:0 0 12px;font-size:12px;font-weight:700;color:#e8720c;letter-spacing:0.1em;text-transform:uppercase;">&#127936; NUEVO DESAFÍO</p>
+  <h1 class="em-email-title" style="margin:0;font-size:26px;font-weight:800;color:#0d1b2a;line-height:1.2;">${escapeHtml(title)}</h1>
+  <div class="em-email-rule" style="width:40px;height:3px;background-color:#e8720c;margin:14px auto 0;"></div>
 </div>
-<p style="margin:0 0 8px;font-size:15px;color:#0d1b2a;line-height:1.6;text-align:center;">Hola <strong>${escapeHtml(args.challengedName)}</strong>,</p>
-<p style="margin:0 0 24px;font-size:15px;color:#776f66;line-height:1.6;text-align:center;"><strong style="color:#0d1b2a;">${escapeHtml(args.challengerName)}</strong> te ha desafiado a un partido.<br>Coordinen para jugar lo antes posible.</p>
+<p class="em-email-greeting" style="margin:0 0 8px;font-size:15px;color:#0d1b2a;line-height:1.6;text-align:center;">Hola <strong>${escapeHtml(args.challengedName)}</strong>,</p>
+<p class="em-email-intro" style="margin:0 0 24px;font-size:15px;color:#776f66;line-height:1.6;text-align:center;"><strong style="color:#0d1b2a;">${escapeHtml(args.challengerName)}</strong> te ha desafiado a un partido.<br>Coordinen para jugar lo antes posible.</p>
 <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid #ede8e2;border-radius:8px;margin:0 0 28px;">
   <tr>
     <td style="padding:16px 20px;border-bottom:1px solid #f0ede8;">
@@ -59,7 +59,7 @@ export function buildChallengeEmail(args: {
   </tr>
 </table>
 <div style="text-align:center;">
-  <a href="${escapeHtml(fixtureUrl)}" style="display:inline-block;padding:15px 40px;background-color:#e8720c;color:#ffffff;text-decoration:none;border-radius:50px;font-weight:700;font-size:15px;line-height:1;">Ver partido</a>
+  <a href="${escapeHtml(fixtureUrl)}" class="em-email-action" style="display:inline-block;padding:15px 40px;background-color:#e8720c;color:#ffffff;text-decoration:none;border-radius:50px;font-weight:700;font-size:15px;line-height:1;">Ver partido</a>
 </div>`;
 
   return {

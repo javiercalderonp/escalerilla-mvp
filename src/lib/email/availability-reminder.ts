@@ -245,15 +245,15 @@ export function buildAvailabilityReminderEmail(args: {
     rankingUrl,
   });
   const innerHtml = `
-<div style="text-align:center;margin:0 0 30px;">
-  <p style="margin:0 0 14px;font-size:12px;font-weight:900;color:#e8720c;letter-spacing:0.08em;text-transform:uppercase;">&#128197; Disponibilidad pendiente</p>
-  <h1 style="margin:0 auto;max-width:480px;font-size:32px;font-weight:900;color:#07182a;line-height:1.16;">Confirma tu disponibilidad<br>para la <span style="color:#e8720c;">próxima semana</span></h1>
-  <p style="margin:18px auto 0;max-width:480px;font-size:15px;color:#314156;line-height:1.55;">Tu disponibilidad es clave para que podamos realizar el sorteo y programar los partidos de la semana.</p>
+<div class="em-email-heading" style="text-align:center;margin:0 0 30px;">
+  <p class="em-email-kicker" style="margin:0 0 14px;font-size:12px;font-weight:900;color:#e8720c;letter-spacing:0.08em;text-transform:uppercase;">&#128197; Disponibilidad pendiente</p>
+  <h1 class="em-email-title-large" style="margin:0 auto;max-width:480px;font-size:32px;font-weight:900;color:#07182a;line-height:1.16;">Confirma tu disponibilidad<br>para la <span style="color:#e8720c;">próxima semana</span></h1>
+  <p class="em-email-intro" style="margin:18px auto 0;max-width:480px;font-size:15px;color:#314156;line-height:1.55;">Tu disponibilidad es clave para que podamos realizar el sorteo y programar los partidos de la semana.</p>
 </div>
 
 <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid #e1e7ef;border-radius:8px;margin:0 0 18px;background:#ffffff;">
   <tr>
-    <td style="padding:22px 24px 8px;">
+    <td class="em-email-panel-pad" style="padding:22px 24px 8px;">
       <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
         <tr>
           <td valign="middle" style="padding:0;text-align:left;">
@@ -265,7 +265,7 @@ export function buildAvailabilityReminderEmail(args: {
     </td>
   </tr>
   <tr>
-    <td style="padding:14px 24px 24px;">
+    <td class="em-email-panel-pad" style="padding:14px 24px 24px;">
       <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid #e1e7ef;border-radius:8px;">
         <tr>
           <td width="50%" valign="middle" class="em-col-half" style="padding:18px 18px;border-right:1px solid #e1e7ef;">
@@ -303,7 +303,7 @@ export function buildAvailabilityReminderEmail(args: {
 
 <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid #e1e7ef;border-radius:8px;margin:0 0 18px;background:#ffffff;">
   <tr>
-    <td style="padding:22px 24px 12px;text-align:center;">
+    <td class="em-email-panel-pad" style="padding:22px 24px 12px;text-align:center;">
       <p style="margin:0;font-size:14px;font-weight:900;color:#07182a;text-transform:uppercase;letter-spacing:0.04em;">¿Por qué es importante?</p>
     </td>
   </tr>
@@ -332,12 +332,12 @@ export function buildAvailabilityReminderEmail(args: {
   </tr>
   <tr>
     <td style="padding:0 30px 24px;text-align:center;">
-      <a href="${escapeHtml(availabilityUrl)}" style="display:block;background:#e8720c;color:#ffffff;text-decoration:none;border-radius:7px;padding:18px 24px;font-size:20px;font-weight:900;line-height:1;text-align:center;">&#10003; Confirmar disponibilidad</a>
+      <a href="${escapeHtml(availabilityUrl)}" class="em-email-action-large" style="display:block;background:#e8720c;color:#ffffff;text-decoration:none;border-radius:7px;padding:18px 24px;font-size:20px;font-weight:900;line-height:1;text-align:center;">&#10003; Confirmar disponibilidad</a>
     </td>
   </tr>
   <tr>
     <td style="padding:0 30px 24px;text-align:center;">
-      <a href="${escapeHtml(availabilityUrl)}" style="display:block;background:#07182a;color:#ffffff;text-decoration:none;border-radius:7px;padding:16px 22px;font-size:16px;font-weight:900;line-height:1;text-align:center;">&#128336; Ajustar mis horarios disponibles</a>
+      <a href="${escapeHtml(availabilityUrl)}" class="em-email-action" style="display:block;background:#07182a;color:#ffffff;text-decoration:none;border-radius:7px;padding:16px 22px;font-size:16px;font-weight:900;line-height:1;text-align:center;">&#128336; Ajustar mis horarios disponibles</a>
       <p style="margin:12px 0 0;font-size:13px;color:#314156;line-height:1.45;">Puedes editar los bloques horarios en que normalmente puedes jugar.</p>
     </td>
   </tr>
