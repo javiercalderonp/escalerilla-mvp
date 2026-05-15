@@ -137,7 +137,7 @@ export function AvailabilityGrid({
       ) : null}
 
       <div className="space-y-5 md:hidden">
-        <fieldset className="flex snap-x gap-2 overflow-x-auto pb-1">
+        <fieldset className="grid grid-cols-4 gap-2">
           <legend className="sr-only">Seleccionar día</legend>
           {AVAILABILITY_DAYS.map(({ key, short }) => {
             const isActive = key === activeDay;
@@ -150,7 +150,7 @@ export function AvailabilityGrid({
                 aria-pressed={isActive}
                 onClick={() => setActiveDay(key)}
                 className={[
-                  "h-10 min-w-14 snap-start rounded-full border px-4 text-sm font-bold transition",
+                  "h-10 min-w-0 rounded-full border px-2 text-sm font-bold transition",
                   isActive
                     ? "border-clay bg-clay text-clay-foreground shadow-lg shadow-clay/20"
                     : "border-border bg-card text-foreground shadow-sm hover:border-clay/30",
@@ -196,7 +196,7 @@ export function AvailabilityGrid({
             onPointerLeave={() => setDragMode(null)}
             onPointerUp={() => setDragMode(null)}
           >
-            <div className="grid grid-cols-[80px_minmax(0,1fr)] grid-rows-[repeat(30,18px)]">
+            <div className="grid grid-cols-[80px_minmax(0,1fr)] grid-rows-[repeat(30,22px)]">
               {HOURS.slice(0, -1).map((hour, index) => (
                 <div
                   key={hour}
@@ -243,12 +243,12 @@ export function AvailabilityGrid({
                     ].join(" ")}
                   >
                     {isFirst ? (
-                      <span className="absolute left-3 top-1 text-sm font-bold leading-none">
+                      <span className="pointer-events-none absolute left-3 top-2 z-10 text-sm font-bold leading-none">
                         {formatAvailabilityTime(slotIndex)}
                       </span>
                     ) : null}
                     {isLast ? (
-                      <span className="absolute bottom-1 left-3 text-sm font-bold leading-none">
+                      <span className="pointer-events-none absolute bottom-2 left-3 z-10 text-sm font-bold leading-none">
                         {formatAvailabilityTime(slotIndex + 1)}
                       </span>
                     ) : null}
