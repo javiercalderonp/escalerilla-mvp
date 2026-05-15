@@ -674,7 +674,7 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
                           ? formatDate(match.playedOn)
                           : match.weekStartsOn && match.weekEndsOn
                             ? `${formatDate(match.weekStartsOn)}–${formatDate(match.weekEndsOn)}`
-                            : "Sin fecha";
+                            : null;
 
                         return (
                           <div
@@ -693,10 +693,14 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
                                 >
                                   {getTypeLabel(match.type)}
                                 </span>
-                                <span className="text-white/20">·</span>
-                                <span className="text-xs font-medium text-white/90">
-                                  {dateLabel}
-                                </span>
+                                {dateLabel ? (
+                                  <>
+                                    <span className="text-white/20">·</span>
+                                    <span className="text-xs font-medium text-white/90">
+                                      {dateLabel}
+                                    </span>
+                                  </>
+                                ) : null}
                               </div>
                               <div className="flex items-center gap-2">
                                 <MatchStatusBadge status={match.status} />

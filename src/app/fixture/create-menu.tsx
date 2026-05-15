@@ -1,9 +1,26 @@
 "use client";
 
-import { CalendarPlus, Check, Loader2, Plus, Swords } from "lucide-react";
+import {
+  CalendarPlus,
+  Check,
+  ChevronDown,
+  Loader2,
+  Plus,
+  Search,
+  Swords,
+  UserRound,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useEffect, useState, useTransition } from "react";
+import {
+  type FocusEvent,
+  type FormEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 
 import { createWeekAction } from "@/app/admin/semanas/actions";
 import { Button } from "@/components/ui/button";
@@ -24,9 +41,166 @@ type PlayerOption = {
 };
 
 type CreateMode = "programming" | "match" | null;
+type GenderFilter = "all" | "M" | "F";
 
 function formatCategory(value: "M" | "F") {
   return value === "M" ? "Hombres" : "Mujeres";
+}
+
+function PlayerPicker({
+  label,
+  name,
+  players,
+  value,
+  onChange,
+  excludeId,
+}: {
+  label: string;
+  name: string;
+  players: PlayerOption[];
+  value: string;
+  onChange: (value: string) => void;
+  excludeId?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [genderFilter, setGenderFilter] = useState<GenderFilter>("all");
+  const rootRef = useRef<HTMLFieldSetElement>(null);
+
+  const selectedPlayer = players.find((player) => player.id === value);
+  const filteredPlayers = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return players.filter((player) => {
+      const matchesGender =
+        genderFilter === "all" || player.gender === genderFilter;
+      const matchesQuery =
+        normalizedQuery.length === 0 ||
+        player.fullName.toLowerCase().includes(normalizedQuery);
+
+      return matchesGender && matchesQuery;
+    });
+  }, [genderFilter, players, query]);
+
+  function handleBlur(event: FocusEvent<HTMLFieldSetElement>) {
+    if (!rootRef.current?.contains(event.relatedTarget)) {
+      setIsOpen(false);
+    }
+  }
+
+  return (
+    <fieldset ref={rootRef} className="space-y-2" onBlur={handleBlur}>
+      <input type="hidden" name={name} value={value} />
+      <legend className="text-sm font-medium text-slate-700">{label}</legend>
+
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left shadow-sm transition hover:border-slate-300 focus-visible:border-emerald-500 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-emerald-100"
+        onClick={() => setIsOpen((current) => !current)}
+        aria-expanded={isOpen}
+      >
+        <span className="flex min-w-0 items-center gap-3">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+            <UserRound className="size-4" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-semibold text-slate-950">
+              {selectedPlayer?.fullName ?? "Seleccionar jugador"}
+            </span>
+            {selectedPlayer ? (
+              <span className="mt-0.5 block text-xs text-slate-500">
+                {formatCategory(selectedPlayer.gender)}
+              </span>
+            ) : null}
+          </span>
+        </span>
+        <ChevronDown
+          className={`size-4 shrink-0 text-slate-400 transition ${
+            isOpen ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {isOpen ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 focus-within:border-emerald-500 focus-within:bg-white">
+            <Search className="size-4 shrink-0 text-slate-400" />
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Buscar jugador"
+              className="min-w-0 flex-1 bg-transparent text-sm text-slate-950 outline-none placeholder:text-slate-400"
+            />
+          </div>
+
+          <div className="mt-2 grid grid-cols-3 gap-1 rounded-lg bg-slate-100 p-1">
+            {[
+              ["all", "Todos"],
+              ["M", "Hombres"],
+              ["F", "Mujeres"],
+            ].map(([filterValue, filterLabel]) => (
+              <button
+                key={filterValue}
+                type="button"
+                className={`rounded-md px-2 py-1.5 text-xs font-semibold transition ${
+                  genderFilter === filterValue
+                    ? "bg-white text-slate-950 shadow-sm"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+                onClick={() => setGenderFilter(filterValue as GenderFilter)}
+              >
+                {filterLabel}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-2 max-h-56 overflow-y-auto pr-1">
+            {filteredPlayers.length > 0 ? (
+              filteredPlayers.map((player) => {
+                const isSelected = player.id === value;
+                const isExcluded = player.id === excludeId;
+
+                return (
+                  <button
+                    key={player.id}
+                    type="button"
+                    disabled={isExcluded}
+                    className={`flex w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left transition ${
+                      isSelected
+                        ? "bg-emerald-50 text-emerald-900"
+                        : "text-slate-700 hover:bg-slate-50"
+                    } ${isExcluded ? "cursor-not-allowed opacity-40" : ""}`}
+                    onClick={() => {
+                      onChange(player.id);
+                      setQuery("");
+                      setIsOpen(false);
+                    }}
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium">
+                        {player.fullName}
+                      </span>
+                      <span className="text-xs text-slate-500">
+                        {formatCategory(player.gender)}
+                      </span>
+                    </span>
+                    {isSelected ? (
+                      <Check className="size-4 shrink-0 text-emerald-600" />
+                    ) : null}
+                  </button>
+                );
+              })
+            ) : (
+              <p className="px-2.5 py-6 text-center text-sm text-slate-500">
+                Sin jugadores para ese filtro.
+              </p>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </fieldset>
+  );
 }
 
 export function AdminMatchesCreateMenu({
@@ -41,6 +215,8 @@ export function AdminMatchesCreateMenu({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<CreateMode>(null);
+  const [player1Id, setPlayer1Id] = useState(playerOptions[0]?.id ?? "");
+  const [player2Id, setPlayer2Id] = useState(playerOptions[1]?.id ?? "");
   const [isCreatingMatch, setIsCreatingMatch] = useState(false);
   const [createMatchError, setCreateMatchError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -58,6 +234,11 @@ export function AdminMatchesCreateMenu({
 
     return () => window.clearTimeout(timer);
   }, [successMessage]);
+
+  useEffect(() => {
+    setPlayer1Id((current) => current || playerOptions[0]?.id || "");
+    setPlayer2Id((current) => current || playerOptions[1]?.id || "");
+  }, [playerOptions]);
 
   function handleOpenChange(nextOpen: boolean) {
     setOpen(nextOpen);
@@ -89,6 +270,8 @@ export function AdminMatchesCreateMenu({
     try {
       await createMatchAction(new FormData(form));
       form.reset();
+      setPlayer1Id(playerOptions[0]?.id ?? "");
+      setPlayer2Id(playerOptions[1]?.id ?? "");
       setOpen(false);
       setMode(null);
       setSuccessMessage("Partido creado");
@@ -139,7 +322,7 @@ export function AdminMatchesCreateMenu({
           <Plus />
         </Button>
 
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {mode === "programming"
@@ -245,33 +428,25 @@ export function AdminMatchesCreateMenu({
 
           {mode === "match" ? (
             <form onSubmit={handleCreateMatchSubmit} className="space-y-4">
-              <label className="block space-y-2 text-sm text-slate-700">
-                <span className="font-medium">Jugador 1</span>
-                <select
+              <div className="grid gap-3">
+                <PlayerPicker
+                  label="Jugador 1"
                   name="player1Id"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-emerald-500"
-                >
-                  {playerOptions.map((player) => (
-                    <option key={player.id} value={player.id}>
-                      {player.fullName} · {formatCategory(player.gender)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  players={playerOptions}
+                  value={player1Id}
+                  onChange={setPlayer1Id}
+                  excludeId={player2Id}
+                />
 
-              <label className="block space-y-2 text-sm text-slate-700">
-                <span className="font-medium">Jugador 2</span>
-                <select
+                <PlayerPicker
+                  label="Jugador 2"
                   name="player2Id"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-emerald-500"
-                >
-                  {playerOptions.map((player) => (
-                    <option key={player.id} value={player.id}>
-                      {player.fullName} · {formatCategory(player.gender)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  players={playerOptions}
+                  value={player2Id}
+                  onChange={setPlayer2Id}
+                  excludeId={player1Id}
+                />
+              </div>
 
               <label className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700">
                 <span className="font-medium">Es desafío</span>

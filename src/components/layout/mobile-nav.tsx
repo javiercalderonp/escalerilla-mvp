@@ -4,6 +4,7 @@ import {
   BarChart2Icon,
   CalendarIcon,
   CheckCircle2,
+  FileTextIcon,
   HomeIcon,
   LogInIcon,
   LogOutIcon,
@@ -30,6 +31,7 @@ const navIcons: Record<string, LucideIcon> = {
   "/admin/jugadores": UsersIcon,
   "/login": LogInIcon,
   "/mi-perfil": UserIcon,
+  "/reglamento": FileTextIcon,
 };
 
 function iconForItem(item: NavItem) {
@@ -45,7 +47,11 @@ export function MobileNav({
   items: NavItem[];
   profileItem?: NavItem | null;
   signOutAction?: () => Promise<void>;
-  availabilityToggle?: { isMarked: boolean; wantsMultipleMatches?: boolean; alwaysAvailable?: boolean };
+  availabilityToggle?: {
+    isMarked: boolean;
+    wantsMultipleMatches?: boolean;
+    alwaysAvailable?: boolean;
+  };
 }) {
   const [open, setOpen] = useState(false);
   const loginItem = items.find((item) => item.href === "/login");
@@ -117,7 +123,9 @@ export function MobileNav({
                 <div className="border-t border-white/10">
                   <AvailabilityToggle
                     isMarked={availabilityToggle.isMarked}
-                    wantsMultipleMatches={availabilityToggle.wantsMultipleMatches}
+                    wantsMultipleMatches={
+                      availabilityToggle.wantsMultipleMatches
+                    }
                     alwaysAvailable={availabilityToggle.alwaysAvailable}
                     variant="mobile"
                     onClose={() => setOpen(false)}

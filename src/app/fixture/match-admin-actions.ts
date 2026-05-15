@@ -16,6 +16,7 @@ import {
   rankingEvents,
 } from "@/lib/db/schema";
 import { notifyChallengeCreated } from "@/lib/email/challenge";
+import { notifyManualDrawMatchCreated } from "@/lib/email/match-draw";
 import { notifyMatchResultRegistered } from "@/lib/email/match-result";
 import { refreshHistoricalBestRanking } from "@/lib/ranking";
 import {
@@ -397,6 +398,12 @@ export async function createMatchAction(formData: FormData) {
       await notifyChallengeCreated(match.id);
     } catch (error) {
       console.error("Failed to send challenge notification email", error);
+    }
+  } else {
+    try {
+      await notifyManualDrawMatchCreated(match.id);
+    } catch (error) {
+      console.error("Failed to send manual draw notification email", error);
     }
   }
 

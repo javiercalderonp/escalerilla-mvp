@@ -1,6 +1,7 @@
 "use server";
 
 import { eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
@@ -123,4 +124,7 @@ export async function setNextWeekAvailabilityAction(
       updatedAt: new Date(),
     })
     .where(eq(players.id, player.id));
+
+  revalidatePath("/", "layout");
+  revalidatePath("/disponibilidad");
 }

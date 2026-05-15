@@ -1,5 +1,11 @@
 import { eq } from "drizzle-orm";
-import { LogInIcon, LogOutIcon } from "lucide-react";
+import {
+  CalendarClockIcon,
+  FileTextIcon,
+  LogInIcon,
+  LogOutIcon,
+  UserIcon,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -55,6 +61,7 @@ export async function Header() {
 
   const mobileNavItems = [
     ...navItems,
+    ...(session?.user ? [{ href: "/reglamento", label: "Reglamento" }] : []),
     ...(session?.user ? [] : [{ href: "/login", label: "Ingresar" }]),
   ];
 
@@ -75,7 +82,11 @@ export async function Header() {
           signOutAction={session?.user ? signOutAction : undefined}
           availabilityToggle={
             isPlayer
-              ? { isMarked: wantsToPlayNextWeek, wantsMultipleMatches, alwaysAvailable }
+              ? {
+                  isMarked: wantsToPlayNextWeek,
+                  wantsMultipleMatches,
+                  alwaysAvailable,
+                }
               : undefined
           }
         />
@@ -154,22 +165,48 @@ export async function Header() {
               <span className="rounded-full bg-clay/20 px-3 py-1 text-xs font-medium text-clay">
                 {session.user.role}
               </span>
-              <div className="invisible absolute left-0 top-full z-50 min-w-48 pt-2 opacity-0 transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
-                <form
-                  action={signOutAction}
-                  className="rounded-lg border border-white/10 bg-[#142235] p-1 shadow-xl shadow-black/20"
-                >
-                  <button
-                    type="submit"
+              <div className="invisible absolute left-0 top-full z-50 min-w-60 pt-2 opacity-0 transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+                <div className="rounded-lg border border-white/10 bg-[#142235] p-1 shadow-xl shadow-black/20">
+                  <Link
+                    href="/mi-perfil"
                     className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-semibold text-white/85 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay/70"
                   >
-                    <LogOutIcon
+                    <UserIcon className="size-4 text-clay" aria-hidden="true" />
+                    Ver Perfil
+                  </Link>
+                  <Link
+                    href="/disponibilidad"
+                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-semibold text-white/85 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay/70"
+                  >
+                    <CalendarClockIcon
                       className="size-4 text-clay"
                       aria-hidden="true"
                     />
-                    Cerrar Sesion
-                  </button>
-                </form>
+                    Ajustar Disponibilidad
+                  </Link>
+                  <Link
+                    href="/reglamento"
+                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-semibold text-white/85 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay/70"
+                  >
+                    <FileTextIcon
+                      className="size-4 text-clay"
+                      aria-hidden="true"
+                    />
+                    Ver Reglamento
+                  </Link>
+                  <form action={signOutAction}>
+                    <button
+                      type="submit"
+                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-semibold text-white/85 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay/70"
+                    >
+                      <LogOutIcon
+                        className="size-4 text-clay"
+                        aria-hidden="true"
+                      />
+                      Cerrar Sesión
+                    </button>
+                  </form>
+                </div>
               </div>
             </div>
           )}
@@ -178,11 +215,11 @@ export async function Header() {
         <div className="flex shrink-0 items-center gap-3">
           {isPlayer && (
             <AvailabilityToggle
-                isMarked={wantsToPlayNextWeek}
-                wantsMultipleMatches={wantsMultipleMatches}
-                alwaysAvailable={alwaysAvailable}
-                variant="desktop"
-              />
+              isMarked={wantsToPlayNextWeek}
+              wantsMultipleMatches={wantsMultipleMatches}
+              alwaysAvailable={alwaysAvailable}
+              variant="desktop"
+            />
           )}
           {!session?.user && (
             <Link

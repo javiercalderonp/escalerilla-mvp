@@ -131,7 +131,7 @@ function buildRankingRowsHtml(entries: RankingEntry[], playerId: string) {
       return `
         <tr>
           <td style="padding:11px 10px;border-top:1px solid #e1e7ef;border-left:4px solid ${getRowBorderColor(entry.position, isCurrentPlayer)};background:${rowBg};font-size:13px;font-weight:900;color:${getPositionColor(entry.position)};text-align:center;">${entry.position}</td>
-          <td style="padding:11px 10px;border-top:1px solid #e1e7ef;background:${rowBg};font-size:13px;font-weight:${isCurrentPlayer ? "900" : "700"};color:#07182a;line-height:1.3;">${escapeHtml(entry.fullName)}${isCurrentPlayer ? ' <span style="color:#e8720c;font-size:11px;font-weight:900;">Tú</span>' : ""}</td>
+          <td style="padding:11px 10px;border-top:1px solid #e1e7ef;background:${rowBg};font-size:13px;font-weight:${isCurrentPlayer ? "900" : "700"};color:#07182a;line-height:1.3;">${escapeHtml(entry.fullName)}</td>
           <td style="padding:11px 8px;border-top:1px solid #e1e7ef;background:${rowBg};font-size:13px;font-weight:900;color:#07182a;text-align:right;">${entry.points}</td>
           <td style="padding:11px 6px;border-top:1px solid #e1e7ef;background:${rowBg};font-size:13px;color:#5b6675;text-align:center;">${entry.matchesPlayed}</td>
           <td style="padding:11px 6px;border-top:1px solid #e1e7ef;background:${rowBg};font-size:13px;font-weight:800;color:#247a45;text-align:center;">${entry.matchesWon}</td>

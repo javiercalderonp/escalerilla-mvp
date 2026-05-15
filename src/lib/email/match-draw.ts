@@ -10,6 +10,7 @@ import {
 } from "@/lib/availability";
 import { db } from "@/lib/db";
 import { matches, matchSets, players, weeks } from "@/lib/db/schema";
+import { getTodayInSantiago } from "@/lib/date";
 import {
   makeEmailDedupeKey,
   markEmailEventFailed,
@@ -867,50 +868,15 @@ async function buildPlayerStatsById(
   );
 }
 
-export async function notifyFixturePublished(weekId: string) {
-  if (!env.emailsEnabled) {
-    return { sent: 0, skipped: 0, failed: 0, reason: "emails_disabled" };
-  }
+async function sendDrawEmailsForMatches(
+  week: { startsOn: string; endsOn: string },
+  drawMatches: DrawMatch[],
+) {
+  const dbClient = db;
 
-  if (!env.resendApiKey || !env.emailFrom) {
-    console.warn(
-      "Email notifications are enabled but RESEND_API_KEY or EMAIL_FROM is missing.",
-    );
-    return { sent: 0, skipped: 0, failed: 0, reason: "email_env_missing" };
-  }
-
-  if (!db) {
+  if (!dbClient) {
     return { sent: 0, skipped: 0, failed: 0, reason: "db_not_configured" };
   }
-
-  const [week] = await db
-    .select({
-      startsOn: weeks.startsOn,
-      endsOn: weeks.endsOn,
-    })
-    .from(weeks)
-    .where(eq(weeks.id, weekId))
-    .limit(1);
-
-  if (!week) {
-    return { sent: 0, skipped: 0, failed: 0, reason: "week_not_found" };
-  }
-
-  const drawMatches = await db
-    .select({
-      id: matches.id,
-      player1Id: matches.player1Id,
-      player2Id: matches.player2Id,
-      category: matches.category,
-    })
-    .from(matches)
-    .where(
-      and(
-        eq(matches.weekId, weekId),
-        eq(matches.type, "sorteo"),
-        eq(matches.status, "pendiente"),
-      ),
-    );
 
   const playerIds = [
     ...new Set(
@@ -922,7 +888,7 @@ export async function notifyFixturePublished(weekId: string) {
     return { sent: 0, skipped: 0, failed: 0 };
   }
 
-  const matchPlayers = await db
+  const matchPlayers = await dbClient
     .select({
       id: players.id,
       fullName: players.fullName,
@@ -1039,4 +1005,147 @@ export async function notifyFixturePublished(weekId: string) {
     failed: results.filter((result) => result === "failed").length,
     suppressed: deliveries.length - testDeliveries.length,
   };
+}
+
+function getEmailConfigIssue() {
+  if (!env.emailsEnabled) {
+    return "emails_disabled" as const;
+  }
+
+  if (!env.resendApiKey || !env.emailFrom) {
+    console.warn(
+      "Email notifications are enabled but RESEND_API_KEY or EMAIL_FROM is missing.",
+    );
+    return "email_env_missing" as const;
+  }
+
+  if (!db) {
+    return "db_not_configured" as const;
+  }
+
+  return null;
+}
+
+export async function notifyFixturePublished(weekId: string) {
+  const configIssue = getEmailConfigIssue();
+
+  if (configIssue) {
+    return { sent: 0, skipped: 0, failed: 0, reason: configIssue };
+  }
+
+  if (!db) {
+    return { sent: 0, skipped: 0, failed: 0, reason: "db_not_configured" };
+  }
+
+  const [week] = await db
+    .select({
+      startsOn: weeks.startsOn,
+      endsOn: weeks.endsOn,
+    })
+    .from(weeks)
+    .where(eq(weeks.id, weekId))
+    .limit(1);
+
+  if (!week) {
+    return { sent: 0, skipped: 0, failed: 0, reason: "week_not_found" };
+  }
+
+  const drawMatches = await db
+    .select({
+      id: matches.id,
+      player1Id: matches.player1Id,
+      player2Id: matches.player2Id,
+      category: matches.category,
+    })
+    .from(matches)
+    .where(
+      and(
+        eq(matches.weekId, weekId),
+        eq(matches.type, "sorteo"),
+        eq(matches.status, "pendiente"),
+      ),
+    );
+
+  return sendDrawEmailsForMatches(week, drawMatches);
+}
+
+async function getFallbackWeekForManualDraw() {
+  if (!db) {
+    return null;
+  }
+
+  const today = getTodayInSantiago();
+  const [week] = await db
+    .select({
+      startsOn: weeks.startsOn,
+      endsOn: weeks.endsOn,
+    })
+    .from(weeks)
+    .where(
+      and(
+        inArray(weeks.status, ["abierta", "borrador"]),
+        sql`${weeks.endsOn} >= ${today}`,
+      ),
+    )
+    .orderBy(
+      sql`case when ${weeks.status} = 'abierta' then 0 else 1 end`,
+      weeks.startsOn,
+    )
+    .limit(1);
+
+  return week ?? null;
+}
+
+export async function notifyManualDrawMatchCreated(matchId: string) {
+  const configIssue = getEmailConfigIssue();
+
+  if (configIssue) {
+    return { sent: 0, skipped: 0, failed: 0, reason: configIssue };
+  }
+
+  if (!db) {
+    return { sent: 0, skipped: 0, failed: 0, reason: "db_not_configured" };
+  }
+
+  const [match] = await db
+    .select({
+      id: matches.id,
+      player1Id: matches.player1Id,
+      player2Id: matches.player2Id,
+      category: matches.category,
+      type: matches.type,
+      status: matches.status,
+      weekStartsOn: weeks.startsOn,
+      weekEndsOn: weeks.endsOn,
+    })
+    .from(matches)
+    .leftJoin(weeks, eq(matches.weekId, weeks.id))
+    .where(eq(matches.id, matchId))
+    .limit(1);
+
+  if (!match) {
+    return { sent: 0, skipped: 0, failed: 0, reason: "match_not_found" };
+  }
+
+  if (match.type !== "sorteo" || match.status !== "pendiente") {
+    return { sent: 0, skipped: 0, failed: 0, reason: "not_pending_draw" };
+  }
+
+  const week =
+    match.weekStartsOn && match.weekEndsOn
+      ? { startsOn: match.weekStartsOn, endsOn: match.weekEndsOn }
+      : await getFallbackWeekForManualDraw();
+
+  if (!week) {
+    return { sent: 0, skipped: 0, failed: 0, reason: "week_not_found" };
+  }
+
+  return sendDrawEmailsForMatches(week, [
+    {
+      id: match.id,
+      player1Id: match.player1Id,
+      player2Id: match.player2Id,
+      category: match.category,
+    },
+  ]);
 }
