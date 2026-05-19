@@ -44,6 +44,18 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
           token.playerId = existing[0].playerId ?? null;
           token.role = isAdminEmail(email) ? "admin" : existing[0].role;
         }
+      } else if (token.email && db) {
+        const email = token.email.toLowerCase();
+        if (isAdminEmail(email)) {
+          token.role = "admin";
+        } else {
+          const [row] = await db
+            .select({ role: users.role })
+            .from(users)
+            .where(eq(users.email, email))
+            .limit(1);
+          if (row) token.role = row.role;
+        }
       } else {
         token.role = isAdminEmail(token.email)
           ? "admin"

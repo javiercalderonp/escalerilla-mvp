@@ -317,7 +317,9 @@ export default async function AdminPlayersPage() {
                           </div>
                         </TableCell>
                         <TableCell className="px-1.5">
-                          {row.users !== null ? (
+                          {row.users?.role === "admin" ? (
+                            <Badge className="bg-violet-100 text-violet-800">Admin</Badge>
+                          ) : row.users !== null ? (
                             <Badge className="bg-blue-100 text-blue-800">Activa</Badge>
                           ) : (
                             <span className="text-sm text-slate-400">—</span>
