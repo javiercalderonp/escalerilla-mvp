@@ -13,9 +13,11 @@ import {
   matches,
   players,
   rankingEvents,
+  weeks,
 } from "@/lib/db/schema";
 import { notifyFixturePublished } from "@/lib/email/match-draw";
 import { buildMatchmakingPlayers, proposeFixture } from "@/lib/fixture/propose";
+import { getRanking } from "@/lib/ranking";
 
 async function requireAdminActor() {
   const session = await auth();
@@ -40,6 +42,7 @@ export type SerializedPair = {
   p1Name: string;
   p2Id: string;
   p2Name: string;
+  isChallenge?: boolean;
 };
 
 export async function generateProposalAction(
@@ -128,11 +131,17 @@ const pairSchema = z.object({
   player1Id: z.string().uuid(),
   player2Id: z.string().uuid(),
   category: z.enum(["M", "F"]),
+  isChallenge: z.boolean().optional().default(false),
 });
 
 export async function publishFixtureAction(
   weekId: string,
-  pairs: Array<{ player1Id: string; player2Id: string; category: "M" | "F" }>,
+  pairs: Array<{
+    player1Id: string;
+    player2Id: string;
+    category: "M" | "F";
+    isChallenge?: boolean;
+  }>,
 ): Promise<void> {
   const { actorId, dbClient } = await requireAdminActor();
 
@@ -158,6 +167,13 @@ export async function publishFixtureAction(
 
   const availableById = new Map(
     availablePlayers.map((player) => [player.id, player]),
+  );
+  const [rankingM, rankingF] = await Promise.all([
+    getRanking("hombres"),
+    getRanking("mujeres"),
+  ]);
+  const rankingPositionByPlayer = new Map(
+    [...rankingM, ...rankingF].map((entry) => [entry.id, entry.position]),
   );
   const usageByPlayer = new Map<string, number>();
   const uniquePairs = new Set<string>();
@@ -188,6 +204,21 @@ export async function publishFixtureAction(
       throw new Error("No se puede publicar el mismo cruce dos veces");
     }
 
+    if (pair.isChallenge) {
+      const rank1 = rankingPositionByPlayer.get(pair.player1Id);
+      const rank2 = rankingPositionByPlayer.get(pair.player2Id);
+      const rankDiff =
+        rank1 !== undefined && rank2 !== undefined
+          ? Math.abs(rank1 - rank2)
+          : null;
+
+      if (rankDiff === null || rankDiff > 5) {
+        throw new Error(
+          "Solo puedes marcar desafío cuando los jugadores están a 5 posiciones o menos en el ranking",
+        );
+      }
+    }
+
     uniquePairs.add(pairKey);
     usageByPlayer.set(
       pair.player1Id,
@@ -211,7 +242,7 @@ export async function publishFixtureAction(
     .where(
       and(
         eq(matches.weekId, weekId),
-        eq(matches.type, "sorteo"),
+        or(eq(matches.type, "sorteo"), eq(matches.type, "desafio")),
         eq(matches.status, "pendiente"),
       ),
     );
@@ -221,13 +252,22 @@ export async function publishFixtureAction(
       validPairs.map((pair) => ({
         weekId,
         category: pair.category,
-        type: "sorteo" as const,
+        type: pair.isChallenge ? ("desafio" as const) : ("sorteo" as const),
         player1Id: pair.player1Id,
         player2Id: pair.player2Id,
         status: "pendiente" as const,
       })),
     );
   }
+
+  await dbClient
+    .update(weeks)
+    .set({
+      status: "cerrada",
+      availabilityClosesAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(weeks.id, weekId));
 
   await dbClient.insert(auditLog).values({
     actorId,

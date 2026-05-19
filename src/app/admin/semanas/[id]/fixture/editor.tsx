@@ -7,8 +7,8 @@ import {
   RefreshCw,
   Send,
   Trash2,
-  Users,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,8 @@ import { generateProposalAction, publishFixtureAction } from "./actions";
 type ActivePlayer = {
   id: string;
   fullName: string;
-  points: number;
   maxMatches: number;
+  rankingPosition: number | null;
 };
 
 type DraftPair = SerializedPair & {
@@ -33,28 +33,9 @@ interface Props {
   weekLabel: string;
   allActivePlayersM: ActivePlayer[];
   allActivePlayersF: ActivePlayer[];
-  availableCountM: number;
-  availableCountF: number;
-  recentOpponentMap: Record<string, string[]>;
   initialPairsM: SerializedPair[];
   initialPairsF: SerializedPair[];
   hasPublishedMatches: boolean;
-}
-
-function hasRn03Violation(
-  p1Id: string,
-  p2Id: string,
-  recentOpponentMap: Record<string, string[]>,
-): boolean {
-  return (
-    recentOpponentMap[p1Id]?.includes(p2Id) ||
-    recentOpponentMap[p2Id]?.includes(p1Id) ||
-    false
-  );
-}
-
-function getPairKey(p1Id: string, p2Id: string) {
-  return [p1Id, p2Id].sort().join(":");
 }
 
 function withDraftId(pair: SerializedPair): DraftPair {
@@ -62,21 +43,29 @@ function withDraftId(pair: SerializedPair): DraftPair {
 }
 
 function formatPlayerOption(player: ActivePlayer) {
-  const status =
-    player.maxMatches > 0 ? `${player.maxMatches} cupo` : "sin cupo";
-  return `${player.fullName} (${player.points} pts · ${status}${
-    player.maxMatches === 1 ? "" : "s"
-  })`;
+  return `${formatRanking(player.rankingPosition)} ${player.fullName}`;
+}
+
+function formatRanking(position: number | null) {
+  return position ? `#${position}` : "S/R";
+}
+
+function getRankDiff(playerA?: ActivePlayer, playerB?: ActivePlayer) {
+  if (!playerA?.rankingPosition || !playerB?.rankingPosition) return null;
+  return Math.abs(playerA.rankingPosition - playerB.rankingPosition);
+}
+
+function canMakeChallenge(playerA?: ActivePlayer, playerB?: ActivePlayer) {
+  const diff = getRankDiff(playerA, playerB);
+  return diff !== null && diff <= 5;
 }
 
 function CategoryEditor({
   category,
   label,
   allActivePlayers,
-  availableCount,
   pairs,
   setPairs,
-  recentOpponentMap,
   weekId,
   isPending,
   startTransition,
@@ -84,10 +73,8 @@ function CategoryEditor({
   category: "M" | "F";
   label: string;
   allActivePlayers: ActivePlayer[];
-  availableCount: number;
   pairs: DraftPair[];
   setPairs: React.Dispatch<React.SetStateAction<DraftPair[]>>;
-  recentOpponentMap: Record<string, string[]>;
   weekId: string;
   isPending: boolean;
   startTransition: (fn: () => void) => void;
@@ -101,50 +88,14 @@ function CategoryEditor({
   );
 
   const playerUsage = new Map<string, number>();
-  const pairUsage = new Map<string, number>();
   for (const pair of pairs) {
     playerUsage.set(pair.p1Id, (playerUsage.get(pair.p1Id) ?? 0) + 1);
     playerUsage.set(pair.p2Id, (playerUsage.get(pair.p2Id) ?? 0) + 1);
-    const pairKey = getPairKey(pair.p1Id, pair.p2Id);
-    pairUsage.set(pairKey, (pairUsage.get(pairKey) ?? 0) + 1);
   }
 
   const remainingPlayers = availablePlayers.filter(
     (player) => (playerUsage.get(player.id) ?? 0) < player.maxMatches,
   );
-  const capacity = availablePlayers.reduce(
-    (sum, player) => sum + player.maxMatches,
-    0,
-  );
-  const usedSlots = pairs.length * 2;
-  const warningCount = pairs.reduce((count, pair) => {
-    const p1 = playersById.get(pair.p1Id);
-    const p2 = playersById.get(pair.p2Id);
-    const hasViolation = hasRn03Violation(
-      pair.p1Id,
-      pair.p2Id,
-      recentOpponentMap,
-    );
-    const hasDuplicate =
-      (pairUsage.get(getPairKey(pair.p1Id, pair.p2Id)) ?? 0) > 1;
-    const hasSamePlayer = pair.p1Id === pair.p2Id;
-    const hasExceeded =
-      (playerUsage.get(pair.p1Id) ?? 0) > (p1?.maxMatches ?? 0) ||
-      (playerUsage.get(pair.p2Id) ?? 0) > (p2?.maxMatches ?? 0);
-    const hasUnavailable =
-      (p1?.maxMatches ?? 0) <= 0 || (p2?.maxMatches ?? 0) <= 0;
-
-    return (
-      count +
-      (hasViolation ||
-      hasDuplicate ||
-      hasSamePlayer ||
-      hasExceeded ||
-      hasUnavailable
-        ? 1
-        : 0)
-    );
-  }, 0);
 
   function handleRegenerate() {
     setError(null);
@@ -175,6 +126,28 @@ function CategoryEditor({
         pair.p2Id = player.id;
         pair.p2Name = player.fullName;
       }
+      if (
+        !canMakeChallenge(
+          playersById.get(pair.p1Id),
+          playersById.get(pair.p2Id),
+        )
+      ) {
+        pair.isChallenge = false;
+      }
+      next[index] = pair;
+      return next;
+    });
+  }
+
+  function updatePairChallenge(index: number, isChallenge: boolean) {
+    setPairs((prev) => {
+      const next = [...prev];
+      const pair = { ...next[index] };
+      const canChallenge = canMakeChallenge(
+        playersById.get(pair.p1Id),
+        playersById.get(pair.p2Id),
+      );
+      pair.isChallenge = canChallenge ? isChallenge : false;
       next[index] = pair;
       return next;
     });
@@ -195,6 +168,7 @@ function CategoryEditor({
         p1Name: candidates[0].fullName,
         p2Id: candidates[1].id,
         p2Name: candidates[1].fullName,
+        isChallenge: false,
         draftId: crypto.randomUUID(),
       },
     ]);
@@ -221,43 +195,6 @@ function CategoryEditor({
         </Button>
       </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-4">
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <p className="text-xs font-medium text-slate-500">Jugadores</p>
-          <p className="mt-1 text-2xl font-semibold text-slate-950">
-            {availableCount}
-          </p>
-        </div>
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <p className="text-xs font-medium text-slate-500">Cupos usados</p>
-          <p className="mt-1 text-2xl font-semibold text-slate-950">
-            {usedSlots}/{capacity}
-          </p>
-        </div>
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <p className="text-xs font-medium text-slate-500">Partidos</p>
-          <p className="mt-1 text-2xl font-semibold text-slate-950">
-            {pairs.length}
-          </p>
-        </div>
-        <div
-          className={`rounded-lg border p-3 ${
-            warningCount > 0
-              ? "border-amber-200 bg-amber-50"
-              : "border-emerald-200 bg-emerald-50"
-          }`}
-        >
-          <p className="text-xs font-medium text-slate-600">Alertas</p>
-          <p
-            className={`mt-1 text-2xl font-semibold ${
-              warningCount > 0 ? "text-amber-800" : "text-emerald-800"
-            }`}
-          >
-            {warningCount}
-          </p>
-        </div>
-      </div>
-
       {error && (
         <div className="mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
@@ -274,34 +211,13 @@ function CategoryEditor({
           pairs.map((pair, index) => {
             const p1 = playersById.get(pair.p1Id);
             const p2 = playersById.get(pair.p2Id);
-            const pointsDelta = Math.abs((p1?.points ?? 0) - (p2?.points ?? 0));
-            const violation = hasRn03Violation(
-              pair.p1Id,
-              pair.p2Id,
-              recentOpponentMap,
-            );
-            const duplicatePair =
-              (pairUsage.get(getPairKey(pair.p1Id, pair.p2Id)) ?? 0) > 1;
-            const samePlayer = pair.p1Id === pair.p2Id;
-            const exceededCapacity =
-              (playerUsage.get(pair.p1Id) ?? 0) > (p1?.maxMatches ?? 0) ||
-              (playerUsage.get(pair.p2Id) ?? 0) > (p2?.maxMatches ?? 0);
-            const unavailable =
-              (p1?.maxMatches ?? 0) <= 0 || (p2?.maxMatches ?? 0) <= 0;
-            const hasWarning =
-              violation ||
-              duplicatePair ||
-              samePlayer ||
-              exceededCapacity ||
-              unavailable;
+            const rankDiff = getRankDiff(p1, p2);
+            const challengeEnabled = canMakeChallenge(p1, p2);
+
             return (
               <div
                 key={pair.draftId}
-                className={`rounded-lg border p-4 ${
-                  hasWarning
-                    ? "border-amber-300 bg-amber-50"
-                    : "border-slate-200 bg-white"
-                }`}
+                className="rounded-lg border border-slate-200 bg-white p-4"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -309,7 +225,17 @@ function CategoryEditor({
                       Partido {index + 1}
                     </p>
                     <p className="mt-1 text-sm font-semibold text-slate-950">
-                      {pair.p1Name} vs {pair.p2Name}
+                      {formatRanking(p1?.rankingPosition ?? null)}{" "}
+                      {pair.p1Name} vs{" "}
+                      {formatRanking(p2?.rankingPosition ?? null)}{" "}
+                      {pair.p2Name}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {rankDiff === null
+                        ? "Sin ranking suficiente para desafío"
+                        : `Diferencia de ranking: ${rankDiff} posición${
+                            rankDiff !== 1 ? "es" : ""
+                          }`}
                     </p>
                   </div>
                   <Button
@@ -352,54 +278,31 @@ function CategoryEditor({
                   </select>
                 </div>
 
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-                  <span className="rounded-md bg-slate-100 px-2 py-1 font-medium text-slate-700">
-                    Delta {pointsDelta} pts
-                  </span>
-                  {violation && (
-                    <span className="rounded-md bg-amber-100 px-2 py-1 font-medium text-amber-800">
-                      RN-03
-                    </span>
-                  )}
-                  {duplicatePair && (
-                    <span className="rounded-md bg-amber-100 px-2 py-1 font-medium text-amber-800">
-                      Repetido
-                    </span>
-                  )}
-                  {samePlayer && (
-                    <span className="rounded-md bg-red-100 px-2 py-1 font-medium text-red-800">
-                      Mismo jugador
-                    </span>
-                  )}
-                  {exceededCapacity && (
-                    <span className="rounded-md bg-red-100 px-2 py-1 font-medium text-red-800">
-                      Cupo excedido
-                    </span>
-                  )}
-                  {unavailable && (
-                    <span className="rounded-md bg-red-100 px-2 py-1 font-medium text-red-800">
-                      Sin cupos
-                    </span>
-                  )}
-                </div>
+                <label
+                  className={`mt-3 flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm ${
+                    challengeEnabled
+                      ? "border-clay/30 bg-clay/5 text-slate-800"
+                      : "border-slate-200 bg-slate-50 text-slate-400"
+                  }`}
+                >
+                  <span className="font-medium">Hacer desafío</span>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(pair.isChallenge) && challengeEnabled}
+                    disabled={!challengeEnabled}
+                    onChange={(event) =>
+                      updatePairChallenge(index, event.target.checked)
+                    }
+                    className="size-4 accent-clay disabled:cursor-not-allowed"
+                  />
+                </label>
               </div>
             );
           })
         )}
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
-        <div className="min-w-0 text-sm text-slate-600">
-          <div className="flex items-center gap-2 font-medium text-slate-800">
-            <Users className="size-4" />
-            Sin pareja o cupo restante
-          </div>
-          <p className="mt-1">
-            {remainingPlayers.length > 0
-              ? remainingPlayers.map((player) => player.fullName).join(", ")
-              : "Todos los cupos disponibles están usados."}
-          </p>
-        </div>
+      <div className="mt-4 flex justify-end border-t border-slate-100 pt-4">
         {availablePlayers.length >= 2 && (
           <Button
             type="button"
@@ -421,13 +324,11 @@ export function FixtureEditor({
   weekLabel,
   allActivePlayersM,
   allActivePlayersF,
-  availableCountM,
-  availableCountF,
-  recentOpponentMap,
   initialPairsM,
   initialPairsF,
   hasPublishedMatches,
 }: Props) {
+  const router = useRouter();
   const [pairsM, setPairsM] = useState<DraftPair[]>(() =>
     initialPairsM.map(withDraftId),
   );
@@ -447,15 +348,19 @@ export function FixtureEditor({
             player1Id: p.p1Id,
             player2Id: p.p2Id,
             category: "M" as const,
+            isChallenge: Boolean(p.isChallenge),
           })),
           ...pairsF.map((p) => ({
             player1Id: p.p1Id,
             player2Id: p.p2Id,
             category: "F" as const,
+            isChallenge: Boolean(p.isChallenge),
           })),
         ];
         await publishFixtureAction(weekId, allPairs);
         setIsPublished(true);
+        router.push(`/fixture?week=${weekId}`);
+        router.refresh();
       } catch (err) {
         setPublishError(
           err instanceof Error ? err.message : "No se pudo publicar el fixture",
@@ -478,10 +383,8 @@ export function FixtureEditor({
         category="M"
         label="Hombres"
         allActivePlayers={allActivePlayersM}
-        availableCount={availableCountM}
         pairs={pairsM}
         setPairs={setPairsM}
-        recentOpponentMap={recentOpponentMap}
         weekId={weekId}
         isPending={isPending}
         startTransition={startTransition}
@@ -491,10 +394,8 @@ export function FixtureEditor({
         category="F"
         label="Mujeres"
         allActivePlayers={allActivePlayersF}
-        availableCount={availableCountF}
         pairs={pairsF}
         setPairs={setPairsF}
-        recentOpponentMap={recentOpponentMap}
         weekId={weekId}
         isPending={isPending}
         startTransition={startTransition}

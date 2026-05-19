@@ -4,20 +4,24 @@ import { neon } from "@neondatabase/serverless";
 const YEAR = 2026;
 
 const INPUT = [
-  ["2026-04-24", "David Geni", "Javier Calderon", "6-2; 6-2"],
-  ["2026-04-25", "Vicente Vicuña Loyola", "Jonathan Budnik", "6-4; 6-0"],
-  ["2026-04-24", "Pablo Garasa", "Juan Monckeberg", "6-4; 6-4"],
-  ["2026-04-15", "Juan Monckeberg", "José Quiroga", "9-7"],
-  ["2026-04-26", "Ignacio Streeter", "Pablo Garasa", "6-0; 6-2"],
-  ["2026-04-22", "Juan Monckeberg", "José Quiroga", "9-7"],
-  ["2026-04-29", "Diego Hempel Souper", "Benjamin Schilkrut", "6-0; 6-1"],
-  ["2026-04-30", "Javier Calderon", "Javier Ugarte", "6-1; 6-7; 10-5"],
-  ["2026-05-03", "David Geni", "Agustín Achondo", "6-3; 6-1"],
-  ["2026-05-03", "Benjamin Urrutia", "Ignacio Streeter", "6-2; 6-0"],
-  ["2026-05-08", "José Tomás Donoso", "Pablo Garasa", "6-2; 6-0"],
-  ["2026-05-08", "Benjamin Urrutia", "Vicente Vicuña Loyola", "6-3; 6-3"],
-  ["2026-05-08", "Alfonso Bou", "Javier Calderon", "9-1"],
-  ["2026-05-09", "Jonathan Budnik", "Benjamin Schilkrut", "6-2; 6-2"],
+  ["2026-04-24", "David Geni", "Javier Calderon", "6-2; 6-2", 1],
+  ["2026-04-25", "Vicente Vicuña Loyola", "Jonathan Budnik", "6-4; 6-0", 1],
+  ["2026-04-24", "Pablo Garasa", "Juan Monckeberg", "6-4; 6-4", 1],
+  ["2026-04-15", "Juan Monckeberg", "José Quiroga", "9-7", 1],
+  ["2026-04-26", "Ignacio Streeter", "Pablo Garasa", "6-0; 6-2", 1],
+  ["2026-04-22", "Juan Monckeberg", "José Quiroga", "9-7", 1],
+  ["2026-04-29", "Diego Hempel Souper", "Benjamin Schilkrut", "6-0; 6-1", 1],
+  ["2026-04-30", "Javier Calderon", "Javier Ugarte", "6-1; 6-7; 10-5", 1],
+  ["2026-05-03", "David Geni", "Agustín Achondo", "6-3; 6-1", 1],
+  ["2026-05-03", "Benjamin Urrutia", "Ignacio Streeter", "6-2; 6-0", 1],
+  ["2026-05-08", "José Tomás Donoso", "Pablo Garasa", "6-2; 6-0", 1],
+  ["2026-05-08", "Benjamin Urrutia", "Vicente Vicuña Loyola", "6-3; 6-3", 1],
+  ["2026-05-08", "Alfonso Bou", "Javier Calderon", "9-1", 1],
+  ["2026-05-09", "Jonathan Budnik", "Benjamin Schilkrut", "6-2; 6-2", 1],
+  ["2026-05-13", "Agustín Achondo", "Benjamin Schilkrut", "6-4; 6-4", 1],
+  ["2026-05-14", "Francisco Cuevas", "Anibal Vial", "6-1; 6-2", 2],
+  ["2026-05-15", "Diego Hempel Souper", "Javier Calderon", "6-1 6-3", 1],
+  ["2026-05-17", "Benjamin Urrutia", "Jonathan Budnik", "6-3; 6-2", 1],
 ];
 
 function loadEnv() {
@@ -55,7 +59,12 @@ function dateKey(value) {
 }
 
 function parseScore(score) {
-  return score.split(";").map((raw, index) => {
+  const parts = score
+    .trim()
+    .split(/\s*;\s*|\s+(?=\d+-\d+)/)
+    .filter(Boolean);
+
+  return parts.map((raw, index) => {
     const match = raw.trim().match(/^(\d+)-(\d+)$/);
     if (!match) throw new Error(`Score inválido: ${score}`);
     return {
@@ -89,28 +98,49 @@ function getLoserPoints(format, sets) {
 }
 
 function normalizeRows() {
-  return INPUT.map(([playedOn, player1Name, player2Name, score]) => {
-    const sets = parseScore(score);
-    const p1SetsWon = sets.filter((set) => set.gamesP1 > set.gamesP2).length;
-    const p2SetsWon = sets.filter((set) => set.gamesP2 > set.gamesP1).length;
+  return INPUT.map(
+    ([playedOn, player1Name, player2Name, score, winnerIndex = 1]) => {
+      if (winnerIndex !== 1 && winnerIndex !== 2) {
+        throw new Error(`Ganador inválido: ${player1Name} vs ${player2Name}`);
+      }
 
-    if (p1SetsWon <= p2SetsWon) {
-      throw new Error(
-        `El ganador no coincide con Jugador 1: ${player1Name} vs ${player2Name}`,
+      const scoreSets = parseScore(score);
+      const sets = scoreSets.map((set) =>
+        winnerIndex === 1
+          ? set
+          : {
+              ...set,
+              gamesP1: set.gamesP2,
+              gamesP2: set.gamesP1,
+            },
       );
-    }
+      const p1SetsWon = sets.filter((set) => set.gamesP1 > set.gamesP2).length;
+      const p2SetsWon = sets.filter((set) => set.gamesP2 > set.gamesP1).length;
 
-    return {
-      playedOn,
-      player1Name,
-      player2Name,
-      sets,
-      score: formatScore(sets),
-      invertedScore: formatInvertedScore(sets),
-      format: getFormat(sets),
-      week: weekForDate(playedOn),
-    };
-  });
+      if (winnerIndex === 1 && p1SetsWon <= p2SetsWon) {
+        throw new Error(
+          `El ganador no coincide con Jugador 1: ${player1Name} vs ${player2Name}`,
+        );
+      }
+      if (winnerIndex === 2 && p2SetsWon <= p1SetsWon) {
+        throw new Error(
+          `El ganador no coincide con Jugador 2: ${player1Name} vs ${player2Name}`,
+        );
+      }
+
+      return {
+        playedOn,
+        player1Name,
+        player2Name,
+        winnerIndex,
+        sets,
+        score: formatScore(sets),
+        invertedScore: formatInvertedScore(sets),
+        format: getFormat(sets),
+        week: weekForDate(playedOn),
+      };
+    },
+  );
 }
 
 loadEnv();
@@ -168,6 +198,14 @@ for (const row of rows) {
   row.player2 = player2;
 }
 
+const dateRange = rows.reduce(
+  (range, row) => ({
+    min: row.playedOn < range.min ? row.playedOn : range.min,
+    max: row.playedOn > range.max ? row.playedOn : range.max,
+  }),
+  { min: rows[0].playedOn, max: rows[0].playedOn },
+);
+
 const existingRows = await sql.query(
   `
     select
@@ -178,9 +216,10 @@ const existingRows = await sql.query(
       string_agg(ms.games_p1 || '-' || ms.games_p2, '; ' order by ms.set_number) as score
     from matches m
     join match_sets ms on ms.match_id = m.id
-    where m.played_on between '2026-04-15' and '2026-05-09'
+    where m.played_on between $1 and $2
     group by m.id, m.played_on, m.player1_id, m.player2_id
   `,
+  [dateRange.min, dateRange.max],
 );
 
 const plan = rows.map((row) => {
@@ -210,8 +249,9 @@ console.log(
 );
 for (const row of plan) {
   const state = row.duplicateId ? `ya existe ${row.duplicateId}` : "insertar";
+  const winnerName = row.winnerIndex === 1 ? row.player1Name : row.player2Name;
   console.log(
-    `${state}: ${row.playedOn} ${row.player1Name} d. ${row.player2Name} ${row.score}`,
+    `${state}: ${row.playedOn} ${row.player1Name} vs ${row.player2Name}, gana ${winnerName} ${row.score}`,
   );
 }
 
@@ -257,13 +297,15 @@ try {
 
   for (const row of toInsert) {
     const weekId = weeksByKey.get(`${row.week.startsOn}:${row.week.endsOn}`);
+    const winner = row.winnerIndex === 1 ? row.player1 : row.player2;
+    const loser = row.winnerIndex === 1 ? row.player2 : row.player1;
     const insertedMatch = await sql.query(
       `
         insert into matches (
           week_id, category, type, player1_id, player2_id, played_on,
           status, format, winner_id, confirmed_at
         )
-        values ($1, $2, 'sorteo', $3, $4, $5, 'confirmado', $6, $3, $7)
+        values ($1, $2, 'sorteo', $3, $4, $5, 'confirmado', $6, $7, $8)
         returning id
       `,
       [
@@ -273,6 +315,7 @@ try {
         row.player2.id,
         row.playedOn,
         row.format,
+        winner.id,
         `${row.playedOn}T12:00:00-04:00`,
       ],
     );
@@ -297,10 +340,10 @@ try {
           ($4, $2, $5, $6, 'match', $3, 'Resultado histórico cargado por script')
       `,
       [
-        row.player1.id,
+        winner.id,
         `${row.playedOn}T12:00:00-04:00`,
         matchId,
-        row.player2.id,
+        loser.id,
         getLoserPoints(row.format, row.sets),
         getLoserReason(row.format, row.sets),
       ],
@@ -317,6 +360,7 @@ try {
           playedOn: row.playedOn,
           player1Name: row.player1Name,
           player2Name: row.player2Name,
+          winnerName: winner.full_name,
           score: row.score,
           source: "scripts/add-apr-may-2026-results.mjs",
         }),

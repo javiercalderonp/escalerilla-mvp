@@ -12,6 +12,7 @@ import {
   weeks,
 } from "@/lib/db/schema";
 import { buildMatchmakingPlayers, proposeFixture } from "@/lib/fixture/propose";
+import { getRanking } from "@/lib/ranking";
 import { AddPlayersDialog } from "../add-players-dialog";
 import { RemoveWeekPlayerButton } from "../remove-week-player-button";
 import type { SerializedPair } from "./actions";
@@ -92,6 +93,14 @@ export default async function FixturePage({
     .from(matches)
     .where(eq(matches.status, "confirmado"));
 
+  const [rankingM, rankingF] = await Promise.all([
+    getRanking("hombres"),
+    getRanking("mujeres"),
+  ]);
+  const rankingPositionByPlayer = new Map(
+    [...rankingM, ...rankingF].map((entry) => [entry.id, entry.position]),
+  );
+
   const allActiveM = allPlayersRaw
     .filter((p) => p.gender === "M")
     .map((p) => ({
@@ -99,6 +108,7 @@ export default async function FixturePage({
       fullName: p.fullName,
       points: Number(p.points),
       maxMatches: p.maxMatches ?? 0,
+      rankingPosition: rankingPositionByPlayer.get(p.id) ?? null,
     }));
 
   const allActiveF = allPlayersRaw
@@ -108,6 +118,7 @@ export default async function FixturePage({
       fullName: p.fullName,
       points: Number(p.points),
       maxMatches: p.maxMatches ?? 0,
+      rankingPosition: rankingPositionByPlayer.get(p.id) ?? null,
     }));
 
   const availableM = buildMatchmakingPlayers(
@@ -202,6 +213,7 @@ export default async function FixturePage({
       player2Id: matches.player2Id,
       player1Name: players.fullName,
       player2Name: sql<string>`players_p2.full_name`,
+      type: matches.type,
     })
     .from(matches)
     .innerJoin(players, eq(matches.player1Id, players.id))
@@ -221,12 +233,14 @@ export default async function FixturePage({
           p1Name: m.player1Name,
           p2Id: m.player2Id,
           p2Name: m.player2Name,
+          isChallenge: m.type === "desafio",
         }))
       : proposeFixture(availableM, recentOpponentsMap).map((pair) => ({
           p1Id: pair.player1.id,
           p1Name: pair.player1.fullName,
           p2Id: pair.player2.id,
           p2Name: pair.player2.fullName,
+          isChallenge: false,
         }));
 
   const initialPairsF: SerializedPair[] =
@@ -236,12 +250,14 @@ export default async function FixturePage({
           p1Name: m.player1Name,
           p2Id: m.player2Id,
           p2Name: m.player2Name,
+          isChallenge: m.type === "desafio",
         }))
       : proposeFixture(availableF, recentOpponentsMap).map((pair) => ({
           p1Id: pair.player1.id,
           p1Name: pair.player1.fullName,
           p2Id: pair.player2.id,
           p2Name: pair.player2.fullName,
+          isChallenge: false,
         }));
 
   const weekLabel = `${formatDate(week.startsOn)}–${formatDate(week.endsOn)}`;
@@ -385,9 +401,6 @@ export default async function FixturePage({
         weekLabel={weekLabel}
         allActivePlayersM={allActiveM}
         allActivePlayersF={allActiveF}
-        availableCountM={availableM.length}
-        availableCountF={availableF.length}
-        recentOpponentMap={recentOpponentMap}
         initialPairsM={initialPairsM}
         initialPairsF={initialPairsF}
         hasPublishedMatches={hasPublishedMatches}

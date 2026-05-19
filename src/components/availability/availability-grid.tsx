@@ -107,14 +107,14 @@ export function AvailabilityGrid({
   return (
     <div className="space-y-6">
       {showTabs ? (
-        <div className="grid overflow-hidden rounded-2xl border border-border bg-background/70 shadow-sm md:grid-cols-2">
+        <div className="grid grid-cols-2 overflow-hidden rounded-2xl border border-border bg-background/70 shadow-sm">
           {WEEK_TABS.map(({ label, active }) => (
             <button
               key={label}
               type="button"
               aria-pressed={active}
               className={[
-                "inline-flex h-12 items-center justify-center gap-2 border-border px-4 text-sm font-semibold transition md:border-l md:first:border-l-0",
+                "inline-flex h-11 items-center justify-center gap-2 border-l border-border px-2 text-xs font-semibold transition first:border-l-0 sm:h-12 sm:px-4 sm:text-sm",
                 active
                   ? "bg-card text-clay shadow-inner"
                   : "bg-background/40 text-muted-foreground hover:bg-card",

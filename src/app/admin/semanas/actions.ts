@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -72,12 +72,61 @@ export async function createWeekAction(formData: FormData) {
     })
     .returning({ id: weeks.id });
 
+  const playersToSchedule = await dbClient
+    .select({
+      id: players.id,
+      wantsMultipleMatches: players.wantsMultipleMatches,
+      alwaysAvailable: players.alwaysAvailable,
+    })
+    .from(players)
+    .where(
+      and(
+        eq(players.status, "activo"),
+        or(
+          eq(players.wantsToPlayNextWeek, true),
+          eq(players.alwaysAvailable, true),
+        ),
+      ),
+    );
+
+  if (playersToSchedule.length > 0) {
+    const now = new Date();
+
+    await dbClient.insert(availability).values(
+      playersToSchedule.map((player) => ({
+        weekId: week.id,
+        playerId: player.id,
+        maxMatches: player.wantsMultipleMatches ? 2 : 1,
+        updatedAt: now,
+      })),
+    );
+
+    const oneTimePlayerIds = playersToSchedule
+      .filter((player) => !player.alwaysAvailable)
+      .map((player) => player.id);
+
+    if (oneTimePlayerIds.length > 0) {
+      await dbClient
+        .update(players)
+        .set({
+          wantsToPlayNextWeek: false,
+          wantsMultipleMatches: false,
+          updatedAt: now,
+        })
+        .where(inArray(players.id, oneTimePlayerIds));
+    }
+  }
+
   await dbClient.insert(auditLog).values({
     actorId,
     action: "week.create",
     entityType: "week",
     entityId: week.id,
-    payload: { startsOn, endsOn },
+    payload: {
+      startsOn,
+      endsOn,
+      seededPlayerIds: playersToSchedule.map((player) => player.id),
+    },
   });
 
   revalidatePath("/admin/semanas");

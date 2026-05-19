@@ -1,10 +1,6 @@
 {
   "crons": [
     {
-      "path": "/api/cron/inactividad",
-      "schedule": "0 6 * * 1"
-    },
-    {
       "path": "/api/cron/recordatorio-disponibilidad",
       "schedule": "0 14 * * 1,3"
     }

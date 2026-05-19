@@ -165,7 +165,7 @@ export async function Header() {
               <span className="rounded-full bg-clay/20 px-3 py-1 text-xs font-medium text-clay">
                 {session.user.role}
               </span>
-              <div className="invisible absolute left-0 top-full z-50 min-w-60 pt-2 opacity-0 transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+              <div className="invisible absolute left-0 top-full z-50 min-w-60 pt-2 opacity-0 transition group-hover:visible group-hover:opacity-100">
                 <div className="rounded-lg border border-white/10 bg-[#142235] p-1 shadow-xl shadow-black/20">
                   <Link
                     href="/mi-perfil"

@@ -77,19 +77,24 @@ export default async function DisponibilidadPage() {
     : null;
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 py-5 sm:px-6 lg:px-8 lg:py-9">
-      <section className="rounded-3xl border border-white/70 bg-card/95 p-5 shadow-2xl shadow-court/10 ring-1 ring-border/70 sm:p-7 lg:p-9">
+    <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 py-4 sm:px-6 lg:px-8 lg:py-9">
+      <section className="rounded-3xl border border-white/70 bg-card/95 p-4 shadow-2xl shadow-court/10 ring-1 ring-border/70 sm:p-7 lg:p-9">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex items-start gap-5">
-            <div className="inline-flex size-16 shrink-0 items-center justify-center rounded-2xl bg-clay/10 text-clay ring-1 ring-clay/15">
-              <CalendarDays className="size-8" aria-hidden="true" />
+          <div className="flex items-center gap-3 sm:items-start sm:gap-5">
+            <div className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-clay/10 text-clay ring-1 ring-clay/15 sm:size-16 sm:rounded-2xl">
+              <CalendarDays className="size-6 sm:size-8" aria-hidden="true" />
             </div>
             <div>
-              <p className="text-sm font-medium text-clay">{player.fullName}</p>
-              <h1 className="mt-1 text-3xl font-bold tracking-tight text-foreground">
-                Mi disponibilidad semanal
+              <p className="hidden text-sm font-medium text-clay sm:block">
+                {player.fullName}
+              </p>
+              <h1 className="text-xl font-bold tracking-tight text-foreground sm:mt-1 sm:text-3xl">
+                <span className="sm:hidden">Mi disponibilidad</span>
+                <span className="hidden sm:inline">
+                  Mi disponibilidad semanal
+                </span>
               </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
+              <p className="mt-2 hidden max-w-2xl text-sm leading-6 text-muted-foreground sm:block sm:text-base">
                 Define los horarios en que normalmente puedes jugar. Luego el
                 club podrá usarlos para coordinar tus partidos.
               </p>
@@ -97,7 +102,7 @@ export default async function DisponibilidadPage() {
           </div>
         </div>
 
-        <div className="mt-8">
+        <div className="mt-5 sm:mt-8">
           <AvailabilityForm existing={existing} />
         </div>
       </section>

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, inArray, lt, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, lt, or, sql } from "drizzle-orm";
 import { Check } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -490,7 +490,12 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
             status: weeks.status,
           })
           .from(weeks)
-          .where(inArray(weeks.status, ["abierta", "borrador"]))
+          .where(
+            and(
+              inArray(weeks.status, ["abierta", "borrador"]),
+              gte(weeks.startsOn, nextMonday()),
+            ),
+          )
           .orderBy(
             sql`case when ${weeks.status} = 'abierta' then 0 else 1 end`,
             desc(weeks.startsOn),
