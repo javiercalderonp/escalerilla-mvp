@@ -283,6 +283,45 @@ export async function addPlayersToWeekAvailabilityAction(args: {
   revalidatePath(`/admin/semanas/${weekId}/fixture`);
 }
 
+export async function updateWeekPlayerMaxMatchesAction(args: {
+  weekId: string;
+  playerId: string;
+  maxMatches: number;
+}) {
+  const { actorId, dbClient } = await requireAdminActor();
+
+  const weekId = z.string().uuid().parse(args.weekId);
+  const playerId = z.string().uuid().parse(args.playerId);
+  const maxMatches = z.number().int().min(1).max(3).parse(args.maxMatches);
+
+  const [updatedAvailability] = await dbClient
+    .update(availability)
+    .set({
+      maxMatches,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(eq(availability.weekId, weekId), eq(availability.playerId, playerId)),
+    )
+    .returning({ id: availability.id });
+
+  if (!updatedAvailability) {
+    throw new Error("El jugador no estaba agregado a esta semana");
+  }
+
+  await dbClient.insert(auditLog).values({
+    actorId,
+    action: "week.admin_update_max_matches",
+    entityType: "week",
+    entityId: weekId,
+    payload: { playerId, maxMatches },
+  });
+
+  revalidatePath(`/admin/semanas/${weekId}`);
+  revalidatePath(`/admin/semanas/${weekId}/fixture`);
+  revalidatePath("/fixture");
+}
+
 export async function removePlayerFromWeekAvailabilityAction(args: {
   weekId: string;
   playerId: string;

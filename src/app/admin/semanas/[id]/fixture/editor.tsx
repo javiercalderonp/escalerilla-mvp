@@ -19,6 +19,9 @@ import type {
   PairHistorySummary,
 } from "@/lib/fixture/head-to-head";
 import { buildFixtureMessage } from "@/lib/fixture/message";
+import { type AddablePlayer, AddPlayersDialog } from "../add-players-dialog";
+import { RemoveWeekPlayerButton } from "../remove-week-player-button";
+import { WeekPlayerMatchLimitControls } from "../week-player-match-limit-controls";
 import type { SerializedPair } from "./actions";
 import { generateProposalAction, publishFixtureAction } from "./actions";
 
@@ -40,6 +43,16 @@ type PlayerSlot = {
   field: PairField;
 };
 
+type DragPayload =
+  | {
+      type: "slot";
+      slot: PlayerSlot;
+    }
+  | {
+      type: "bench";
+      playerId: string;
+    };
+
 interface Props {
   weekId: string;
   weekLabel: string;
@@ -49,6 +62,10 @@ interface Props {
   initialPairsF: SerializedPair[];
   pairHistoriesByPair: Record<string, PairHistorySummary>;
   hasPublishedMatches: boolean;
+  addablePlayers: AddablePlayer[];
+  addableMen: AddablePlayer[];
+  addableWomen: AddablePlayer[];
+  defaultAddPlayersOpen: boolean;
 }
 
 function withDraftId(pair: SerializedPair): DraftPair {
@@ -155,6 +172,33 @@ function assignSlotPlayer(
   }
 }
 
+function getPlayerUsage(pairs: DraftPair[]) {
+  const playerUsage = new Map<string, number>();
+  for (const pair of pairs) {
+    playerUsage.set(pair.p1Id, (playerUsage.get(pair.p1Id) ?? 0) + 1);
+    playerUsage.set(pair.p2Id, (playerUsage.get(pair.p2Id) ?? 0) + 1);
+  }
+  return playerUsage;
+}
+
+function getRemainingPlayers(players: ActivePlayer[], pairs: DraftPair[]) {
+  const playerUsage = getPlayerUsage(pairs);
+  return players
+    .filter(
+      (player) =>
+        player.maxMatches > 0 &&
+        (playerUsage.get(player.id) ?? 0) < player.maxMatches,
+    )
+    .sort((a, b) => a.fullName.localeCompare(b.fullName));
+}
+
+function setDragPayload(event: React.DragEvent, payload: DragPayload) {
+  const serializedPayload = JSON.stringify(payload);
+  event.dataTransfer.effectAllowed = "move";
+  event.dataTransfer.setData("application/json", serializedPayload);
+  event.dataTransfer.setData("text/plain", serializedPayload);
+}
+
 function CategoryEditor({
   category,
   label,
@@ -188,15 +232,7 @@ function CategoryEditor({
     (player) => player.maxMatches > 0,
   );
 
-  const playerUsage = new Map<string, number>();
-  for (const pair of pairs) {
-    playerUsage.set(pair.p1Id, (playerUsage.get(pair.p1Id) ?? 0) + 1);
-    playerUsage.set(pair.p2Id, (playerUsage.get(pair.p2Id) ?? 0) + 1);
-  }
-
-  const remainingPlayers = availablePlayers.filter(
-    (player) => (playerUsage.get(player.id) ?? 0) < player.maxMatches,
-  );
+  const remainingPlayers = getRemainingPlayers(allActivePlayers, pairs);
 
   function handleRegenerate() {
     setError(null);
@@ -217,6 +253,13 @@ function CategoryEditor({
   function updatePair(index: number, field: "p1" | "p2", playerId: string) {
     const player = allActivePlayers.find((p) => p.id === playerId);
     if (!player) return;
+    const currentPair = pairs[index];
+    const opponentId = field === "p1" ? currentPair?.p2Id : currentPair?.p1Id;
+    if (opponentId === player.id) {
+      setError("Un partido no puede tener el mismo jugador dos veces");
+      return;
+    }
+    setError(null);
     setPairs((prev) => {
       const next = [...prev];
       const pair = { ...next[index] };
@@ -288,10 +331,7 @@ function CategoryEditor({
   }
 
   function handlePlayerDragStart(event: React.DragEvent, source: PlayerSlot) {
-    const payload = JSON.stringify(source);
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("application/json", payload);
-    event.dataTransfer.setData("text/plain", payload);
+    setDragPayload(event, { type: "slot", slot: source });
     setDraggingSlotKey(getSlotKey(source));
   }
 
@@ -304,14 +344,22 @@ function CategoryEditor({
     setDraggingSlotKey(null);
 
     try {
-      const source = JSON.parse(payload) as PlayerSlot;
-      if (
-        typeof source.pairIndex !== "number" ||
-        (source.field !== "p1" && source.field !== "p2")
-      ) {
+      const parsedPayload = JSON.parse(payload) as DragPayload;
+      if (parsedPayload.type === "slot") {
+        const { slot: source } = parsedPayload;
+        if (
+          typeof source.pairIndex !== "number" ||
+          (source.field !== "p1" && source.field !== "p2")
+        ) {
+          return;
+        }
+        swapPlayerSlots(source, target);
         return;
       }
-      swapPlayerSlots(source, target);
+
+      if (parsedPayload.type === "bench") {
+        updatePair(target.pairIndex, target.field, parsedPayload.playerId);
+      }
     } catch {
       return;
     }
@@ -358,230 +406,361 @@ function CategoryEditor({
   }
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-            Singles
-          </p>
-          <h2 className="text-xl font-semibold text-slate-950">{label}</h2>
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleRegenerate}
-          disabled={isPending}
-          className="gap-2"
-        >
-          <RefreshCw className={isPending ? "animate-spin" : ""} />
-          {isPending ? "Generando" : "Nuevo sorteo"}
-        </Button>
-      </div>
-
-      {error && (
-        <div className="mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      <div className="mt-5 space-y-3">
-        {pairs.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-slate-300 px-6 py-8 text-center text-sm text-slate-500">
-            No hay partidos. Regenerá la propuesta o agregá uno manual.
+    <section className="overflow-hidden rounded-lg border border-court/10 bg-card shadow-sm">
+      <div className="h-1.5 bg-grass" />
+      <div className="p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-grass">
+              Singles
+            </p>
+            <h2 className="text-xl font-semibold text-slate-950">{label}</h2>
           </div>
-        ) : (
-          pairs.map((pair, index) => {
-            const p1 = playersById.get(pair.p1Id);
-            const p2 = playersById.get(pair.p2Id);
-            const rankDiff = getRankDiff(p1, p2);
-            const challengeEnabled = canMakeChallenge(p1, p2);
-            const history =
-              pair.history ??
-              getPairHistoryForPlayers(
-                pairHistoriesByPair,
-                pair.p1Id,
-                pair.p2Id,
-              );
-            const renderPlayerCard = (field: PairField) => {
-              const slot = { pairIndex: index, field };
-              const slotKey = getSlotKey(slot);
-              const player = field === "p1" ? p1 : p2;
-              const name = getSlotPlayerName(pair, field);
-              const isDragging = draggingSlotKey === slotKey;
-              const isDropTarget = dropTargetSlotKey === slotKey;
-
-              return (
-                <fieldset
-                  key={field}
-                  draggable
-                  onDragStart={(event) => handlePlayerDragStart(event, slot)}
-                  onDragOver={(event) => {
-                    event.preventDefault();
-                    event.dataTransfer.dropEffect = "move";
-                    setDropTargetSlotKey(slotKey);
-                  }}
-                  onDragLeave={() => setDropTargetSlotKey(null)}
-                  onDrop={(event) => handlePlayerDrop(event, slot)}
-                  onDragEnd={() => {
-                    setDraggingSlotKey(null);
-                    setDropTargetSlotKey(null);
-                  }}
-                  className={`min-w-0 cursor-grab rounded-lg border bg-white p-3 shadow-sm transition active:cursor-grabbing ${
-                    isDropTarget
-                      ? "border-emerald-500 ring-2 ring-emerald-100"
-                      : "border-slate-200"
-                  } ${isDragging ? "opacity-50" : ""}`}
-                >
-                  <legend className="sr-only">
-                    Arrastrar {name} para intercambiar jugador
-                  </legend>
-                  <div className="flex items-start gap-3">
-                    <GripVertical
-                      className="mt-0.5 size-4 shrink-0 text-slate-400"
-                      aria-hidden="true"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        {field === "p1" ? "Jugador 1" : "Jugador 2"}
-                      </p>
-                      <p className="mt-1 truncate text-sm font-semibold text-slate-950">
-                        {formatRanking(player?.rankingPosition ?? null)} {name}
-                      </p>
-                    </div>
-                  </div>
-                  <select
-                    value={getSlotPlayerId(pair, field)}
-                    onChange={(e) => updatePair(index, field, e.target.value)}
-                    className="mt-3 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-emerald-500"
-                    aria-label={`Cambiar ${
-                      field === "p1" ? "jugador 1" : "jugador 2"
-                    } del partido ${index + 1}`}
-                  >
-                    {allActivePlayers.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {formatPlayerOption(p)}
-                      </option>
-                    ))}
-                  </select>
-                </fieldset>
-              );
-            };
-
-            return (
-              <div
-                key={pair.draftId}
-                className="rounded-lg border border-slate-200 bg-white p-4"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-medium text-slate-500">
-                      Partido {index + 1}
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-slate-950">
-                      {formatRanking(p1?.rankingPosition ?? null)} {pair.p1Name}{" "}
-                      vs {formatRanking(p2?.rankingPosition ?? null)}{" "}
-                      {pair.p2Name}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {rankDiff === null
-                        ? "Sin ranking suficiente para desafío"
-                        : `Diferencia de ranking: ${rankDiff} posición${
-                            rankDiff !== 1 ? "es" : ""
-                          }`}
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => removePair(index)}
-                    title="Eliminar partido"
-                    aria-label="Eliminar partido"
-                  >
-                    <Trash2 />
-                  </Button>
-                </div>
-
-                <div className="mt-3 grid gap-2 rounded-lg border border-slate-100 bg-slate-50 p-3 text-xs text-slate-600 sm:grid-cols-2">
-                  <div>
-                    <p className="font-semibold text-slate-900">
-                      {formatLastMatch(
-                        history,
-                        pair.p1Id,
-                        pair.p1Name,
-                        pair.p2Id,
-                        pair.p2Name,
-                      )}
-                    </p>
-                    <p className="mt-1">
-                      {history.totalMatches === 0
-                        ? "Sin historial previo entre ellos."
-                        : `${history.totalMatches} enfrentamiento${
-                            history.totalMatches !== 1 ? "s" : ""
-                          } registrado${
-                            history.totalMatches !== 1 ? "s" : ""
-                          }.`}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900">
-                      Historial: {pair.p1Name} {history.p1Wins} -{" "}
-                      {history.p2Wins} {pair.p2Name}
-                    </p>
-                    <p className="mt-1">
-                      {history.draws > 0
-                        ? `${history.draws} empate${
-                            history.draws !== 1 ? "s" : ""
-                          }`
-                        : "Sin empates registrados"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto_1fr] md:items-stretch">
-                  {renderPlayerCard("p1")}
-                  <span className="text-center text-xs font-semibold uppercase text-slate-400">
-                    vs
-                  </span>
-                  {renderPlayerCard("p2")}
-                </div>
-
-                <label
-                  className={`mt-3 flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm ${
-                    challengeEnabled
-                      ? "border-clay/30 bg-clay/5 text-slate-800"
-                      : "border-slate-200 bg-slate-50 text-slate-400"
-                  }`}
-                >
-                  <span className="font-medium">Hacer desafío</span>
-                  <input
-                    type="checkbox"
-                    checked={Boolean(pair.isChallenge) && challengeEnabled}
-                    disabled={!challengeEnabled}
-                    onChange={(event) =>
-                      updatePairChallenge(index, event.target.checked)
-                    }
-                    className="size-4 accent-clay disabled:cursor-not-allowed"
-                  />
-                </label>
-              </div>
-            );
-          })
-        )}
-      </div>
-
-      <div className="mt-4 flex justify-end border-t border-slate-100 pt-4">
-        {availablePlayers.length >= 2 && (
           <Button
             type="button"
             variant="outline"
-            onClick={addPair}
+            onClick={handleRegenerate}
+            disabled={isPending}
             className="gap-2"
           >
-            <Plus />
-            Agregar partido
+            <RefreshCw className={isPending ? "animate-spin" : ""} />
+            {isPending ? "Generando" : "Nuevo sorteo"}
           </Button>
+        </div>
+
+        {error && (
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <div className="mt-5 space-y-3">
+          {pairs.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-clay/30 bg-accent/30 px-6 py-8 text-center text-sm text-slate-600">
+              No hay partidos. Regenerá la propuesta o agregá uno manual.
+            </div>
+          ) : (
+            pairs.map((pair, index) => {
+              const p1 = playersById.get(pair.p1Id);
+              const p2 = playersById.get(pair.p2Id);
+              const rankDiff = getRankDiff(p1, p2);
+              const challengeEnabled = canMakeChallenge(p1, p2);
+              const history =
+                pair.history ??
+                getPairHistoryForPlayers(
+                  pairHistoriesByPair,
+                  pair.p1Id,
+                  pair.p2Id,
+                );
+              const renderPlayerCard = (field: PairField) => {
+                const slot = { pairIndex: index, field };
+                const slotKey = getSlotKey(slot);
+                const player = field === "p1" ? p1 : p2;
+                const name = getSlotPlayerName(pair, field);
+                const isDragging = draggingSlotKey === slotKey;
+                const isDropTarget = dropTargetSlotKey === slotKey;
+
+                return (
+                  <fieldset
+                    key={field}
+                    draggable
+                    onDragStart={(event) => handlePlayerDragStart(event, slot)}
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                      event.dataTransfer.dropEffect = "move";
+                      setDropTargetSlotKey(slotKey);
+                    }}
+                    onDragLeave={() => setDropTargetSlotKey(null)}
+                    onDrop={(event) => handlePlayerDrop(event, slot)}
+                    onDragEnd={() => {
+                      setDraggingSlotKey(null);
+                      setDropTargetSlotKey(null);
+                    }}
+                    className={`min-w-0 cursor-grab rounded-lg border bg-white p-3 shadow-sm transition active:cursor-grabbing ${
+                      isDropTarget
+                        ? "border-grass ring-2 ring-grass/15"
+                        : "border-slate-200"
+                    } ${isDragging ? "opacity-50" : ""}`}
+                  >
+                    <legend className="sr-only">
+                      Arrastrar {name} para intercambiar jugador
+                    </legend>
+                    <div className="flex items-start gap-3">
+                      <GripVertical
+                        className="mt-0.5 size-4 shrink-0 text-slate-400"
+                        aria-hidden="true"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-clay">
+                          {field === "p1" ? "Jugador 1" : "Jugador 2"}
+                        </p>
+                        <p className="mt-1 truncate text-sm font-semibold text-slate-950">
+                          {formatRanking(player?.rankingPosition ?? null)}{" "}
+                          {name}
+                        </p>
+                      </div>
+                    </div>
+                    <details className="mt-3">
+                      <summary className="cursor-pointer text-xs font-semibold text-grass transition hover:text-grass/80">
+                        Cambiar jugador
+                      </summary>
+                      <select
+                        value={getSlotPlayerId(pair, field)}
+                        onChange={(e) =>
+                          updatePair(index, field, e.target.value)
+                        }
+                        className="mt-2 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-grass"
+                        aria-label={`Cambiar ${
+                          field === "p1" ? "jugador 1" : "jugador 2"
+                        } del partido ${index + 1}`}
+                      >
+                        {allActivePlayers.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {formatPlayerOption(p)}
+                          </option>
+                        ))}
+                      </select>
+                    </details>
+                  </fieldset>
+                );
+              };
+
+              return (
+                <div
+                  key={pair.draftId}
+                  className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-grass">
+                        Partido {index + 1}
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-slate-950">
+                        {formatRanking(p1?.rankingPosition ?? null)}{" "}
+                        {pair.p1Name} vs{" "}
+                        {formatRanking(p2?.rankingPosition ?? null)}{" "}
+                        {pair.p2Name}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {rankDiff === null
+                          ? "Sin ranking suficiente para desafío"
+                          : `Diferencia de ranking: ${rankDiff} posición${
+                              rankDiff !== 1 ? "es" : ""
+                            }`}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => removePair(index)}
+                      title="Eliminar partido"
+                      aria-label="Eliminar partido"
+                    >
+                      <Trash2 />
+                    </Button>
+                  </div>
+
+                  <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto_1fr] md:items-stretch">
+                    {renderPlayerCard("p1")}
+                    <span className="flex items-center justify-center text-xs font-semibold uppercase text-clay">
+                      vs
+                    </span>
+                    {renderPlayerCard("p2")}
+                  </div>
+
+                  <label
+                    className={`mt-3 flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm ${
+                      challengeEnabled
+                        ? "border-clay/30 bg-clay/5 text-slate-800"
+                        : "border-slate-200 bg-slate-50 text-slate-400"
+                    }`}
+                  >
+                    <span className="font-medium">Hacer desafío</span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(pair.isChallenge) && challengeEnabled}
+                      disabled={!challengeEnabled}
+                      onChange={(event) =>
+                        updatePairChallenge(index, event.target.checked)
+                      }
+                      className="size-4 accent-clay disabled:cursor-not-allowed"
+                    />
+                  </label>
+
+                  <div className="mt-3 grid gap-2 rounded-lg border border-grass/15 bg-grass/5 p-3 text-xs text-slate-600 sm:grid-cols-2">
+                    <div>
+                      <p className="font-semibold text-slate-900">
+                        {formatLastMatch(
+                          history,
+                          pair.p1Id,
+                          pair.p1Name,
+                          pair.p2Id,
+                          pair.p2Name,
+                        )}
+                      </p>
+                      <p className="mt-1">
+                        {history.totalMatches === 0
+                          ? "Sin historial previo entre ellos."
+                          : `${history.totalMatches} enfrentamiento${
+                              history.totalMatches !== 1 ? "s" : ""
+                            } registrado${
+                              history.totalMatches !== 1 ? "s" : ""
+                            }.`}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-900">
+                        Historial: {pair.p1Name} {history.p1Wins} -{" "}
+                        {history.p2Wins} {pair.p2Name}
+                      </p>
+                      <p className="mt-1">
+                        {history.draws > 0
+                          ? `${history.draws} empate${
+                              history.draws !== 1 ? "s" : ""
+                            }`
+                          : "Sin empates registrados"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        <div className="mt-4 flex justify-end border-t border-slate-100 pt-4">
+          {availablePlayers.length >= 2 && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addPair}
+              className="gap-2"
+            >
+              <Plus />
+              Agregar partido
+            </Button>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function RemainingWeekPlayers({
+  weekId,
+  allActivePlayersM,
+  allActivePlayersF,
+  pairsM,
+  pairsF,
+  addablePlayers,
+  addableMen,
+  addableWomen,
+  defaultAddPlayersOpen,
+}: {
+  weekId: string;
+  allActivePlayersM: ActivePlayer[];
+  allActivePlayersF: ActivePlayer[];
+  pairsM: DraftPair[];
+  pairsF: DraftPair[];
+  addablePlayers: AddablePlayer[];
+  addableMen: AddablePlayer[];
+  addableWomen: AddablePlayer[];
+  defaultAddPlayersOpen: boolean;
+}) {
+  const remainingM = getRemainingPlayers(allActivePlayersM, pairsM);
+  const remainingF = getRemainingPlayers(allActivePlayersF, pairsF);
+  const totalSelected =
+    allActivePlayersM.filter((player) => player.maxMatches > 0).length +
+    allActivePlayersF.filter((player) => player.maxMatches > 0).length;
+  const totalRemaining = remainingM.length + remainingF.length;
+
+  function handleBenchDragStart(event: React.DragEvent, playerId: string) {
+    setDragPayload(event, { type: "bench", playerId });
+  }
+
+  const renderPlayerList = (
+    players: ActivePlayer[],
+    label: string,
+    addableCategoryPlayers: AddablePlayer[],
+  ) => {
+    if (players.length === 0) return null;
+
+    return (
+      <div>
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-xs font-semibold uppercase tracking-wide text-clay">
+            {label} · {players.length}
+          </p>
+          <AddPlayersDialog
+            weekId={weekId}
+            label={label}
+            players={addableCategoryPlayers}
+          />
+        </div>
+        <ul className="space-y-1">
+          {players.map((player) => (
+            <li
+              key={player.id}
+              draggable
+              onDragStart={(event) => handleBenchDragStart(event, player.id)}
+              className="flex cursor-grab items-center justify-between rounded-lg border border-grass/15 bg-grass/5 px-3 py-2 text-sm transition hover:border-grass/30 hover:bg-grass/10 active:cursor-grabbing"
+            >
+              <span className="font-medium text-slate-900">
+                {player.fullName}
+              </span>
+              <div className="flex items-center gap-2">
+                <WeekPlayerMatchLimitControls
+                  weekId={weekId}
+                  playerId={player.id}
+                  playerName={player.fullName}
+                  maxMatches={player.maxMatches}
+                />
+                <RemoveWeekPlayerButton
+                  weekId={weekId}
+                  playerId={player.id}
+                  playerName={player.fullName}
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  };
+
+  return (
+    <section className="overflow-hidden rounded-lg border border-court/10 bg-card shadow-sm">
+      <div className="h-1.5 bg-[linear-gradient(90deg,var(--clay),var(--grass))]" />
+      <div className="p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-950">
+              Jugadores de la semana
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">
+              {totalSelected === 0
+                ? "Seleccioná los jugadores que participan esta semana."
+                : totalRemaining === 0
+                  ? "Todos los jugadores seleccionados ya están en cruces."
+                  : `${totalRemaining} jugador${totalRemaining !== 1 ? "es" : ""} disponible${totalRemaining !== 1 ? "s" : ""} para arrastrar al sorteo.`}
+            </p>
+          </div>
+          <AddPlayersDialog
+            weekId={weekId}
+            label="la semana"
+            players={addablePlayers}
+            defaultOpen={defaultAddPlayersOpen}
+            triggerLabel="Agregar jugadores"
+          />
+        </div>
+
+        {totalRemaining > 0 && (
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            {renderPlayerList(remainingM, "Hombres", addableMen)}
+            {renderPlayerList(remainingF, "Mujeres", addableWomen)}
+          </div>
         )}
       </div>
     </section>
@@ -597,6 +776,10 @@ export function FixtureEditor({
   initialPairsF,
   pairHistoriesByPair,
   hasPublishedMatches,
+  addablePlayers,
+  addableMen,
+  addableWomen,
+  defaultAddPlayersOpen,
 }: Props) {
   const router = useRouter();
   const [pairsM, setPairsM] = useState<DraftPair[]>(() =>
@@ -649,6 +832,18 @@ export function FixtureEditor({
 
   return (
     <div className="space-y-6">
+      <RemainingWeekPlayers
+        weekId={weekId}
+        allActivePlayersM={allActivePlayersM}
+        allActivePlayersF={allActivePlayersF}
+        pairsM={pairsM}
+        pairsF={pairsF}
+        addablePlayers={addablePlayers}
+        addableMen={addableMen}
+        addableWomen={addableWomen}
+        defaultAddPlayersOpen={defaultAddPlayersOpen}
+      />
+
       <CategoryEditor
         category="M"
         label="Hombres"
@@ -673,51 +868,58 @@ export function FixtureEditor({
         pairHistoriesByPair={pairHistoriesByPair}
       />
 
-      <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-              Salida
-            </p>
-            <h2 className="mt-1 text-xl font-semibold text-slate-950">
-              Publicar cruces
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              {totalPairs} partido{totalPairs !== 1 ? "s" : ""} en total
-              {isPublished
-                ? " · Ya publicado — republicar actualiza los cruces"
-                : ""}
-            </p>
+      <section className="overflow-hidden rounded-lg border border-court/10 bg-card shadow-sm">
+        <div className="h-1.5 bg-clay" />
+        <div className="p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-clay">
+                Salida
+              </p>
+              <h2 className="mt-1 text-xl font-semibold text-slate-950">
+                Publicar cruces
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                {totalPairs} partido{totalPairs !== 1 ? "s" : ""} en total
+                {isPublished
+                  ? " · Ya publicado — republicar actualiza los cruces"
+                  : ""}
+              </p>
+            </div>
+            <Button
+              type="button"
+              onClick={handlePublish}
+              disabled={isPending || totalPairs === 0}
+              className="gap-2"
+            >
+              <Send />
+              {isPending
+                ? "Publicando"
+                : isPublished
+                  ? "Republicar"
+                  : "Publicar"}
+            </Button>
           </div>
-          <Button
-            type="button"
-            onClick={handlePublish}
-            disabled={isPending || totalPairs === 0}
-            className="gap-2"
-          >
-            <Send />
-            {isPending ? "Publicando" : isPublished ? "Republicar" : "Publicar"}
-          </Button>
-        </div>
 
-        {publishError && (
-          <div className="mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-            <span>{publishError}</span>
-          </div>
-        )}
+          {publishError && (
+            <div className="mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+              <span>{publishError}</span>
+            </div>
+          )}
 
-        <div className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="flex items-center gap-2 text-sm font-semibold text-emerald-900">
-              <Copy className="size-4" />
-              Mensaje para WhatsApp
-            </p>
-            <CopyButton text={fixtureMsg} />
+          <div className="mt-5 rounded-lg border border-grass/20 bg-grass/10 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="flex items-center gap-2 text-sm font-semibold text-court">
+                <Copy className="size-4" />
+                Mensaje para WhatsApp
+              </p>
+              <CopyButton text={fixtureMsg} />
+            </div>
+            <pre className="mt-3 whitespace-pre-wrap text-sm leading-6 text-court">
+              {fixtureMsg}
+            </pre>
           </div>
-          <pre className="mt-3 whitespace-pre-wrap text-sm leading-6 text-emerald-900">
-            {fixtureMsg}
-          </pre>
         </div>
       </section>
     </div>
