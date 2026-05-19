@@ -16,6 +16,11 @@ import {
   weeks,
 } from "@/lib/db/schema";
 import { notifyFixturePublished } from "@/lib/email/match-draw";
+import {
+  fetchPairHistorySummaries,
+  getPairHistoryForPlayers,
+  type PairHistoryForPlayers,
+} from "@/lib/fixture/head-to-head";
 import { buildMatchmakingPlayers, proposeFixture } from "@/lib/fixture/propose";
 import { getRanking } from "@/lib/ranking";
 
@@ -43,6 +48,7 @@ export type SerializedPair = {
   p2Id: string;
   p2Name: string;
   isChallenge?: boolean;
+  history?: PairHistoryForPlayers;
 };
 
 export async function generateProposalAction(
@@ -118,12 +124,21 @@ export async function generateProposalAction(
   );
 
   const proposal = proposeFixture(proposalPlayers, recentOpponents);
+  const historiesByPair = await fetchPairHistorySummaries(
+    dbClient,
+    proposalPlayers.map((player) => player.id),
+  );
 
   return proposal.map((pair) => ({
     p1Id: pair.player1.id,
     p1Name: pair.player1.fullName,
     p2Id: pair.player2.id,
     p2Name: pair.player2.fullName,
+    history: getPairHistoryForPlayers(
+      historiesByPair,
+      pair.player1.id,
+      pair.player2.id,
+    ),
   }));
 }
 

@@ -32,6 +32,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { normalizeSearchText } from "@/lib/utils";
 import { createMatchAction } from "./match-admin-actions";
 
 type PlayerOption = {
@@ -69,14 +70,14 @@ function PlayerPicker({
 
   const selectedPlayer = players.find((player) => player.id === value);
   const filteredPlayers = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
+    const normalizedQuery = normalizeSearchText(query.trim());
 
     return players.filter((player) => {
       const matchesGender =
         genderFilter === "all" || player.gender === genderFilter;
       const matchesQuery =
         normalizedQuery.length === 0 ||
-        player.fullName.toLowerCase().includes(normalizedQuery);
+        normalizeSearchText(player.fullName).includes(normalizedQuery);
 
       return matchesGender && matchesQuery;
     });

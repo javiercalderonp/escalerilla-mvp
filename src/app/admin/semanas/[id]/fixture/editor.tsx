@@ -3,6 +3,7 @@
 import {
   AlertTriangle,
   Copy,
+  GripVertical,
   Plus,
   RefreshCw,
   Send,
@@ -13,6 +14,10 @@ import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
+import type {
+  PairHistoryForPlayers,
+  PairHistorySummary,
+} from "@/lib/fixture/head-to-head";
 import { buildFixtureMessage } from "@/lib/fixture/message";
 import type { SerializedPair } from "./actions";
 import { generateProposalAction, publishFixtureAction } from "./actions";
@@ -28,6 +33,13 @@ type DraftPair = SerializedPair & {
   draftId: string;
 };
 
+type PairField = "p1" | "p2";
+
+type PlayerSlot = {
+  pairIndex: number;
+  field: PairField;
+};
+
 interface Props {
   weekId: string;
   weekLabel: string;
@@ -35,6 +47,7 @@ interface Props {
   allActivePlayersF: ActivePlayer[];
   initialPairsM: SerializedPair[];
   initialPairsF: SerializedPair[];
+  pairHistoriesByPair: Record<string, PairHistorySummary>;
   hasPublishedMatches: boolean;
 }
 
@@ -55,9 +68,91 @@ function getRankDiff(playerA?: ActivePlayer, playerB?: ActivePlayer) {
   return Math.abs(playerA.rankingPosition - playerB.rankingPosition);
 }
 
+function getPairKey(player1Id: string, player2Id: string) {
+  return [player1Id, player2Id].sort().join(":");
+}
+
+function getPairHistoryForPlayers(
+  historiesByPair: Record<string, PairHistorySummary>,
+  player1Id: string,
+  player2Id: string,
+): PairHistoryForPlayers {
+  const history = historiesByPair[getPairKey(player1Id, player2Id)];
+
+  return {
+    p1Wins: history?.winsByPlayer[player1Id] ?? 0,
+    p2Wins: history?.winsByPlayer[player2Id] ?? 0,
+    draws: history?.draws ?? 0,
+    totalMatches: history?.totalMatches ?? 0,
+    lastPlayedOn: history?.lastMatch?.playedOn ?? null,
+    lastStatus: history?.lastMatch?.status ?? null,
+    lastWinnerId: history?.lastMatch?.winnerId ?? null,
+  };
+}
+
+function formatDate(dateStr: string) {
+  const [year, month, day] = dateStr.split("-");
+  if (!year || !month || !day) return dateStr;
+  return `${day}/${month}/${year}`;
+}
+
+function formatLastMatch(
+  history: PairHistoryForPlayers,
+  player1Id: string,
+  player1Name: string,
+  player2Id: string,
+  player2Name: string,
+) {
+  if (!history.lastPlayedOn) return "Nunca se han enfrentado";
+  if (history.lastStatus === "empate") {
+    return `Última vez: ${formatDate(history.lastPlayedOn)} · empate`;
+  }
+
+  if (history.lastWinnerId) {
+    const winnerName =
+      history.lastWinnerId === player1Id
+        ? player1Name
+        : history.lastWinnerId === player2Id
+          ? player2Name
+          : null;
+
+    return `Última vez: ${formatDate(history.lastPlayedOn)} · ganó ${
+      winnerName ?? "sin dato"
+    }${history.lastStatus === "wo" ? " por W.O." : ""}`;
+  }
+
+  return `Última vez: ${formatDate(history.lastPlayedOn)}`;
+}
+
 function canMakeChallenge(playerA?: ActivePlayer, playerB?: ActivePlayer) {
   const diff = getRankDiff(playerA, playerB);
   return diff !== null && diff <= 5;
+}
+
+function getSlotKey(slot: PlayerSlot) {
+  return `${slot.pairIndex}:${slot.field}`;
+}
+
+function getSlotPlayerId(pair: DraftPair, field: PairField) {
+  return field === "p1" ? pair.p1Id : pair.p2Id;
+}
+
+function getSlotPlayerName(pair: DraftPair, field: PairField) {
+  return field === "p1" ? pair.p1Name : pair.p2Name;
+}
+
+function assignSlotPlayer(
+  pair: DraftPair,
+  field: PairField,
+  player: { id: string; fullName: string },
+) {
+  if (field === "p1") {
+    pair.p1Id = player.id;
+    pair.p1Name = player.fullName;
+  } else {
+    pair.p2Id = player.id;
+    pair.p2Name = player.fullName;
+  }
 }
 
 function CategoryEditor({
@@ -69,6 +164,7 @@ function CategoryEditor({
   weekId,
   isPending,
   startTransition,
+  pairHistoriesByPair,
 }: {
   category: "M" | "F";
   label: string;
@@ -78,8 +174,13 @@ function CategoryEditor({
   weekId: string;
   isPending: boolean;
   startTransition: (fn: () => void) => void;
+  pairHistoriesByPair: Record<string, PairHistorySummary>;
 }) {
   const [error, setError] = useState<string | null>(null);
+  const [draggingSlotKey, setDraggingSlotKey] = useState<string | null>(null);
+  const [dropTargetSlotKey, setDropTargetSlotKey] = useState<string | null>(
+    null,
+  );
   const playersById = new Map(
     allActivePlayers.map((player) => [player.id, player]),
   );
@@ -126,6 +227,11 @@ function CategoryEditor({
         pair.p2Id = player.id;
         pair.p2Name = player.fullName;
       }
+      pair.history = getPairHistoryForPlayers(
+        pairHistoriesByPair,
+        pair.p1Id,
+        pair.p2Id,
+      );
       if (
         !canMakeChallenge(
           playersById.get(pair.p1Id),
@@ -137,6 +243,78 @@ function CategoryEditor({
       next[index] = pair;
       return next;
     });
+  }
+
+  function refreshPair(pair: DraftPair) {
+    pair.history = getPairHistoryForPlayers(
+      pairHistoriesByPair,
+      pair.p1Id,
+      pair.p2Id,
+    );
+    if (
+      !canMakeChallenge(playersById.get(pair.p1Id), playersById.get(pair.p2Id))
+    ) {
+      pair.isChallenge = false;
+    }
+  }
+
+  function swapPlayerSlots(source: PlayerSlot, target: PlayerSlot) {
+    if (getSlotKey(source) === getSlotKey(target)) return;
+
+    setPairs((prev) => {
+      const sourcePair = prev[source.pairIndex];
+      const targetPair = prev[target.pairIndex];
+      if (!sourcePair || !targetPair) return prev;
+
+      const sourcePlayer = {
+        id: getSlotPlayerId(sourcePair, source.field),
+        fullName: getSlotPlayerName(sourcePair, source.field),
+      };
+      const targetPlayer = {
+        id: getSlotPlayerId(targetPair, target.field),
+        fullName: getSlotPlayerName(targetPair, target.field),
+      };
+
+      const next = prev.map((pair) => ({ ...pair }));
+      assignSlotPlayer(next[source.pairIndex], source.field, targetPlayer);
+      assignSlotPlayer(next[target.pairIndex], target.field, sourcePlayer);
+      refreshPair(next[source.pairIndex]);
+      if (source.pairIndex !== target.pairIndex) {
+        refreshPair(next[target.pairIndex]);
+      }
+
+      return next;
+    });
+  }
+
+  function handlePlayerDragStart(event: React.DragEvent, source: PlayerSlot) {
+    const payload = JSON.stringify(source);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("application/json", payload);
+    event.dataTransfer.setData("text/plain", payload);
+    setDraggingSlotKey(getSlotKey(source));
+  }
+
+  function handlePlayerDrop(event: React.DragEvent, target: PlayerSlot) {
+    event.preventDefault();
+    const payload =
+      event.dataTransfer.getData("application/json") ||
+      event.dataTransfer.getData("text/plain");
+    setDropTargetSlotKey(null);
+    setDraggingSlotKey(null);
+
+    try {
+      const source = JSON.parse(payload) as PlayerSlot;
+      if (
+        typeof source.pairIndex !== "number" ||
+        (source.field !== "p1" && source.field !== "p2")
+      ) {
+        return;
+      }
+      swapPlayerSlots(source, target);
+    } catch {
+      return;
+    }
   }
 
   function updatePairChallenge(index: number, isChallenge: boolean) {
@@ -169,6 +347,11 @@ function CategoryEditor({
         p2Id: candidates[1].id,
         p2Name: candidates[1].fullName,
         isChallenge: false,
+        history: getPairHistoryForPlayers(
+          pairHistoriesByPair,
+          candidates[0].id,
+          candidates[1].id,
+        ),
         draftId: crypto.randomUUID(),
       },
     ]);
@@ -213,6 +396,77 @@ function CategoryEditor({
             const p2 = playersById.get(pair.p2Id);
             const rankDiff = getRankDiff(p1, p2);
             const challengeEnabled = canMakeChallenge(p1, p2);
+            const history =
+              pair.history ??
+              getPairHistoryForPlayers(
+                pairHistoriesByPair,
+                pair.p1Id,
+                pair.p2Id,
+              );
+            const renderPlayerCard = (field: PairField) => {
+              const slot = { pairIndex: index, field };
+              const slotKey = getSlotKey(slot);
+              const player = field === "p1" ? p1 : p2;
+              const name = getSlotPlayerName(pair, field);
+              const isDragging = draggingSlotKey === slotKey;
+              const isDropTarget = dropTargetSlotKey === slotKey;
+
+              return (
+                <fieldset
+                  key={field}
+                  draggable
+                  onDragStart={(event) => handlePlayerDragStart(event, slot)}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "move";
+                    setDropTargetSlotKey(slotKey);
+                  }}
+                  onDragLeave={() => setDropTargetSlotKey(null)}
+                  onDrop={(event) => handlePlayerDrop(event, slot)}
+                  onDragEnd={() => {
+                    setDraggingSlotKey(null);
+                    setDropTargetSlotKey(null);
+                  }}
+                  className={`min-w-0 cursor-grab rounded-lg border bg-white p-3 shadow-sm transition active:cursor-grabbing ${
+                    isDropTarget
+                      ? "border-emerald-500 ring-2 ring-emerald-100"
+                      : "border-slate-200"
+                  } ${isDragging ? "opacity-50" : ""}`}
+                >
+                  <legend className="sr-only">
+                    Arrastrar {name} para intercambiar jugador
+                  </legend>
+                  <div className="flex items-start gap-3">
+                    <GripVertical
+                      className="mt-0.5 size-4 shrink-0 text-slate-400"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        {field === "p1" ? "Jugador 1" : "Jugador 2"}
+                      </p>
+                      <p className="mt-1 truncate text-sm font-semibold text-slate-950">
+                        {formatRanking(player?.rankingPosition ?? null)} {name}
+                      </p>
+                    </div>
+                  </div>
+                  <select
+                    value={getSlotPlayerId(pair, field)}
+                    onChange={(e) => updatePair(index, field, e.target.value)}
+                    className="mt-3 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-emerald-500"
+                    aria-label={`Cambiar ${
+                      field === "p1" ? "jugador 1" : "jugador 2"
+                    } del partido ${index + 1}`}
+                  >
+                    {allActivePlayers.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {formatPlayerOption(p)}
+                      </option>
+                    ))}
+                  </select>
+                </fieldset>
+              );
+            };
 
             return (
               <div
@@ -225,9 +479,8 @@ function CategoryEditor({
                       Partido {index + 1}
                     </p>
                     <p className="mt-1 text-sm font-semibold text-slate-950">
-                      {formatRanking(p1?.rankingPosition ?? null)}{" "}
-                      {pair.p1Name} vs{" "}
-                      {formatRanking(p2?.rankingPosition ?? null)}{" "}
+                      {formatRanking(p1?.rankingPosition ?? null)} {pair.p1Name}{" "}
+                      vs {formatRanking(p2?.rankingPosition ?? null)}{" "}
                       {pair.p2Name}
                     </p>
                     <p className="mt-1 text-xs text-slate-500">
@@ -250,32 +503,48 @@ function CategoryEditor({
                   </Button>
                 </div>
 
-                <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto_1fr] md:items-center">
-                  <select
-                    value={pair.p1Id}
-                    onChange={(e) => updatePair(index, "p1", e.target.value)}
-                    className="min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-emerald-500"
-                  >
-                    {allActivePlayers.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {formatPlayerOption(p)}
-                      </option>
-                    ))}
-                  </select>
+                <div className="mt-3 grid gap-2 rounded-lg border border-slate-100 bg-slate-50 p-3 text-xs text-slate-600 sm:grid-cols-2">
+                  <div>
+                    <p className="font-semibold text-slate-900">
+                      {formatLastMatch(
+                        history,
+                        pair.p1Id,
+                        pair.p1Name,
+                        pair.p2Id,
+                        pair.p2Name,
+                      )}
+                    </p>
+                    <p className="mt-1">
+                      {history.totalMatches === 0
+                        ? "Sin historial previo entre ellos."
+                        : `${history.totalMatches} enfrentamiento${
+                            history.totalMatches !== 1 ? "s" : ""
+                          } registrado${
+                            history.totalMatches !== 1 ? "s" : ""
+                          }.`}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900">
+                      Historial: {pair.p1Name} {history.p1Wins} -{" "}
+                      {history.p2Wins} {pair.p2Name}
+                    </p>
+                    <p className="mt-1">
+                      {history.draws > 0
+                        ? `${history.draws} empate${
+                            history.draws !== 1 ? "s" : ""
+                          }`
+                        : "Sin empates registrados"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto_1fr] md:items-stretch">
+                  {renderPlayerCard("p1")}
                   <span className="text-center text-xs font-semibold uppercase text-slate-400">
                     vs
                   </span>
-                  <select
-                    value={pair.p2Id}
-                    onChange={(e) => updatePair(index, "p2", e.target.value)}
-                    className="min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-emerald-500"
-                  >
-                    {allActivePlayers.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {formatPlayerOption(p)}
-                      </option>
-                    ))}
-                  </select>
+                  {renderPlayerCard("p2")}
                 </div>
 
                 <label
@@ -326,6 +595,7 @@ export function FixtureEditor({
   allActivePlayersF,
   initialPairsM,
   initialPairsF,
+  pairHistoriesByPair,
   hasPublishedMatches,
 }: Props) {
   const router = useRouter();
@@ -388,6 +658,7 @@ export function FixtureEditor({
         weekId={weekId}
         isPending={isPending}
         startTransition={startTransition}
+        pairHistoriesByPair={pairHistoriesByPair}
       />
 
       <CategoryEditor
@@ -399,6 +670,7 @@ export function FixtureEditor({
         weekId={weekId}
         isPending={isPending}
         startTransition={startTransition}
+        pairHistoriesByPair={pairHistoriesByPair}
       />
 
       <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">

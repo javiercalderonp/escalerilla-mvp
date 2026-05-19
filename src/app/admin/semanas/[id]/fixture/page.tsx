@@ -11,6 +11,10 @@ import {
   rankingEvents,
   weeks,
 } from "@/lib/db/schema";
+import {
+  fetchPairHistorySummaries,
+  getPairHistoryForPlayers,
+} from "@/lib/fixture/head-to-head";
 import { buildMatchmakingPlayers, proposeFixture } from "@/lib/fixture/propose";
 import { getRanking } from "@/lib/ranking";
 import { AddPlayersDialog } from "../add-players-dialog";
@@ -225,6 +229,10 @@ export default async function FixturePage({
 
   const existingM = existingMatchRows.filter((m) => m.category === "M");
   const existingF = existingMatchRows.filter((m) => m.category === "F");
+  const pairHistoriesByPair = await fetchPairHistorySummaries(
+    db,
+    allPlayersRaw.map((player) => player.id),
+  );
 
   const initialPairsM: SerializedPair[] =
     existingM.length > 0
@@ -234,6 +242,11 @@ export default async function FixturePage({
           p2Id: m.player2Id,
           p2Name: m.player2Name,
           isChallenge: m.type === "desafio",
+          history: getPairHistoryForPlayers(
+            pairHistoriesByPair,
+            m.player1Id,
+            m.player2Id,
+          ),
         }))
       : proposeFixture(availableM, recentOpponentsMap).map((pair) => ({
           p1Id: pair.player1.id,
@@ -241,6 +254,11 @@ export default async function FixturePage({
           p2Id: pair.player2.id,
           p2Name: pair.player2.fullName,
           isChallenge: false,
+          history: getPairHistoryForPlayers(
+            pairHistoriesByPair,
+            pair.player1.id,
+            pair.player2.id,
+          ),
         }));
 
   const initialPairsF: SerializedPair[] =
@@ -251,6 +269,11 @@ export default async function FixturePage({
           p2Id: m.player2Id,
           p2Name: m.player2Name,
           isChallenge: m.type === "desafio",
+          history: getPairHistoryForPlayers(
+            pairHistoriesByPair,
+            m.player1Id,
+            m.player2Id,
+          ),
         }))
       : proposeFixture(availableF, recentOpponentsMap).map((pair) => ({
           p1Id: pair.player1.id,
@@ -258,6 +281,11 @@ export default async function FixturePage({
           p2Id: pair.player2.id,
           p2Name: pair.player2.fullName,
           isChallenge: false,
+          history: getPairHistoryForPlayers(
+            pairHistoriesByPair,
+            pair.player1.id,
+            pair.player2.id,
+          ),
         }));
 
   const weekLabel = `${formatDate(week.startsOn)}–${formatDate(week.endsOn)}`;
@@ -403,6 +431,7 @@ export default async function FixturePage({
         allActivePlayersF={allActiveF}
         initialPairsM={initialPairsM}
         initialPairsF={initialPairsF}
+        pairHistoriesByPair={pairHistoriesByPair}
         hasPublishedMatches={hasPublishedMatches}
       />
     </div>
