@@ -1,6 +1,6 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -16,6 +16,7 @@ type ExistingPlayerCandidate = {
   id: string;
   fullName: string;
   rut: string | null;
+  status: "pendiente" | "activo" | "congelado" | "retirado";
   visibility: typeof DEFAULT_VISIBILITY | null;
 };
 
@@ -26,6 +27,38 @@ function normalizeProfileName(value: string) {
     .toLowerCase()
     .replace(/\s+/g, " ")
     .trim();
+}
+
+async function findUniquePlayerByPhone(
+  phone: string,
+  gender: "M" | "F",
+): Promise<ExistingPlayerCandidate | undefined> {
+  if (!db) return undefined;
+
+  const phoneMatches = await db
+    .select({
+      id: players.id,
+      fullName: players.fullName,
+      rut: players.rut,
+      status: players.status,
+      gender: players.gender,
+      visibility: players.visibility,
+    })
+    .from(players)
+    .where(eq(players.phone, phone));
+
+  if (phoneMatches.length === 1) {
+    return phoneMatches[0];
+  }
+
+  const sameGenderMatches = phoneMatches.filter(
+    (player) => player.gender === gender,
+  );
+  if (sameGenderMatches.length === 1) {
+    return sameGenderMatches[0];
+  }
+
+  return undefined;
 }
 
 export async function submitOnboarding(input: unknown) {
@@ -48,21 +81,43 @@ export async function submitOnboarding(input: unknown) {
   const today = new Date().toISOString().slice(0, 10);
   const birthDate = data.birthDate.toISOString().slice(0, 10);
   let onboardedPlayerId = user.playerId;
+  let requiresAdminApproval = false;
 
   try {
     if (!user.playerId) {
-      const [playerByRut] = await db
+      const [playerByEmail] = await db
         .select({
           id: players.id,
           fullName: players.fullName,
           rut: players.rut,
+          status: players.status,
           visibility: players.visibility,
         })
         .from(players)
-        .where(eq(players.rut, data.rut))
+        .where(sql`lower(${players.email}) = ${email}`)
         .limit(1);
 
-      let existingPlayer: ExistingPlayerCandidate | undefined = playerByRut;
+      let existingPlayer: ExistingPlayerCandidate | undefined = playerByEmail;
+
+      if (!existingPlayer) {
+        existingPlayer = await findUniquePlayerByPhone(data.phone, data.gender);
+      }
+
+      if (!existingPlayer) {
+        const [playerByRut] = await db
+          .select({
+            id: players.id,
+            fullName: players.fullName,
+            rut: players.rut,
+            status: players.status,
+            visibility: players.visibility,
+          })
+          .from(players)
+          .where(eq(players.rut, data.rut))
+          .limit(1);
+
+        existingPlayer = playerByRut;
+      }
 
       if (!existingPlayer) {
         const sameGenderPlayers = await db
@@ -70,6 +125,7 @@ export async function submitOnboarding(input: unknown) {
             id: players.id,
             fullName: players.fullName,
             rut: players.rut,
+            status: players.status,
             visibility: players.visibility,
           })
           .from(players)
@@ -136,6 +192,7 @@ export async function submitOnboarding(input: unknown) {
           })
           .where(eq(users.id, user.id));
         onboardedPlayerId = existingPlayer.id;
+        requiresAdminApproval = existingPlayer.status === "pendiente";
       } else {
         const [created] = await db
           .insert(players)
@@ -145,6 +202,7 @@ export async function submitOnboarding(input: unknown) {
             lastName: data.lastName,
             email,
             gender: data.gender,
+            status: "pendiente",
             birthDate,
             phone: data.phone,
             rut: data.rut,
@@ -175,10 +233,14 @@ export async function submitOnboarding(input: unknown) {
           })
           .where(eq(users.id, user.id));
         onboardedPlayerId = created.id;
+        requiresAdminApproval = true;
       }
     } else {
       const [currentPlayer] = await db
-        .select({ visibility: players.visibility })
+        .select({
+          visibility: players.visibility,
+          status: players.status,
+        })
         .from(players)
         .where(eq(players.id, user.playerId))
         .limit(1);
@@ -218,6 +280,7 @@ export async function submitOnboarding(input: unknown) {
         .set({ role: isAdminEmail(email) ? "admin" : "player" })
         .where(eq(users.id, user.id));
       onboardedPlayerId = user.playerId;
+      requiresAdminApproval = currentPlayer?.status === "pendiente";
     }
   } catch (error: unknown) {
     if (
@@ -239,6 +302,7 @@ export async function submitOnboarding(input: unknown) {
   revalidatePath("/");
   revalidatePath("/ranking");
   revalidatePath("/mi-perfil");
+  revalidatePath("/admin/jugadores");
 
   if (onboardedPlayerId) {
     try {
@@ -248,5 +312,5 @@ export async function submitOnboarding(input: unknown) {
     }
   }
 
-  redirect("/ranking/hombres");
+  redirect(requiresAdminApproval ? "/onboarding" : "/ranking/hombres");
 }

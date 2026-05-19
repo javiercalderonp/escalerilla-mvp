@@ -57,6 +57,7 @@ export function AvailabilityGrid({
       AVAILABILITY_DAYS.find(({ key }) => availability[key].some(Boolean))
         ?.key ?? AVAILABILITY_DAYS[0].key,
   );
+  const [mobileView, setMobileView] = useState<"day" | "week">("day");
 
   function setSlot(day: AvailabilityDayKey, slotIndex: number, value: boolean) {
     onChange({
@@ -140,7 +141,7 @@ export function AvailabilityGrid({
         <fieldset className="grid grid-cols-4 gap-2">
           <legend className="sr-only">Seleccionar día</legend>
           {AVAILABILITY_DAYS.map(({ key, short }) => {
-            const isActive = key === activeDay;
+            const isActive = mobileView === "day" && key === activeDay;
             const hasSelection = availability[key].some(Boolean);
 
             return (
@@ -148,7 +149,10 @@ export function AvailabilityGrid({
                 key={key}
                 type="button"
                 aria-pressed={isActive}
-                onClick={() => setActiveDay(key)}
+                onClick={() => {
+                  setActiveDay(key);
+                  setMobileView("day");
+                }}
                 className={[
                   "h-10 min-w-0 rounded-full border px-2 text-sm font-bold transition",
                   isActive
@@ -161,134 +165,230 @@ export function AvailabilityGrid({
               </button>
             );
           })}
+          <button
+            type="button"
+            aria-pressed={mobileView === "week"}
+            onClick={() => setMobileView("week")}
+            className={[
+              "h-10 min-w-0 rounded-full border px-2 text-xs font-bold transition",
+              mobileView === "week"
+                ? "border-clay bg-clay text-clay-foreground shadow-lg shadow-clay/20"
+                : "border-border bg-card text-foreground shadow-sm hover:border-clay/30",
+            ].join(" ")}
+          >
+            Semana
+          </button>
         </fieldset>
 
-        <section className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="inline-flex size-12 shrink-0 items-center justify-center rounded-xl border border-clay/10 bg-clay/10 text-clay">
-                <CalendarDays className="size-6" aria-hidden="true" />
+        {mobileView === "day" ? (
+          <section className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="inline-flex size-12 shrink-0 items-center justify-center rounded-xl border border-clay/10 bg-clay/10 text-clay">
+                  <CalendarDays className="size-6" aria-hidden="true" />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-lg font-bold tracking-tight text-foreground">
+                    {activeDayMeta.label}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    {activeRanges.length === 1
+                      ? "1 bloque disponible"
+                      : `${activeRanges.length} bloques disponibles`}
+                  </p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <h2 className="text-lg font-bold tracking-tight text-foreground">
-                  {activeDayMeta.label}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  {activeRanges.length === 1
-                    ? "1 bloque disponible"
-                    : `${activeRanges.length} bloques disponibles`}
-                </p>
-              </div>
+
+              <button
+                type="button"
+                onClick={() => clearDay(activeDay)}
+                className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-clay/15 bg-card px-3 text-xs font-bold text-clay shadow-sm transition hover:border-clay/30 hover:bg-clay/5"
+              >
+                <Trash2 className="size-3.5" aria-hidden="true" />
+                Borrar día
+              </button>
             </div>
 
-            <button
-              type="button"
-              onClick={() => clearDay(activeDay)}
-              className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-clay/15 bg-card px-3 text-xs font-bold text-clay shadow-sm transition hover:border-clay/30 hover:bg-clay/5"
+            <div
+              className="select-none overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+              onPointerLeave={() => setDragMode(null)}
+              onPointerUp={() => setDragMode(null)}
             >
-              <Trash2 className="size-3.5" aria-hidden="true" />
-              Borrar día
-            </button>
-          </div>
-
-          <div
-            className="select-none overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
-            onPointerLeave={() => setDragMode(null)}
-            onPointerUp={() => setDragMode(null)}
-          >
-            <div className="grid grid-cols-[80px_minmax(0,1fr)] grid-rows-[repeat(30,22px)]">
-              {HOURS.slice(0, -1).map((hour, index) => (
-                <div
-                  key={hour}
-                  className="col-start-1 border-r border-border bg-card px-3 pt-1.5 text-right text-sm text-muted-foreground"
-                  style={{ gridRow: `${index * 2 + 1} / span 2` }}
-                >
-                  {String(hour).padStart(2, "0")}:00
-                </div>
-              ))}
-
-              {SLOTS.map(({ id, index: slotIndex }) => {
-                const isSelected = availability[activeDay][slotIndex];
-                const isFirst =
-                  isSelected &&
-                  (slotIndex === 0 || !availability[activeDay][slotIndex - 1]);
-                const isLast =
-                  isSelected &&
-                  (slotIndex === SLOT_COUNT - 1 ||
-                    !availability[activeDay][slotIndex + 1]);
-
-                return (
-                  <button
-                    key={`${activeDay}-${id}`}
-                    type="button"
-                    aria-label={`${activeDayMeta.short} ${formatAvailabilityTime(slotIndex)}`}
-                    aria-pressed={isSelected}
-                    onPointerDown={() =>
-                      handlePointerDown(activeDay, slotIndex)
-                    }
-                    onPointerEnter={() =>
-                      handlePointerEnter(activeDay, slotIndex)
-                    }
-                    onKeyDown={(event) =>
-                      handleSlotKeyDown(event, activeDay, slotIndex)
-                    }
-                    className={[
-                      "relative col-start-2 border-b border-dashed border-border/60 px-3 text-left transition focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay/50",
-                      slotIndex % 2 === 0 ? "bg-background/25" : "bg-card",
-                      isSelected
-                        ? "mx-2 border-b-clay/20 bg-clay/90 text-clay-foreground shadow-sm hover:bg-clay"
-                        : "hover:bg-clay/10",
-                      isFirst ? "mt-1 rounded-t-md" : "",
-                      isLast ? "mb-1 rounded-b-md" : "",
-                    ].join(" ")}
+              <div className="grid grid-cols-[80px_minmax(0,1fr)] grid-rows-[repeat(30,22px)]">
+                {HOURS.slice(0, -1).map((hour, index) => (
+                  <div
+                    key={hour}
+                    className="col-start-1 border-r border-border bg-card px-3 pt-1.5 text-right text-sm text-muted-foreground"
+                    style={{ gridRow: `${index * 2 + 1} / span 2` }}
                   >
-                    {isFirst ? (
-                      <span className="pointer-events-none absolute left-3 top-2 z-10 text-sm font-bold leading-none">
-                        {formatAvailabilityTime(slotIndex)}
-                      </span>
-                    ) : null}
-                    {isLast ? (
-                      <span className="pointer-events-none absolute bottom-2 left-3 z-10 text-sm font-bold leading-none">
-                        {formatAvailabilityTime(slotIndex + 1)}
-                      </span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+                    {String(hour).padStart(2, "0")}:00
+                  </div>
+                ))}
 
-          {showSummary ? (
-            <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-              <div className="flex items-start gap-3">
-                <div className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-clay/10 text-clay">
-                  <Clock className="size-5" aria-hidden="true" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-sm font-bold text-foreground">
-                    Resumen del día
-                  </h3>
-                  {activeRanges.length > 0 ? (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {activeRanges.map(([start, end]) => (
-                        <span
-                          key={`${start}-${end}`}
-                          className="rounded-full bg-clay/10 px-3 py-1 text-sm font-bold text-clay"
-                        >
-                          {formatRangeLabel(start, end)}
+                {SLOTS.map(({ id, index: slotIndex }) => {
+                  const isSelected = availability[activeDay][slotIndex];
+                  const isFirst =
+                    isSelected &&
+                    (slotIndex === 0 ||
+                      !availability[activeDay][slotIndex - 1]);
+                  const isLast =
+                    isSelected &&
+                    (slotIndex === SLOT_COUNT - 1 ||
+                      !availability[activeDay][slotIndex + 1]);
+
+                  return (
+                    <button
+                      key={`${activeDay}-${id}`}
+                      type="button"
+                      aria-label={`${activeDayMeta.short} ${formatAvailabilityTime(slotIndex)}`}
+                      aria-pressed={isSelected}
+                      onPointerDown={() =>
+                        handlePointerDown(activeDay, slotIndex)
+                      }
+                      onPointerEnter={() =>
+                        handlePointerEnter(activeDay, slotIndex)
+                      }
+                      onKeyDown={(event) =>
+                        handleSlotKeyDown(event, activeDay, slotIndex)
+                      }
+                      className={[
+                        "relative col-start-2 border-b border-dashed border-border/60 px-3 text-left transition focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay/50",
+                        slotIndex % 2 === 0 ? "bg-background/25" : "bg-card",
+                        isSelected
+                          ? "mx-2 border-b-clay/20 bg-clay/90 text-clay-foreground shadow-sm hover:bg-clay"
+                          : "hover:bg-clay/10",
+                        isFirst ? "mt-1 rounded-t-md" : "",
+                        isLast ? "mb-1 rounded-b-md" : "",
+                      ].join(" ")}
+                    >
+                      {isFirst ? (
+                        <span className="pointer-events-none absolute left-3 top-2 z-10 text-sm font-bold leading-none">
+                          {formatAvailabilityTime(slotIndex)}
                         </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Aún no hay horarios seleccionados.
-                    </p>
-                  )}
-                </div>
+                      ) : null}
+                      {isLast ? (
+                        <span className="pointer-events-none absolute bottom-2 left-3 z-10 text-sm font-bold leading-none">
+                          {formatAvailabilityTime(slotIndex + 1)}
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          ) : null}
-        </section>
+
+            {showSummary ? (
+              <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-clay/10 text-clay">
+                    <Clock className="size-5" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-bold text-foreground">
+                      Resumen del día
+                    </h3>
+                    {activeRanges.length > 0 ? (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {activeRanges.map(([start, end]) => (
+                          <span
+                            key={`${start}-${end}`}
+                            className="rounded-full bg-clay/10 px-3 py-1 text-sm font-bold text-clay"
+                          >
+                            {formatRangeLabel(start, end)}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Aún no hay horarios seleccionados.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </section>
+        ) : (
+          <section className="space-y-3">
+            <div
+              className="select-none overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+              onPointerLeave={() => setDragMode(null)}
+              onPointerUp={() => setDragMode(null)}
+            >
+              <div className="grid grid-cols-[42px_repeat(7,minmax(0,1fr))] border-b border-border bg-card">
+                <div aria-hidden="true" />
+                {AVAILABILITY_DAYS.map(({ key, short }) => (
+                  <div
+                    key={key}
+                    className="border-l border-border py-2 text-center text-[11px] font-bold text-foreground"
+                  >
+                    {short}
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-[42px_repeat(7,minmax(0,1fr))]">
+                <div className="grid grid-rows-[repeat(15,28px)] border-r border-border bg-card">
+                  {HOURS.slice(0, -1).map((hour) => (
+                    <div
+                      key={hour}
+                      className="border-b border-border/70 px-1 pt-1 text-right text-[10px] font-medium text-muted-foreground last:border-b-0"
+                    >
+                      {String(hour).padStart(2, "0")}
+                    </div>
+                  ))}
+                </div>
+
+                {AVAILABILITY_DAYS.map(({ key, short }) => (
+                  <div
+                    key={key}
+                    className="grid grid-rows-[repeat(30,14px)] border-r border-border last:border-r-0"
+                  >
+                    {SLOTS.map(({ id, index: slotIndex }) => {
+                      const isSelected = availability[key][slotIndex];
+                      const isFirst =
+                        isSelected &&
+                        (slotIndex === 0 || !availability[key][slotIndex - 1]);
+                      const isLast =
+                        isSelected &&
+                        (slotIndex === SLOT_COUNT - 1 ||
+                          !availability[key][slotIndex + 1]);
+
+                      return (
+                        <button
+                          key={`${key}-${id}`}
+                          type="button"
+                          aria-label={`${short} ${formatAvailabilityTime(slotIndex)}`}
+                          aria-pressed={isSelected}
+                          onPointerDown={() =>
+                            handlePointerDown(key, slotIndex)
+                          }
+                          onPointerEnter={() =>
+                            handlePointerEnter(key, slotIndex)
+                          }
+                          onKeyDown={(event) =>
+                            handleSlotKeyDown(event, key, slotIndex)
+                          }
+                          className={[
+                            "border-b border-dashed border-border/50 transition focus-visible:relative focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay/50",
+                            slotIndex % 2 === 0
+                              ? "bg-background/35"
+                              : "bg-card",
+                            isSelected
+                              ? "mx-0.5 border-b-clay/30 bg-clay/90 shadow-sm hover:bg-clay"
+                              : "hover:bg-clay/10",
+                            isFirst ? "mt-0.5 rounded-t-sm" : "",
+                            isLast ? "mb-0.5 rounded-b-sm" : "",
+                          ].join(" ")}
+                        />
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
       </div>
 
       <div className="hidden overflow-x-auto pb-1 md:block">
@@ -298,7 +398,10 @@ export function AvailabilityGrid({
           onPointerUp={() => setDragMode(null)}
         >
           <div className="grid grid-cols-[72px_repeat(7,minmax(105px,1fr))] border-b border-border bg-card">
-            <div aria-hidden="true" />
+            <div
+              aria-hidden="true"
+              className="sticky left-0 z-20 bg-card shadow-[8px_0_12px_-12px_rgba(15,23,42,0.45)]"
+            />
             {AVAILABILITY_DAYS.map(({ key, label }) => (
               <div
                 key={key}
@@ -310,7 +413,7 @@ export function AvailabilityGrid({
           </div>
 
           <div className="grid grid-cols-[72px_repeat(7,minmax(105px,1fr))]">
-            <div className="grid grid-rows-[repeat(15,36px)] border-r border-border bg-card">
+            <div className="sticky left-0 z-10 grid grid-rows-[repeat(15,36px)] border-r border-border bg-card shadow-[8px_0_12px_-12px_rgba(15,23,42,0.45)]">
               {HOURS.slice(0, -1).map((hour) => (
                 <div
                   key={hour}

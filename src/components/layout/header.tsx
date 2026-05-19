@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import {
   CalendarClockIcon,
   FileTextIcon,
@@ -12,6 +12,7 @@ import Link from "next/link";
 import { auth, signOut } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { players } from "@/lib/db/schema";
+import { formatPersonName } from "@/lib/format/name";
 import { AvailabilityToggle } from "./availability-toggle";
 import { MobileNav } from "./mobile-nav";
 import { NavLinks } from "./nav-links";
@@ -20,6 +21,28 @@ async function signOutAction() {
   "use server";
 
   await signOut({ redirectTo: "/" });
+}
+
+function getDisplayName({
+  firstName,
+  lastName,
+  fullName,
+  sessionName,
+}: {
+  firstName?: string | null;
+  lastName?: string | null;
+  fullName?: string | null;
+  sessionName?: string | null;
+}) {
+  const explicitName = [firstName, lastName]
+    .map((value) => value?.trim())
+    .filter(Boolean)
+    .join(" ");
+  const candidate = explicitName || fullName?.trim() || sessionName?.trim();
+
+  if (!candidate || candidate.includes("@")) return "Mi perfil";
+
+  return formatPersonName(candidate);
 }
 
 export async function Header() {
@@ -31,17 +54,34 @@ export async function Header() {
   let wantsToPlayNextWeek = false;
   let wantsMultipleMatches = false;
   let alwaysAvailable = false;
+  let displayName = getDisplayName({ sessionName: session?.user?.name });
   if (isPlayer && session?.user?.email && db) {
     try {
       const [player] = await db
         .select({
+          firstName: players.firstName,
+          lastName: players.lastName,
+          fullName: players.fullName,
           wantsToPlayNextWeek: players.wantsToPlayNextWeek,
           wantsMultipleMatches: players.wantsMultipleMatches,
           alwaysAvailable: players.alwaysAvailable,
         })
         .from(players)
-        .where(eq(players.email, session.user.email.toLowerCase()))
+        .where(
+          or(
+            session.user.playerId
+              ? eq(players.id, session.user.playerId)
+              : undefined,
+            eq(players.email, session.user.email.toLowerCase()),
+          ),
+        )
         .limit(1);
+      displayName = getDisplayName({
+        firstName: player?.firstName,
+        lastName: player?.lastName,
+        fullName: player?.fullName,
+        sessionName: session.user.name,
+      });
       wantsToPlayNextWeek = player?.wantsToPlayNextWeek ?? false;
       wantsMultipleMatches = player?.wantsMultipleMatches ?? false;
       alwaysAvailable = player?.alwaysAvailable ?? false;
@@ -68,7 +108,7 @@ export async function Header() {
   const profileItem = session?.user
     ? {
         href: "/mi-perfil",
-        label: session.user.name ?? session.user.email ?? "Mi perfil",
+        label: displayName,
       }
     : null;
 
@@ -160,11 +200,13 @@ export async function Header() {
                 href="/mi-perfil"
                 className="max-w-48 truncate text-white/60 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay/70 focus-visible:ring-offset-4 focus-visible:ring-offset-[#0d1b2a]"
               >
-                {session.user.name ?? session.user.email}
+                {displayName}
               </Link>
-              <span className="rounded-full bg-clay/20 px-3 py-1 text-xs font-medium text-clay">
-                {session.user.role}
-              </span>
+              {isAdmin && (
+                <span className="rounded-full bg-clay/20 px-3 py-1 text-xs font-medium text-clay">
+                  admin
+                </span>
+              )}
               <div className="invisible absolute left-0 top-full z-50 min-w-60 pt-2 opacity-0 transition group-hover:visible group-hover:opacity-100">
                 <div className="rounded-lg border border-white/10 bg-[#142235] p-1 shadow-xl shadow-black/20">
                   <Link

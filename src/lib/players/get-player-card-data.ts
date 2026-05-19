@@ -203,7 +203,6 @@ export async function getPlayerCardData(
       )
     )
     .orderBy(desc(matches.playedOn), desc(matches.confirmedAt), desc(matches.createdAt))
-    .limit(5)
 
   const matchIds = recentMatchesRows.map((match) => match.id)
   const setRows = matchIds.length

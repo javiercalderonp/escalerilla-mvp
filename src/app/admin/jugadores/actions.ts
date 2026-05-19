@@ -385,6 +385,11 @@ export async function approvePlayerAction(formData: FormData) {
   const { actorId, dbClient } = await requireAdminActor();
 
   const playerId = z.string().uuid().parse(formData.get("playerId"));
+  const [player] = await dbClient
+    .select({ gender: players.gender })
+    .from(players)
+    .where(eq(players.id, playerId))
+    .limit(1);
 
   await dbClient
     .update(players)
@@ -399,7 +404,13 @@ export async function approvePlayerAction(formData: FormData) {
     payload: { status: "activo" },
   });
 
+  if (player) {
+    await refreshHistoricalBestRanking(player.gender);
+  }
+  revalidateTag("ranking", "max");
   revalidatePath("/admin/jugadores");
+  revalidatePath("/ranking/hombres");
+  revalidatePath("/ranking/mujeres");
 }
 
 export async function toggleRetiredPlayerAction(formData: FormData) {

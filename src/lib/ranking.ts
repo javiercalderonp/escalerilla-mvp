@@ -495,8 +495,7 @@ export async function getPublicPlayerProfile(
       desc(matches.playedOn),
       desc(matches.confirmedAt),
       desc(matches.createdAt),
-    )
-    .limit(10)) as Omit<PublicPlayerMatch, "sets">[];
+    )) as Omit<PublicPlayerMatch, "sets">[];
 
   const matchIds = recentMatches.map((match) => match.id);
   const setRows = matchIds.length

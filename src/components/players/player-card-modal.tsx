@@ -3,6 +3,7 @@
 import {
   BarChart2Icon,
   CalendarIcon,
+  ChevronDownIcon,
   Clock3Icon,
   FlameIcon,
   HandIcon,
@@ -20,6 +21,8 @@ import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs"
 import type { PlayerCardData } from "@/lib/players/get-player-card-data"
 import { whatsappUrl } from "@/lib/validation/phone"
+
+const INITIAL_VISIBLE_MATCHES = 5
 
 function formatDate(value: string | Date | null) {
   if (!value) return null
@@ -48,9 +51,13 @@ export function PlayerCardModal({
   onClose: () => void
 }) {
   const [activeTab, setActiveTab] = useState("info")
+  const [visibleMatches, setVisibleMatches] = useState(INITIAL_VISIBLE_MATCHES)
 
   useEffect(() => {
-    if (open) setActiveTab("info")
+    if (open) {
+      setActiveTab("info")
+      setVisibleMatches(INITIAL_VISIBLE_MATCHES)
+    }
   }, [open])
 
   const p = data.player
@@ -62,6 +69,21 @@ export function PlayerCardModal({
           (data.performance.matchesWon / data.performance.matchesPlayed) * 100
         )
       : 0
+  const visibleRecentMatches = data.recentMatches.slice(0, visibleMatches)
+  const remainingMatches = data.recentMatches.length - visibleRecentMatches.length
+  const streakItems = data.recentMatches.reduce<
+    Array<{ id: string; result: "W" | "L" }>
+  >((items, match) => {
+    if (match.result === "W" || match.result === "WO_W") {
+      items.push({ id: match.id, result: "W" })
+      return items
+    }
+    if (match.result === "L" || match.result === "WO_L") {
+      items.push({ id: match.id, result: "L" })
+      return items
+    }
+    return items
+  }, [])
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
@@ -345,17 +367,17 @@ export function PlayerCardModal({
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  {data.performance.streak.length > 0 ? (
-                    data.performance.streak.map((r, i) => (
+                  {streakItems.length > 0 ? (
+                    streakItems.map((item) => (
                       <span
-                        key={i}
+                        key={item.id}
                         className={`flex size-8 items-center justify-center rounded-full text-xs font-bold ${
-                          r === "W"
+                          item.result === "W"
                             ? "bg-green-900/70 text-green-400 ring-1 ring-green-600/30"
                             : "bg-orange-950/70 text-orange-400 ring-1 ring-orange-700/30"
                         }`}
                       >
-                        {r}
+                        {item.result}
                       </span>
                     ))
                   ) : (
@@ -374,7 +396,7 @@ export function PlayerCardModal({
                     </p>
                   </div>
                   <ul className="space-y-2">
-                    {data.recentMatches.map((match) => {
+                    {visibleRecentMatches.map((match) => {
                       const won =
                         match.result === "W" || match.result === "WO_W"
                       const lost =
@@ -412,6 +434,20 @@ export function PlayerCardModal({
                       )
                     })}
                   </ul>
+                  {remainingMatches > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setVisibleMatches((current) =>
+                          Math.min(current + 5, data.recentMatches.length)
+                        )
+                      }
+                      className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-4 py-2.5 text-sm font-semibold text-white/75 transition hover:bg-white/[0.1] hover:text-white"
+                    >
+                      <ChevronDownIcon className="size-4" />
+                      Ver más ({remainingMatches})
+                    </button>
+                  ) : null}
                 </div>
               )}
             </div>

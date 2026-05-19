@@ -1,8 +1,16 @@
 "use client";
 
-import { ArrowLeft, Check, Info } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  ChevronDown,
+  Info,
+  Search,
+  UserRound,
+} from "lucide-react";
 import Link from "next/link";
 import {
+  type FocusEvent,
   Fragment,
   useEffect,
   useId,
@@ -13,6 +21,7 @@ import {
 } from "react";
 
 import { getTodayInSantiago } from "@/lib/date";
+import { normalizeSearchText } from "@/lib/utils";
 
 import type { ParsedSet } from "./actions";
 import { playerReportResultAction } from "./actions";
@@ -26,7 +35,7 @@ export type PendingMatch = {
   type: "sorteo" | "desafio" | "campeonato";
 };
 
-export type PlayerOption = { id: string; fullName: string };
+export type PlayerOption = { id: string; fullName: string; gender: "M" | "F" };
 
 type MatchFormat = "mr3" | "set_largo" | "wo" | "empate";
 
@@ -355,7 +364,7 @@ function PlayerCard({
     >
       <div
         className={`flex h-14 w-14 items-center justify-center rounded-full text-base font-bold ${
-          isWinner ?? isSelected
+          (isWinner ?? isSelected)
             ? "bg-clay text-white"
             : "bg-slate-100 text-slate-600"
         }`}
@@ -370,6 +379,133 @@ function PlayerCard({
         {name}
       </span>
     </Tag>
+  );
+}
+
+function formatCategory(value: "M" | "F") {
+  return value === "M" ? "Hombres" : "Mujeres";
+}
+
+function PlayerPicker({
+  label,
+  players,
+  value,
+  onChange,
+}: {
+  label: string;
+  players: PlayerOption[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const rootRef = useRef<HTMLFieldSetElement>(null);
+
+  const selectedPlayer = players.find((player) => player.id === value);
+  const filteredPlayers = useMemo(() => {
+    const normalizedQuery = normalizeSearchText(query.trim());
+
+    if (normalizedQuery.length === 0) return players;
+
+    return players.filter((player) =>
+      normalizeSearchText(player.fullName).includes(normalizedQuery),
+    );
+  }, [players, query]);
+
+  function handleBlur(event: FocusEvent<HTMLFieldSetElement>) {
+    if (!rootRef.current?.contains(event.relatedTarget)) {
+      setIsOpen(false);
+    }
+  }
+
+  return (
+    <fieldset ref={rootRef} className="space-y-2" onBlur={handleBlur}>
+      <legend className="text-xs font-medium text-slate-700">{label}</legend>
+
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left shadow-sm transition hover:border-slate-300 focus-visible:border-clay focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-clay/15"
+        onClick={() => setIsOpen((current) => !current)}
+        aria-expanded={isOpen}
+      >
+        <span className="flex min-w-0 items-center gap-3">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+            <UserRound className="size-4" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-semibold text-slate-950">
+              {selectedPlayer?.fullName ?? "Seleccionar jugador"}
+            </span>
+            {selectedPlayer ? (
+              <span className="mt-0.5 block text-xs text-slate-500">
+                {formatCategory(selectedPlayer.gender)}
+              </span>
+            ) : null}
+          </span>
+        </span>
+        <ChevronDown
+          className={`size-4 shrink-0 text-slate-400 transition ${
+            isOpen ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {isOpen ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 focus-within:border-clay focus-within:bg-white">
+            <Search className="size-4 shrink-0 text-slate-400" />
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Buscar jugador"
+              className="min-w-0 flex-1 bg-transparent text-sm text-slate-950 outline-none placeholder:text-slate-400"
+            />
+          </div>
+
+          <div className="mt-2 max-h-56 overflow-y-auto pr-1">
+            {filteredPlayers.length > 0 ? (
+              filteredPlayers.map((player) => {
+                const isSelected = player.id === value;
+
+                return (
+                  <button
+                    key={player.id}
+                    type="button"
+                    className={`flex w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left transition ${
+                      isSelected
+                        ? "bg-clay/10 text-clay"
+                        : "text-slate-700 hover:bg-slate-50"
+                    }`}
+                    onClick={() => {
+                      onChange(player.id);
+                      setQuery("");
+                      setIsOpen(false);
+                    }}
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium">
+                        {player.fullName}
+                      </span>
+                      <span className="text-xs text-slate-500">
+                        {formatCategory(player.gender)}
+                      </span>
+                    </span>
+                    {isSelected ? (
+                      <Check className="size-4 shrink-0 text-clay" />
+                    ) : null}
+                  </button>
+                );
+              })
+            ) : (
+              <p className="px-2.5 py-6 text-center text-sm text-slate-500">
+                Sin jugadores para esa búsqueda.
+              </p>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </fieldset>
   );
 }
 
@@ -389,7 +525,6 @@ export function ResultForm({
   rankingHref,
 }: Props) {
   const [uiStep, setUiStep] = useState<1 | 2 | 3>(1);
-  const opponentSelectId = useId();
   const playedOnInputId = useId();
 
   const [matchSelection, setMatchSelection] = useState<string | "new" | null>(
@@ -435,21 +570,22 @@ export function ResultForm({
   const shouldSwapScores = currentMatch?.player2Id === myPlayerId;
 
   const setsForReview = useMemo(() => {
-    if (!format || format === "wo" || format === "empate") return [];
-    const sets: { p1: string; p2: string }[] = [];
-    if (s1p1 !== "" && s1p2 !== "") sets.push({ p1: s1p1, p2: s1p2 });
+    if (!format || format === "wo") return [];
+    const sets: { setNumber: number; p1: string; p2: string }[] = [];
+    if (s1p1 !== "" && s1p2 !== "")
+      sets.push({ setNumber: 1, p1: s1p1, p2: s1p2 });
     if (format !== "set_largo" && s2p1 !== "" && s2p2 !== "")
-      sets.push({ p1: s2p1, p2: s2p2 });
-    if (hasSet3 && s3p1 !== "" && s3p2 !== "")
-      sets.push({ p1: s3p1, p2: s3p2 });
+      sets.push({ setNumber: 2, p1: s2p1, p2: s2p2 });
+    if (format !== "empate" && hasSet3 && s3p1 !== "" && s3p2 !== "")
+      sets.push({ setNumber: 3, p1: s3p1, p2: s3p2 });
     return sets;
   }, [format, s1p1, s1p2, s2p1, s2p2, s3p1, s3p2, hasSet3]);
 
   const setsWonP1 = setsForReview.filter(
-    (s) => parseInt(s.p1) > parseInt(s.p2),
+    (s) => parseInt(s.p1, 10) > parseInt(s.p2, 10),
   ).length;
   const setsWonP2 = setsForReview.filter(
-    (s) => parseInt(s.p2) > parseInt(s.p1),
+    (s) => parseInt(s.p2, 10) > parseInt(s.p1, 10),
   ).length;
 
   const derivedWinnerName =
@@ -515,13 +651,17 @@ export function ResultForm({
       setError("Indica quién ganó el W.O.");
       return;
     }
-    if (format !== "wo" && format !== "empate") {
+    if (format !== "wo") {
       if (s1p1 === "" || s1p2 === "") {
         setError("Completa el puntaje del Set 1");
         return;
       }
       if (format !== "set_largo" && (s2p1 === "" || s2p2 === "")) {
         setError("Completa el puntaje del Set 2");
+        return;
+      }
+      if (format === "empate" && (setsWonP1 !== 1 || setsWonP2 !== 1)) {
+        setError("Para marcar empate, cada jugador debe ganar un set");
         return;
       }
     }
@@ -532,9 +672,20 @@ export function ResultForm({
   function handleConfirmAndSubmit() {
     setError(null);
 
+    if (!format) {
+      setError("Selecciona el formato del partido");
+      setUiStep(1);
+      return;
+    }
+    if (matchSelection === null) {
+      setError("Selecciona un partido");
+      setUiStep(1);
+      return;
+    }
+
     let sets: ParsedSet[] | undefined;
 
-    if (format && format !== "wo" && format !== "empate") {
+    if (format && format !== "wo") {
       const g1p1 = parseInt(s1p1, 10);
       const g1p2 = parseInt(s1p2, 10);
       sets = [
@@ -558,7 +709,7 @@ export function ResultForm({
           }),
         );
 
-        if (hasSet3) {
+        if (format !== "empate" && hasSet3) {
           const g3p1 = parseInt(s3p1, 10);
           const g3p2 = parseInt(s3p2, 10);
           if (!Number.isNaN(g3p1) && !Number.isNaN(g3p2)) {
@@ -576,7 +727,7 @@ export function ResultForm({
     }
 
     const base = {
-      format: format!,
+      format,
       playedOn: playedOn || undefined,
       sets,
       woWinnerId: format === "wo" ? woWinnerId : undefined,
@@ -587,7 +738,7 @@ export function ResultForm({
         ? ({ kind: "unscheduled", opponentId, isChallenge, ...base } as const)
         : ({
             kind: "scheduled",
-            matchId: matchSelection!,
+            matchId: matchSelection,
             ...base,
           } as const);
 
@@ -627,7 +778,7 @@ export function ResultForm({
                   : `${displayPlayerName} vs ${displayOpponentName}`}
           </p>
 
-          {format !== "wo" && format !== "empate" ? (
+          {format !== "wo" ? (
             <>
               <div className="mb-2 flex items-center justify-center gap-4">
                 <span
@@ -643,20 +794,19 @@ export function ResultForm({
                 </span>
               </div>
               <div className="flex justify-center gap-3">
-                {setsForReview.map((s, i) => (
-                  <span key={i} className="text-sm font-medium text-slate-500">
+                {setsForReview.map((s) => (
+                  <span
+                    key={s.setNumber}
+                    className="text-sm font-medium text-slate-500"
+                  >
                     {s.p1}-{s.p2}
                   </span>
                 ))}
               </div>
             </>
-          ) : format === "wo" ? (
-            <p className="text-center text-sm font-medium text-slate-600">
-              W.O. – ganó {derivedWinnerName ?? "—"}
-            </p>
           ) : (
             <p className="text-center text-sm font-medium text-slate-600">
-              Empate 1-1
+              W.O. – ganó {derivedWinnerName ?? "—"}
             </p>
           )}
         </div>
@@ -716,12 +866,14 @@ export function ResultForm({
             />
 
             <div className="flex flex-col items-center gap-1">
-              {format !== "wo" && format !== "empate" ? (
+              {format !== "wo" ? (
                 <>
                   <div className="flex items-center gap-2">
                     <span
                       className={`tabular-nums text-4xl font-black ${
-                        setsWonP1 > setsWonP2 ? "text-clay" : "text-slate-300"
+                        setsWonP1 > setsWonP2 || format === "empate"
+                          ? "text-clay"
+                          : "text-slate-300"
                       }`}
                     >
                       {setsWonP1}
@@ -731,16 +883,18 @@ export function ResultForm({
                     </span>
                     <span
                       className={`tabular-nums text-4xl font-black ${
-                        setsWonP2 > setsWonP1 ? "text-clay" : "text-slate-300"
+                        setsWonP2 > setsWonP1 || format === "empate"
+                          ? "text-clay"
+                          : "text-slate-300"
                       }`}
                     >
                       {setsWonP2}
                     </span>
                   </div>
                   <div className="flex gap-2">
-                    {setsForReview.map((s, i) => (
+                    {setsForReview.map((s) => (
                       <span
-                        key={i}
+                        key={s.setNumber}
                         className="text-xs font-medium text-slate-400"
                       >
                         {s.p1}-{s.p2}
@@ -748,10 +902,6 @@ export function ResultForm({
                     ))}
                   </div>
                 </>
-              ) : format === "empate" ? (
-                <span className="tabular-nums text-2xl font-black text-slate-600">
-                  1-1
-                </span>
               ) : (
                 <span className="text-lg font-bold text-slate-600">W.O.</span>
               )}
@@ -767,8 +917,8 @@ export function ResultForm({
         <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
           <p className="text-sm text-slate-600">
-            El resultado será enviado a{" "}
-            <strong>{displayOpponentName}</strong> para su confirmación.
+            El resultado será enviado a <strong>{displayOpponentName}</strong>{" "}
+            para su confirmación.
           </p>
         </div>
 
@@ -862,27 +1012,12 @@ export function ResultForm({
 
         {matchSelection === "new" && (
           <div className="mt-3 space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <div>
-              <label
-                htmlFor={opponentSelectId}
-                className="mb-1 block text-xs font-medium text-slate-700"
-              >
-                Rival
-              </label>
-              <select
-                id={opponentSelectId}
-                value={opponentId}
-                onChange={(e) => setOpponentId(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-clay focus:outline-none focus:ring-1 focus:ring-clay"
-              >
-                <option value="">Selecciona un jugador</option>
-                {allPlayers.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.fullName}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <PlayerPicker
+              label="Rival"
+              players={allPlayers}
+              value={opponentId}
+              onChange={setOpponentId}
+            />
 
             <label className="flex cursor-pointer items-center gap-2">
               <input
@@ -992,7 +1127,7 @@ export function ResultForm({
       )}
 
       {/* Scores */}
-      {format && format !== "wo" && format !== "empate" && matchSelected && opponentResolved && (
+      {format && format !== "wo" && matchSelected && opponentResolved && (
         <div className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Resultado por sets
@@ -1095,8 +1230,7 @@ export function ResultForm({
         type="button"
         onClick={validateAndGoToReview}
         disabled={
-          matchSelection === null ||
-          (matchSelection === "new" && !opponentId)
+          matchSelection === null || (matchSelection === "new" && !opponentId)
         }
         className="w-full rounded-2xl bg-clay px-6 py-4 text-sm font-bold text-white transition hover:bg-clay/90 disabled:opacity-40"
       >

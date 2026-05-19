@@ -58,7 +58,11 @@ export default async function IngresarResultadoPage() {
     .orderBy(desc(matches.createdAt))) as PendingMatch[];
 
   const allPlayers = (await db
-    .select({ id: players.id, fullName: players.fullName })
+    .select({
+      id: players.id,
+      fullName: players.fullName,
+      gender: players.gender,
+    })
     .from(players)
     .where(
       and(

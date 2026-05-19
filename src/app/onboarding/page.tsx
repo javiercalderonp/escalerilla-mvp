@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
 import { OnboardingWizard } from "@/app/onboarding/onboarding-wizard";
+import { Badge } from "@/components/ui/badge";
 import { auth } from "@/lib/auth";
 import { ensureAppUser } from "@/lib/auth/ensure-app-user";
 import { db } from "@/lib/db";
@@ -33,6 +34,25 @@ export default async function OnboardingPage() {
       .from(players)
       .where(eq(players.id, user.playerId))
       .limit(1);
+
+    if (isProfileComplete(player) && player.status === "pendiente") {
+      return (
+        <div className="mx-auto flex w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
+          <section className="w-full rounded-3xl bg-white p-8 shadow-sm ring-1 ring-black/5">
+            <Badge className="bg-orange-100 text-orange-800">Pendiente</Badge>
+            <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950">
+              Tu solicitud quedó pendiente de aprobación
+            </h1>
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              Ya guardamos tu perfil. Como no encontramos una ficha activa en la
+              escalerilla actual asociada a tu correo o teléfono, un
+              administrador debe revisar y aceptar tu incorporación antes de que
+              aparezcas en el ranking.
+            </p>
+          </section>
+        </div>
+      );
+    }
 
     if (isProfileComplete(player)) {
       redirect("/ranking/hombres");

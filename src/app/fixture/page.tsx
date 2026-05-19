@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { AdminMatchesCreateMenu } from "@/app/fixture/create-menu";
 import { FixtureAdminActions } from "@/app/fixture/fixture-admin-actions";
+import { PrintFixtureDialog } from "@/app/fixture/print-fixture-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { WeekStepper } from "@/components/ui/week-stepper";
 import { auth } from "@/lib/auth";
@@ -623,12 +624,17 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
                 {selectedCategoryLabel}
               </h2>
             </div>
-            {selectedMatches.length > 0 && (
-              <span className="text-xs text-muted-foreground">
-                {selectedMatches.length}{" "}
-                {selectedMatches.length === 1 ? "partido" : "partidos"}
-              </span>
-            )}
+            <div className="flex items-center gap-3">
+              {isAdmin && currentWeek ? (
+                <PrintFixtureDialog weekId={currentWeek.id} />
+              ) : null}
+              {selectedMatches.length > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  {selectedMatches.length}{" "}
+                  {selectedMatches.length === 1 ? "partido" : "partidos"}
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="p-6">

@@ -169,11 +169,6 @@ function formatCompactDate(value: string) {
 
 function formatUpcomingDate(match: UpcomingMatchRow) {
   if (match.playedOn) return formatCompactDate(match.playedOn);
-  if (match.weekStartsOn && match.weekEndsOn) {
-    return `${formatCompactDate(match.weekStartsOn)}–${formatCompactDate(
-      match.weekEndsOn,
-    )}`;
-  }
   return "Fecha por definir";
 }
 
