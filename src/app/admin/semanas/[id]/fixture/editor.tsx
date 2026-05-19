@@ -6,19 +6,28 @@ import {
   GripVertical,
   Plus,
   RefreshCw,
+  Search,
   Send,
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import type {
   PairHistoryForPlayers,
   PairHistorySummary,
 } from "@/lib/fixture/head-to-head";
 import { buildFixtureMessage } from "@/lib/fixture/message";
+import { normalizeSearchText } from "@/lib/utils";
 import { type AddablePlayer, AddPlayersDialog } from "../add-players-dialog";
 import { RemoveWeekPlayerButton } from "../remove-week-player-button";
 import { WeekPlayerMatchLimitControls } from "../week-player-match-limit-controls";
@@ -30,6 +39,7 @@ type ActivePlayer = {
   fullName: string;
   maxMatches: number;
   rankingPosition: number | null;
+  recentResults: Array<"W" | "L" | "E">;
 };
 
 type DraftPair = SerializedPair & {
@@ -37,6 +47,8 @@ type DraftPair = SerializedPair & {
 };
 
 type PairField = "p1" | "p2";
+
+type FixtureCategory = "M" | "F";
 
 type PlayerSlot = {
   pairIndex: number;
@@ -80,6 +92,148 @@ function formatRanking(position: number | null) {
   return position ? `#${position}` : "S/R";
 }
 
+function MatchFormDots({
+  results,
+}: {
+  results: ActivePlayer["recentResults"];
+}) {
+  if (results.length === 0) return null;
+
+  const styles = {
+    W: "bg-grass text-grass-foreground",
+    L: "bg-red-600 text-white",
+    E: "bg-slate-400 text-white",
+  };
+
+  return (
+    <ul
+      className="mt-2 flex items-center gap-1.5"
+      aria-label="Últimos partidos"
+    >
+      {results.map((result, index) => (
+        <li
+          key={`${result}-${results.slice(0, index + 1).join("")}`}
+          className={`flex size-6 items-center justify-center rounded-full text-[11px] font-bold ${styles[result]}`}
+          title={
+            result === "W" ? "Ganado" : result === "L" ? "Perdido" : "Empatado"
+          }
+        >
+          {result}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function ChangePlayerDialog({
+  players,
+  selectedPlayerId,
+  currentPlayerName,
+  pairLabel,
+  onSelectPlayer,
+}: {
+  players: ActivePlayer[];
+  selectedPlayerId: string;
+  currentPlayerName: string;
+  pairLabel: string;
+  onSelectPlayer: (playerId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const filteredPlayers = useMemo(() => {
+    const normalizedQuery = normalizeSearchText(query.trim());
+    if (!normalizedQuery) return players;
+
+    return players.filter((player) =>
+      normalizeSearchText(formatPlayerOption(player)).includes(normalizedQuery),
+    );
+  }, [players, query]);
+
+  function handleOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen);
+    if (!nextOpen) {
+      setQuery("");
+    }
+  }
+
+  function handleSelectPlayer(playerId: string) {
+    onSelectPlayer(playerId);
+    handleOpenChange(false);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => setOpen(true)}
+        className="mt-3 h-auto px-0 py-0 text-xs font-semibold text-grass hover:bg-transparent hover:text-grass/80"
+      >
+        Cambiar jugador
+      </Button>
+
+      <DialogContent className="max-h-[85vh] overflow-hidden sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Cambiar jugador</DialogTitle>
+          <DialogDescription>
+            {pairLabel} · Actual: {currentPlayerName}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Buscar jugador"
+              className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm outline-none transition focus:border-grass"
+            />
+          </div>
+
+          <div className="max-h-80 overflow-y-auto rounded-lg border border-slate-200">
+            {filteredPlayers.length === 0 ? (
+              <p className="px-4 py-8 text-center text-sm text-slate-500">
+                No hay jugadores con ese nombre.
+              </p>
+            ) : (
+              filteredPlayers.map((player) => {
+                const isSelected = player.id === selectedPlayerId;
+
+                return (
+                  <button
+                    key={player.id}
+                    type="button"
+                    onClick={() => handleSelectPlayer(player.id)}
+                    disabled={isSelected}
+                    className={`flex w-full items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 text-left text-sm last:border-0 ${
+                      isSelected
+                        ? "bg-slate-50 text-slate-400"
+                        : "text-slate-800 hover:bg-grass/10"
+                    }`}
+                  >
+                    <span>
+                      <span className="block font-medium">
+                        {formatPlayerOption(player)}
+                      </span>
+                      <MatchFormDots results={player.recentResults} />
+                    </span>
+                    {isSelected && (
+                      <span className="text-xs font-medium">Actual</span>
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function getRankDiff(playerA?: ActivePlayer, playerB?: ActivePlayer) {
   if (!playerA?.rankingPosition || !playerB?.rankingPosition) return null;
   return Math.abs(playerA.rankingPosition - playerB.rankingPosition);
@@ -104,6 +258,7 @@ function getPairHistoryForPlayers(
     lastPlayedOn: history?.lastMatch?.playedOn ?? null,
     lastStatus: history?.lastMatch?.status ?? null,
     lastWinnerId: history?.lastMatch?.winnerId ?? null,
+    lastScore: history?.lastMatch?.score ?? null,
   };
 }
 
@@ -407,7 +562,6 @@ function CategoryEditor({
 
   return (
     <section className="overflow-hidden rounded-lg border border-court/10 bg-card shadow-sm">
-      <div className="h-1.5 bg-grass" />
       <div className="p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -499,29 +653,22 @@ function CategoryEditor({
                           {formatRanking(player?.rankingPosition ?? null)}{" "}
                           {name}
                         </p>
+                        {player && (
+                          <MatchFormDots results={player.recentResults} />
+                        )}
                       </div>
                     </div>
-                    <details className="mt-3">
-                      <summary className="cursor-pointer text-xs font-semibold text-grass transition hover:text-grass/80">
-                        Cambiar jugador
-                      </summary>
-                      <select
-                        value={getSlotPlayerId(pair, field)}
-                        onChange={(e) =>
-                          updatePair(index, field, e.target.value)
-                        }
-                        className="mt-2 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-grass"
-                        aria-label={`Cambiar ${
-                          field === "p1" ? "jugador 1" : "jugador 2"
-                        } del partido ${index + 1}`}
-                      >
-                        {allActivePlayers.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {formatPlayerOption(p)}
-                          </option>
-                        ))}
-                      </select>
-                    </details>
+                    <ChangePlayerDialog
+                      players={allActivePlayers}
+                      selectedPlayerId={getSlotPlayerId(pair, field)}
+                      currentPlayerName={name}
+                      pairLabel={`Partido ${index + 1} · ${
+                        field === "p1" ? "Jugador 1" : "Jugador 2"
+                      }`}
+                      onSelectPlayer={(playerId) =>
+                        updatePair(index, field, playerId)
+                      }
+                    />
                   </fieldset>
                 );
               };
@@ -600,28 +747,23 @@ function CategoryEditor({
                           pair.p2Name,
                         )}
                       </p>
-                      <p className="mt-1">
-                        {history.totalMatches === 0
-                          ? "Sin historial previo entre ellos."
-                          : `${history.totalMatches} enfrentamiento${
-                              history.totalMatches !== 1 ? "s" : ""
-                            } registrado${
-                              history.totalMatches !== 1 ? "s" : ""
-                            }.`}
-                      </p>
+                      {(history.lastScore || history.totalMatches === 0) && (
+                        <p className="mt-1">
+                          {history.lastScore ??
+                            "Sin historial previo entre ellos."}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <p className="font-semibold text-slate-900">
                         Historial: {pair.p1Name} {history.p1Wins} -{" "}
                         {history.p2Wins} {pair.p2Name}
                       </p>
-                      <p className="mt-1">
-                        {history.draws > 0
-                          ? `${history.draws} empate${
-                              history.draws !== 1 ? "s" : ""
-                            }`
-                          : "Sin empates registrados"}
-                      </p>
+                      {history.draws > 0 && (
+                        <p className="mt-1">
+                          {history.draws} empate{history.draws !== 1 ? "s" : ""}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -732,7 +874,6 @@ function RemainingWeekPlayers({
 
   return (
     <section className="overflow-hidden rounded-lg border border-court/10 bg-card shadow-sm">
-      <div className="h-1.5 bg-[linear-gradient(90deg,var(--clay),var(--grass))]" />
       <div className="p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -790,6 +931,7 @@ export function FixtureEditor({
   );
   const [isPublished, setIsPublished] = useState(hasPublishedMatches);
   const [publishError, setPublishError] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<FixtureCategory>("M");
   const [isPending, startTransition] = useTransition();
 
   function handlePublish() {
@@ -844,32 +986,60 @@ export function FixtureEditor({
         defaultAddPlayersOpen={defaultAddPlayersOpen}
       />
 
-      <CategoryEditor
-        category="M"
-        label="Hombres"
-        allActivePlayers={allActivePlayersM}
-        pairs={pairsM}
-        setPairs={setPairsM}
-        weekId={weekId}
-        isPending={isPending}
-        startTransition={startTransition}
-        pairHistoriesByPair={pairHistoriesByPair}
-      />
+      <div className="flex justify-center">
+        <div className="inline-flex rounded-2xl border border-court/10 bg-card p-1 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setActiveCategory("M")}
+            className={`rounded-xl px-6 py-3 text-sm font-semibold transition ${
+              activeCategory === "M"
+                ? "bg-court text-court-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-muted"
+            }`}
+          >
+            Hombres
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveCategory("F")}
+            className={`rounded-xl px-6 py-3 text-sm font-semibold transition ${
+              activeCategory === "F"
+                ? "bg-court text-court-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-muted"
+            }`}
+          >
+            Mujeres
+          </button>
+        </div>
+      </div>
 
-      <CategoryEditor
-        category="F"
-        label="Mujeres"
-        allActivePlayers={allActivePlayersF}
-        pairs={pairsF}
-        setPairs={setPairsF}
-        weekId={weekId}
-        isPending={isPending}
-        startTransition={startTransition}
-        pairHistoriesByPair={pairHistoriesByPair}
-      />
+      {activeCategory === "M" ? (
+        <CategoryEditor
+          category="M"
+          label="Hombres"
+          allActivePlayers={allActivePlayersM}
+          pairs={pairsM}
+          setPairs={setPairsM}
+          weekId={weekId}
+          isPending={isPending}
+          startTransition={startTransition}
+          pairHistoriesByPair={pairHistoriesByPair}
+        />
+      ) : (
+        <CategoryEditor
+          category="F"
+          label="Mujeres"
+          allActivePlayers={allActivePlayersF}
+          pairs={pairsF}
+          setPairs={setPairsF}
+          weekId={weekId}
+          isPending={isPending}
+          startTransition={startTransition}
+          pairHistoriesByPair={pairHistoriesByPair}
+        />
+      )}
 
       <section className="overflow-hidden rounded-lg border border-court/10 bg-card shadow-sm">
-        <div className="h-1.5 bg-clay" />
         <div className="p-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>

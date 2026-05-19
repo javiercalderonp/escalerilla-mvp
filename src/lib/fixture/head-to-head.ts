@@ -1,7 +1,7 @@
 import { and, desc, inArray, or, sql } from "drizzle-orm";
 
 import type { db } from "@/lib/db";
-import { matches } from "@/lib/db/schema";
+import { matches, matchSets } from "@/lib/db/schema";
 
 type DbClient = NonNullable<typeof db>;
 
@@ -17,6 +17,7 @@ export type PairHistorySummary = {
     playedOn: string | null;
     status: CompletedMatchStatus;
     winnerId: string | null;
+    score: string | null;
   } | null;
 };
 
@@ -28,6 +29,7 @@ export type PairHistoryForPlayers = {
   lastPlayedOn: string | null;
   lastStatus: CompletedMatchStatus | null;
   lastWinnerId: string | null;
+  lastScore: string | null;
 };
 
 export function getPairKey(player1Id: string, player2Id: string) {
@@ -49,7 +51,19 @@ export function getPairHistoryForPlayers(
     lastPlayedOn: history?.lastMatch?.playedOn ?? null,
     lastStatus: history?.lastMatch?.status ?? null,
     lastWinnerId: history?.lastMatch?.winnerId ?? null,
+    lastScore: history?.lastMatch?.score ?? null,
   };
+}
+
+function formatSetScore(set: {
+  gamesP1: number;
+  gamesP2: number;
+  tiebreakP1: number | null;
+  tiebreakP2: number | null;
+}) {
+  const base = `${set.gamesP1}-${set.gamesP2}`;
+  if (set.tiebreakP1 == null || set.tiebreakP2 == null) return base;
+  return `${base} (${set.tiebreakP1}-${set.tiebreakP2})`;
 }
 
 export async function fetchPairHistorySummaries(
@@ -61,6 +75,7 @@ export async function fetchPairHistorySummaries(
 
   const completedMatches = await dbClient
     .select({
+      id: matches.id,
       player1Id: matches.player1Id,
       player2Id: matches.player2Id,
       winnerId: matches.winnerId,
@@ -84,6 +99,33 @@ export async function fetchPairHistorySummaries(
       desc(matches.confirmedAt),
       desc(matches.createdAt),
     );
+
+  const matchIds = completedMatches.map((match) => match.id);
+  const setRows =
+    matchIds.length > 0
+      ? await dbClient
+          .select({
+            matchId: matchSets.matchId,
+            setNumber: matchSets.setNumber,
+            gamesP1: matchSets.gamesP1,
+            gamesP2: matchSets.gamesP2,
+            tiebreakP1: matchSets.tiebreakP1,
+            tiebreakP2: matchSets.tiebreakP2,
+          })
+          .from(matchSets)
+          .where(inArray(matchSets.matchId, matchIds))
+          .orderBy(matchSets.matchId, matchSets.setNumber)
+      : [];
+
+  const scoresByMatch = new Map<string, string>();
+  for (const set of setRows) {
+    const currentScore = scoresByMatch.get(set.matchId);
+    const setScore = formatSetScore(set);
+    scoresByMatch.set(
+      set.matchId,
+      currentScore ? `${currentScore} ${setScore}` : setScore,
+    );
+  }
 
   const playerIdSet = new Set(uniquePlayerIds);
   const historiesByPair: Record<string, PairHistorySummary> = {};
@@ -122,6 +164,9 @@ export async function fetchPairHistorySummaries(
         playedOn: match.playedOn,
         status: match.status as CompletedMatchStatus,
         winnerId: match.winnerId,
+        score:
+          scoresByMatch.get(match.id) ??
+          (match.status === "wo" ? "W.O." : null),
       };
     }
 

@@ -25,6 +25,44 @@ function formatDate(dateStr: string) {
   return `${day}/${month}/${year}`;
 }
 
+function formatWeekStartLabel(dateStr: string) {
+  const [year, month, day] = dateStr.split("-");
+  const monthNames: Record<string, string> = {
+    "01": "enero",
+    "02": "febrero",
+    "03": "marzo",
+    "04": "abril",
+    "05": "mayo",
+    "06": "junio",
+    "07": "julio",
+    "08": "agosto",
+    "09": "septiembre",
+    "10": "octubre",
+    "11": "noviembre",
+    "12": "diciembre",
+  };
+
+  if (!year || !month || !day) return dateStr;
+
+  return `${Number(day)} de ${monthNames[month] ?? month} de ${year}`;
+}
+
+type PlayerRecentResult = "W" | "L" | "E";
+
+function getRecentResultForPlayer(
+  match: {
+    player1Id: string;
+    player2Id: string;
+    status: "confirmado" | "wo" | "empate";
+    winnerId: string | null;
+  },
+  playerId: string,
+): PlayerRecentResult | null {
+  if (match.status === "empate") return "E";
+  if (!match.winnerId) return null;
+  return match.winnerId === playerId ? "W" : "L";
+}
+
 export default async function FixturePage({
   params,
   searchParams,
@@ -95,6 +133,53 @@ export default async function FixturePage({
     .from(matches)
     .where(eq(matches.status, "confirmado"));
 
+  const recentResultRows = await db
+    .select({
+      player1Id: matches.player1Id,
+      player2Id: matches.player2Id,
+      status: matches.status,
+      winnerId: matches.winnerId,
+      playedOn: matches.playedOn,
+      confirmedAt: matches.confirmedAt,
+      createdAt: matches.createdAt,
+    })
+    .from(matches)
+    .where(
+      or(
+        eq(matches.status, "confirmado"),
+        eq(matches.status, "wo"),
+        eq(matches.status, "empate"),
+      ),
+    )
+    .orderBy(
+      desc(
+        sql`coalesce(${matches.playedOn}, ${matches.confirmedAt}::date, ${matches.createdAt}::date)`,
+      ),
+    );
+
+  const recentResultsByPlayer = new Map<string, PlayerRecentResult[]>();
+  for (const match of recentResultRows) {
+    for (const playerId of [match.player1Id, match.player2Id]) {
+      const currentResults = recentResultsByPlayer.get(playerId) ?? [];
+      if (currentResults.length >= 5) continue;
+
+      const result = getRecentResultForPlayer(
+        {
+          player1Id: match.player1Id,
+          player2Id: match.player2Id,
+          status: match.status as "confirmado" | "wo" | "empate",
+          winnerId: match.winnerId,
+        },
+        playerId,
+      );
+
+      if (result) {
+        currentResults.push(result);
+        recentResultsByPlayer.set(playerId, currentResults);
+      }
+    }
+  }
+
   const [rankingM, rankingF] = await Promise.all([
     getRanking("hombres"),
     getRanking("mujeres"),
@@ -111,6 +196,7 @@ export default async function FixturePage({
       points: Number(p.points),
       maxMatches: p.maxMatches ?? 0,
       rankingPosition: rankingPositionByPlayer.get(p.id) ?? null,
+      recentResults: recentResultsByPlayer.get(p.id) ?? [],
     }));
 
   const allActiveF = allPlayersRaw
@@ -121,6 +207,7 @@ export default async function FixturePage({
       points: Number(p.points),
       maxMatches: p.maxMatches ?? 0,
       rankingPosition: rankingPositionByPlayer.get(p.id) ?? null,
+      recentResults: recentResultsByPlayer.get(p.id) ?? [],
     }));
 
   const availableM = buildMatchmakingPlayers(
@@ -287,12 +374,12 @@ export default async function FixturePage({
         }));
 
   const weekLabel = `${formatDate(week.startsOn)}–${formatDate(week.endsOn)}`;
+  const weekStartLabel = formatWeekStartLabel(week.startsOn);
   const hasPublishedMatches = existingMatchRows.length > 0;
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6">
       <section className="overflow-hidden rounded-lg border border-court/10 bg-card shadow-sm">
-        <div className="h-2 bg-[linear-gradient(90deg,var(--grass),var(--clay),var(--gold))]" />
         <div className="p-8">
           <p className="text-sm font-medium text-clay">
             <Link
@@ -304,7 +391,7 @@ export default async function FixturePage({
             › Cruces
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-            Semana {weekLabel}
+            Semana {weekStartLabel}
           </h1>
           {hasPublishedMatches && (
             <p className="mt-3 text-sm text-slate-600">
