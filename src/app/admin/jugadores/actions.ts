@@ -429,6 +429,25 @@ export async function toggleRetiredPlayerAction(formData: FormData) {
   revalidatePath("/admin/jugadores");
 }
 
+export async function setUserRoleAction(formData: FormData) {
+  const { actorId, dbClient } = await requireAdminActor();
+
+  const userId = z.string().uuid().parse(formData.get("userId"));
+  const role = z.enum(["admin", "player"]).parse(formData.get("role"));
+
+  await dbClient.update(users).set({ role }).where(eq(users.id, userId));
+
+  await dbClient.insert(auditLog).values({
+    actorId,
+    action: role === "admin" ? "user.promote_admin" : "user.demote_admin",
+    entityType: "user",
+    entityId: userId,
+    payload: { role },
+  });
+
+  revalidatePath("/admin/jugadores");
+}
+
 export async function deletePlayerAction(formData: FormData) {
   const { actorId, dbClient } = await requireAdminActor();
 

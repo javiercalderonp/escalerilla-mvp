@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { WeekStepper } from "@/components/ui/week-stepper";
 import { auth } from "@/lib/auth";
 import { requireCompleteProfile } from "@/lib/auth/require-complete-profile";
+import { getClosestMondayInSantiago } from "@/lib/date";
 import { db } from "@/lib/db";
 import {
   matches,
@@ -68,15 +69,6 @@ function getWeekStart(dateStr: string) {
 
 function getWeekEnd(weekStart: string) {
   return addDays(weekStart, 6);
-}
-
-function nextMonday(): string {
-  const today = new Date();
-  const day = today.getDay();
-  const daysUntil = day === 0 ? 1 : 8 - day;
-  const d = new Date(today);
-  d.setDate(today.getDate() + daysUntil);
-  return d.toISOString().slice(0, 10);
 }
 
 function formatPoints(points: number) {
@@ -472,6 +464,7 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
   const weekCategoryQuery =
     selectedCategory === "F" ? "&categoria=mujeres" : "";
   const isAdmin = session?.user?.role === "admin";
+  const defaultWeekStartsOn = getClosestMondayInSantiago();
   const [playerOptions, focusWeekRows] = isAdmin
     ? await Promise.all([
         db
@@ -493,7 +486,7 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
           .where(
             and(
               inArray(weeks.status, ["abierta", "borrador"]),
-              gte(weeks.startsOn, nextMonday()),
+              gte(weeks.startsOn, defaultWeekStartsOn),
             ),
           )
           .orderBy(
@@ -515,7 +508,7 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
             <AdminMatchesCreateMenu
               playerOptions={playerOptions}
               programmingHref={programmingHref}
-              nextWeekStartsOn={nextMonday()}
+              nextWeekStartsOn={defaultWeekStartsOn}
             />
           </div>
         ) : null}

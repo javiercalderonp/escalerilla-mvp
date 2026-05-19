@@ -334,6 +334,8 @@ export default async function AdminPlayersPage() {
                               level: player.level,
                               status: player.status,
                               notes: player.notes,
+                              userId: row.users?.id ?? null,
+                              userRole: row.users?.role ?? null,
                             }}
                           />
                         </TableCell>

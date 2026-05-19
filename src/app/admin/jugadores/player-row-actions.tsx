@@ -5,6 +5,8 @@ import {
   EllipsisVertical,
   Loader2,
   Pencil,
+  ShieldCheck,
+  ShieldOff,
   Trash2,
   Undo2,
   UserMinus,
@@ -14,6 +16,7 @@ import { useEffect, useState, useTransition } from "react";
 import {
   approvePlayerAction,
   deletePlayerAction,
+  setUserRoleAction,
   toggleRetiredPlayerAction,
   updatePlayerAction,
 } from "@/app/admin/jugadores/actions";
@@ -35,6 +38,8 @@ export type PlayerRowActionData = {
   level: string | null;
   status: "pendiente" | "activo" | "congelado" | "retirado";
   notes: string | null;
+  userId: string | null;
+  userRole: "admin" | "player" | "guest" | null;
 };
 
 const inputClass =
@@ -306,6 +311,28 @@ export function PlayerRowActions({ player }: { player: PlayerRowActionData }) {
               {retireLabel}
             </button>
           </form>
+
+          {player.userId ? (
+            <form action={setUserRoleAction}>
+              <input type="hidden" name="userId" value={player.userId} />
+              <input
+                type="hidden"
+                name="role"
+                value={player.userRole === "admin" ? "player" : "admin"}
+              />
+              <button
+                type="submit"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-violet-50 hover:text-violet-700"
+              >
+                {player.userRole === "admin" ? (
+                  <ShieldOff className="size-4" />
+                ) : (
+                  <ShieldCheck className="size-4" />
+                )}
+                {player.userRole === "admin" ? "Quitar admin" : "Hacer admin"}
+              </button>
+            </form>
+          ) : null}
 
           <button
             type="button"

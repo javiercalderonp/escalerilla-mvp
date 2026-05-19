@@ -954,7 +954,7 @@ export function FixtureEditor({
         ];
         await publishFixtureAction(weekId, allPairs);
         setIsPublished(true);
-        router.push(`/fixture?week=${weekId}`);
+        router.push("/fixture");
         router.refresh();
       } catch (err) {
         setPublishError(
@@ -1039,59 +1039,39 @@ export function FixtureEditor({
         />
       )}
 
-      <section className="overflow-hidden rounded-lg border border-court/10 bg-card shadow-sm">
-        <div className="p-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-clay">
-                Salida
-              </p>
-              <h2 className="mt-1 text-xl font-semibold text-slate-950">
-                Publicar cruces
-              </h2>
-              <p className="mt-1 text-sm text-slate-500">
-                {totalPairs} partido{totalPairs !== 1 ? "s" : ""} en total
-                {isPublished
-                  ? " · Ya publicado — republicar actualiza los cruces"
-                  : ""}
-              </p>
-            </div>
-            <Button
-              type="button"
-              onClick={handlePublish}
-              disabled={isPending || totalPairs === 0}
-              className="gap-2"
-            >
-              <Send />
-              {isPending
-                ? "Publicando"
-                : isPublished
-                  ? "Republicar"
-                  : "Publicar"}
-            </Button>
+      <section className="overflow-hidden rounded-lg border border-court/10 bg-card p-5 shadow-sm">
+        <div className="rounded-lg border border-grass/20 bg-grass/10 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="flex items-center gap-2 text-sm font-semibold text-court">
+              <Copy className="size-4" />
+              Mensaje para WhatsApp
+            </p>
+            <CopyButton text={fixtureMsg} />
           </div>
-
-          {publishError && (
-            <div className="mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-              <span>{publishError}</span>
-            </div>
-          )}
-
-          <div className="mt-5 rounded-lg border border-grass/20 bg-grass/10 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="flex items-center gap-2 text-sm font-semibold text-court">
-                <Copy className="size-4" />
-                Mensaje para WhatsApp
-              </p>
-              <CopyButton text={fixtureMsg} />
-            </div>
-            <pre className="mt-3 whitespace-pre-wrap text-sm leading-6 text-court">
-              {fixtureMsg}
-            </pre>
-          </div>
+          <pre className="mt-3 whitespace-pre-wrap text-sm leading-6 text-court">
+            {fixtureMsg}
+          </pre>
         </div>
       </section>
+
+      {publishError && (
+        <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+          <span>{publishError}</span>
+        </div>
+      )}
+
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          onClick={handlePublish}
+          disabled={isPending || totalPairs === 0}
+          className="gap-2"
+        >
+          <Send />
+          {isPending ? "Publicando" : isPublished ? "Republicar" : "Publicar"}
+        </Button>
+      </div>
     </div>
   );
 }
