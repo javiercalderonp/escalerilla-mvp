@@ -395,7 +395,7 @@ export default async function FixturePage({
           </h1>
           {hasPublishedMatches && (
             <p className="mt-3 text-sm text-slate-600">
-              Ya hay cruces publicados para esta semana. Podés editarlos y
+              Ya hay cruces publicados para esta semana. Puedes editarlos y
               republicar la programación.
             </p>
           )}

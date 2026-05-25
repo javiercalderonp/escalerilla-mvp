@@ -16,7 +16,7 @@ export default function Error({
           Algo salió mal
         </h1>
         <p className="mt-4 text-sm leading-6 text-slate-600">
-          Ocurrió un error inesperado. Podés intentar de nuevo o volver al inicio.
+          Ocurrió un error inesperado. Puedes intentar de nuevo o volver al inicio.
         </p>
         <div className="mt-8 flex justify-center gap-3">
           <button

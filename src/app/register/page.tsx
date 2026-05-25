@@ -19,7 +19,7 @@ export default async function RegisterPage({
           Crear cuenta
         </h1>
         <p className="mt-3 text-sm leading-6 text-slate-600">
-          Registrate con tu email para acceder al ranking y la programación.
+          Regístrate con tu email para acceder al ranking y la programación.
         </p>
 
         <form
@@ -108,12 +108,12 @@ export default async function RegisterPage({
         </form>
 
         <p className="mt-6 text-center text-sm text-slate-500">
-          ¿Ya tenés cuenta?{" "}
+          ¿Ya tienes cuenta?{" "}
           <Link
             href="/login"
             className="font-medium text-emerald-700 hover:underline"
           >
-            Ingresá acá
+            Inicia sesión aquí
           </Link>
         </p>
       </div>

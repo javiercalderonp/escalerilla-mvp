@@ -48,17 +48,17 @@ export function buildWelcomeEmail(playerName: string) {
     <td width="33%" align="center" valign="top" style="padding:0 8px;">
       <div class="em-email-icon-card" style="width:60px;height:60px;background-color:#f0ede8;border-radius:50%;margin:0 auto 12px;text-align:center;font-size:26px;line-height:60px;">&#128197;</div>
       <p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#0d1b2a;line-height:1.4;text-align:center;">1. Confirma tu disponibilidad</p>
-      <p style="margin:0;font-size:13px;color:#776f66;line-height:1.5;text-align:center;">Indicá cuándo podés jugar cada semana.</p>
+      <p style="margin:0;font-size:13px;color:#776f66;line-height:1.5;text-align:center;">Indica cuándo puedes jugar cada semana.</p>
     </td>
     <td width="33%" align="center" valign="top" style="padding:0 8px;">
       <div class="em-email-icon-card" style="width:60px;height:60px;background-color:#f0ede8;border-radius:50%;margin:0 auto 12px;text-align:center;font-size:26px;line-height:60px;">&#127934;</div>
-      <p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#0d1b2a;line-height:1.4;text-align:center;">2. Revisá tus partidos</p>
+      <p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#0d1b2a;line-height:1.4;text-align:center;">2. Revisa tus partidos</p>
       <p style="margin:0;font-size:13px;color:#776f66;line-height:1.5;text-align:center;">Una vez publicado el sorteo, conocé tu próximo desafío.</p>
     </td>
     <td width="33%" align="center" valign="top" style="padding:0 8px;">
       <div class="em-email-icon-card" style="width:60px;height:60px;background-color:#f0ede8;border-radius:50%;margin:0 auto 12px;text-align:center;font-size:26px;line-height:60px;">&#127942;</div>
-      <p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#0d1b2a;line-height:1.4;text-align:center;">3. Subí tus resultados</p>
-      <p style="margin:0;font-size:13px;color:#776f66;line-height:1.5;text-align:center;">Reportá el resultado al terminar tu partido.</p>
+      <p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#0d1b2a;line-height:1.4;text-align:center;">3. Sube tus resultados</p>
+      <p style="margin:0;font-size:13px;color:#776f66;line-height:1.5;text-align:center;">Reporta el resultado al terminar tu partido.</p>
     </td>
   </tr>
 </table>

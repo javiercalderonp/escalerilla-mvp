@@ -592,7 +592,7 @@ function CategoryEditor({
         <div className="mt-5 space-y-3">
           {pairs.length === 0 ? (
             <div className="rounded-lg border border-dashed border-clay/30 bg-accent/30 px-6 py-8 text-center text-sm text-slate-600">
-              No hay partidos. Regenerá la propuesta o agregá uno manual.
+              No hay partidos. Regenera la propuesta o agrega uno manual.
             </div>
           ) : (
             pairs.map((pair, index) => {

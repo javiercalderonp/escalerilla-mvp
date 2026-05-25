@@ -20,7 +20,6 @@ export type PlayerCardData = {
     level: string | null
     dominantHand: string | null
     backhand: string | null
-    yearsPlaying: number | null
     joinedLadderOn: string | null
     birthDate: string | null
     age: number | null
@@ -288,7 +287,6 @@ export async function getPlayerCardData(
       level: player.level,
       dominantHand: player.dominantHand,
       backhand: player.backhand,
-      yearsPlaying: player.yearsPlaying,
       joinedLadderOn: toIsoDate(player.joinedLadderOn),
       birthDate: canSeeBirth ? toIsoDate(player.birthDate) : null,
       age: canSeeBirth ? getAge(player.birthDate) : null,

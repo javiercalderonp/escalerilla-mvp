@@ -553,7 +553,7 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
               {!session?.user && !isHistoryView && (
                 <p className="mt-1.5 text-sm text-white/50">
                   <Link href="/login" className="text-blue-300 hover:underline">
-                    Ingresá
+                    Inicia sesión
                   </Link>{" "}
                   para ver tus partidos resaltados.
                 </p>

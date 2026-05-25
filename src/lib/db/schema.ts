@@ -134,7 +134,6 @@ export const players = pgTable(
     level: playerLevelEnum("level"),
     dominantHand: dominantHandEnum("dominant_hand"),
     backhand: backhandEnum("backhand"),
-    yearsPlaying: integer("years_playing"),
     playFrequency: playFrequencyEnum("play_frequency"),
     visibility: jsonb("visibility").$type<PlayerVisibility>(),
     initialPoints: integer("initial_points").notNull().default(0),

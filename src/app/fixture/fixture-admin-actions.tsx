@@ -60,7 +60,13 @@ type FixtureAdminActionsProps = {
   sets: SetForAdminActions[];
 };
 
-type ResultMode = "mr3_2" | "mr3_3" | "set_largo" | "draw" | "walkover";
+type ResultMode = "mr3" | "set_largo" | "draw" | "walkover";
+type SetDraft = {
+  gamesP1: string;
+  gamesP2: string;
+  tiebreakP1: string;
+  tiebreakP2: string;
+};
 
 function getSet(sets: SetForAdminActions[], setNumber: number) {
   return sets.find((set) => set.setNumber === setNumber) ?? null;
@@ -70,8 +76,31 @@ function scoreDefault(value: number | null | undefined) {
   return value == null ? "" : String(value);
 }
 
+function buildSetDraft(sets: SetForAdminActions[], setNumber: 1 | 2 | 3) {
+  const set = getSet(sets, setNumber);
+
+  return {
+    gamesP1: scoreDefault(set?.gamesP1),
+    gamesP2: scoreDefault(set?.gamesP2),
+    tiebreakP1: scoreDefault(set?.tiebreakP1),
+    tiebreakP2: scoreDefault(set?.tiebreakP2),
+  };
+}
+
+function getSetWinner(draft: SetDraft) {
+  const gamesP1 = Number(draft.gamesP1);
+  const gamesP2 = Number(draft.gamesP2);
+
+  if (draft.gamesP1.trim() === "" || draft.gamesP2.trim() === "") return null;
+  if (!Number.isFinite(gamesP1) || !Number.isFinite(gamesP2)) return null;
+  if (gamesP1 === gamesP2) return null;
+
+  return gamesP1 > gamesP2 ? 1 : 2;
+}
+
 function SetFields({
-  sets,
+  draft,
+  onDraftChange,
   setNumber,
   showTiebreak = true,
   label,
@@ -79,7 +108,8 @@ function SetFields({
   player2Name,
   required = false,
 }: {
-  sets: SetForAdminActions[];
+  draft: SetDraft;
+  onDraftChange: (field: keyof SetDraft, value: string) => void;
   setNumber: 1 | 2 | 3;
   showTiebreak?: boolean;
   label?: string;
@@ -87,10 +117,8 @@ function SetFields({
   player2Name: string;
   required?: boolean;
 }) {
-  const set = getSet(sets, setNumber);
-
   return (
-    <div className="space-y-2 rounded-lg border border-border bg-background p-3">
+    <div className="min-w-0 space-y-3 rounded-lg border border-border bg-background p-3">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-semibold text-foreground">
           {label ?? `Set ${setNumber}`}
@@ -99,7 +127,7 @@ function SetFields({
           <span className="text-[11px] text-muted-foreground">TB opcional</span>
         ) : null}
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid min-w-0 grid-cols-2 gap-2">
         <label className="space-y-1">
           <span className="block truncate text-[11px] text-muted-foreground">
             {player1Name}
@@ -108,8 +136,9 @@ function SetFields({
             name={`set${setNumber}p1`}
             type="number"
             min={0}
-            defaultValue={scoreDefault(set?.gamesP1)}
-            className="min-w-0 rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none transition focus:border-court"
+            value={draft.gamesP1}
+            onChange={(e) => onDraftChange("gamesP1", e.target.value)}
+            className="w-full min-w-0 rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none transition focus:border-court"
             placeholder={setNumber === 3 ? "10" : "6"}
             required={required}
           />
@@ -122,29 +151,32 @@ function SetFields({
             name={`set${setNumber}p2`}
             type="number"
             min={0}
-            defaultValue={scoreDefault(set?.gamesP2)}
-            className="min-w-0 rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none transition focus:border-court"
+            value={draft.gamesP2}
+            onChange={(e) => onDraftChange("gamesP2", e.target.value)}
+            className="w-full min-w-0 rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none transition focus:border-court"
             placeholder={setNumber === 3 ? "8" : "4"}
             required={required}
           />
         </label>
       </div>
       {showTiebreak ? (
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid min-w-0 grid-cols-2 gap-2">
           <input
             name={`set${setNumber}tbp1`}
             type="number"
             min={0}
-            defaultValue={scoreDefault(set?.tiebreakP1)}
-            className="min-w-0 rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none transition focus:border-court"
+            value={draft.tiebreakP1}
+            onChange={(e) => onDraftChange("tiebreakP1", e.target.value)}
+            className="w-full min-w-0 rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none transition focus:border-court"
             placeholder="TB P1"
           />
           <input
             name={`set${setNumber}tbp2`}
             type="number"
             min={0}
-            defaultValue={scoreDefault(set?.tiebreakP2)}
-            className="min-w-0 rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none transition focus:border-court"
+            value={draft.tiebreakP2}
+            onChange={(e) => onDraftChange("tiebreakP2", e.target.value)}
+            className="w-full min-w-0 rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none transition focus:border-court"
             placeholder="TB P2"
           />
         </div>
@@ -239,8 +271,16 @@ export function FixtureAdminActions({ match, sets }: FixtureAdminActionsProps) {
     if (match.status === "wo") return "walkover";
     if (match.status === "empate") return "draw";
     if (match.format === "set_largo") return "set_largo";
-    return sets.length >= 3 ? "mr3_3" : "mr3_2";
+    return "mr3";
   });
+  const [setDrafts, setSetDrafts] = useState<Record<1 | 2 | 3, SetDraft>>(
+    () => ({
+      1: buildSetDraft(sets, 1),
+      2: buildSetDraft(sets, 2),
+      3: buildSetDraft(sets, 3),
+    }),
+  );
+  const [markMr3Draw, setMarkMr3Draw] = useState(match.status === "empate");
   const isResolved =
     match.status === "confirmado" ||
     match.status === "empate" ||
@@ -254,17 +294,40 @@ export function FixtureAdminActions({ match, sets }: FixtureAdminActionsProps) {
   const isWalkoverMode = mode === "walkover";
   const isDrawMode = mode === "draw";
   const isSetLargoMode = mode === "set_largo";
-  const isThreeSetMode = mode === "mr3_3";
-  const mainAction = isDrawMode ? drawAction : resultAction;
+  const isMr3Mode = mode === "mr3";
+  const firstSetWinner = getSetWinner(setDrafts[1]);
+  const secondSetWinner = getSetWinner(setDrafts[2]);
+  const isSplitAfterTwoSets =
+    firstSetWinner != null &&
+    secondSetWinner != null &&
+    firstSetWinner !== secondSetWinner;
+  const showSuperTiebreak = isMr3Mode && isSplitAfterTwoSets && !markMr3Draw;
+  const shouldSubmitDraw =
+    isDrawMode || (isMr3Mode && isSplitAfterTwoSets && markMr3Draw);
+  const mainAction = shouldSubmitDraw ? drawAction : resultAction;
   const mainFormat = isSetLargoMode ? "set_largo" : "mr3";
   const mainSubmitLabel = isResolved
-    ? isDrawMode
+    ? shouldSubmitDraw
       ? "Corregir a empate"
       : "Guardar corrección"
-    : isDrawMode
+    : shouldSubmitDraw
       ? "Marcar empate"
       : "Confirmar resultado";
   const defaultPlayedOn = match.playedOn ?? getTodayInSantiago();
+
+  function updateSetDraft(
+    setNumber: 1 | 2 | 3,
+    field: keyof SetDraft,
+    value: string,
+  ) {
+    setSetDrafts((current) => ({
+      ...current,
+      [setNumber]: {
+        ...current[setNumber],
+        [field]: value,
+      },
+    }));
+  }
 
   function handleWalkoverSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -422,34 +485,40 @@ export function FixtureAdminActions({ match, sets }: FixtureAdminActionsProps) {
           </DialogHeader>
 
           <div className="space-y-5">
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
               <ModeButton
-                active={mode === "mr3_2"}
-                onClick={() => setMode("mr3_2")}
+                active={mode === "mr3"}
+                onClick={() => {
+                  setMode("mr3");
+                  setMarkMr3Draw(false);
+                }}
               >
-                2 sets
-              </ModeButton>
-              <ModeButton
-                active={mode === "mr3_3"}
-                onClick={() => setMode("mr3_3")}
-              >
-                3 sets
+                Mejor de 3 sets
               </ModeButton>
               <ModeButton
                 active={mode === "set_largo"}
-                onClick={() => setMode("set_largo")}
+                onClick={() => {
+                  setMode("set_largo");
+                  setMarkMr3Draw(false);
+                }}
               >
                 Set largo
               </ModeButton>
               <ModeButton
                 active={mode === "draw"}
-                onClick={() => setMode("draw")}
+                onClick={() => {
+                  setMode("draw");
+                  setMarkMr3Draw(true);
+                }}
               >
                 Empate
               </ModeButton>
               <ModeButton
                 active={mode === "walkover"}
-                onClick={() => setMode("walkover")}
+                onClick={() => {
+                  setMode("walkover");
+                  setMarkMr3Draw(false);
+                }}
               >
                 Retiro / W.O.
               </ModeButton>
@@ -516,18 +585,14 @@ export function FixtureAdminActions({ match, sets }: FixtureAdminActionsProps) {
                             ? "Empate MR3"
                             : isSetLargoMode
                               ? "Set largo"
-                              : isThreeSetMode
-                                ? "Mejor de 3 sets"
-                                : "Mejor de 3, resuelto en 2 sets"}
+                              : "Mejor de 3 sets"}
                         </p>
                         <p className="mt-1 text-xs text-muted-foreground">
                           {isDrawMode
                             ? "Carga dos sets, uno para cada jugador."
                             : isSetLargoMode
                               ? "Un set a 9 juegos; si fue 9-8, informa el tie-break."
-                              : isThreeSetMode
-                                ? "El tercer set es super tie-break a 10."
-                                : "Carga los dos primeros sets; el ganador se infiere."}
+                              : "Si quedan 1-1, se abre el super tie-break a 10."}
                         </p>
                       </div>
                     </div>
@@ -548,10 +613,13 @@ export function FixtureAdminActions({ match, sets }: FixtureAdminActionsProps) {
                 <div
                   className={`grid gap-3 ${
                     isSetLargoMode ? "md:grid-cols-1" : "md:grid-cols-2"
-                  } ${isThreeSetMode ? "lg:grid-cols-3" : ""}`}
+                  } ${showSuperTiebreak ? "lg:grid-cols-3" : ""}`}
                 >
                   <SetFields
-                    sets={sets}
+                    draft={setDrafts[1]}
+                    onDraftChange={(field, value) =>
+                      updateSetDraft(1, field, value)
+                    }
                     setNumber={1}
                     label={isSetLargoMode ? "Set largo" : "Set 1"}
                     player1Name={match.player1Name}
@@ -560,16 +628,22 @@ export function FixtureAdminActions({ match, sets }: FixtureAdminActionsProps) {
                   />
                   {!isSetLargoMode && (
                     <SetFields
-                      sets={sets}
+                      draft={setDrafts[2]}
+                      onDraftChange={(field, value) =>
+                        updateSetDraft(2, field, value)
+                      }
                       setNumber={2}
                       player1Name={match.player1Name}
                       player2Name={match.player2Name}
                       required
                     />
                   )}
-                  {isThreeSetMode && (
+                  {showSuperTiebreak && (
                     <SetFields
-                      sets={sets}
+                      draft={setDrafts[3]}
+                      onDraftChange={(field, value) =>
+                        updateSetDraft(3, field, value)
+                      }
                       setNumber={3}
                       label="Super tie-break"
                       showTiebreak={false}
@@ -580,7 +654,27 @@ export function FixtureAdminActions({ match, sets }: FixtureAdminActionsProps) {
                   )}
                 </div>
 
-                <SubmitButton tone={isDrawMode ? "blue" : "default"}>
+                {isMr3Mode && isSplitAfterTwoSets ? (
+                  <label className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-950">
+                    <input
+                      type="checkbox"
+                      checked={markMr3Draw}
+                      onChange={(e) => setMarkMr3Draw(e.target.checked)}
+                      className="mt-1 size-4 rounded border-blue-300"
+                    />
+                    <span>
+                      <span className="block font-semibold">
+                        Marcar como empate
+                      </span>
+                      <span className="mt-1 block text-xs text-blue-900/75">
+                        Úsalo si quedaron 1-1 en sets y no se jugó el super
+                        tie-break.
+                      </span>
+                    </span>
+                  </label>
+                ) : null}
+
+                <SubmitButton tone={shouldSubmitDraw ? "blue" : "default"}>
                   {mainSubmitLabel}
                 </SubmitButton>
               </form>

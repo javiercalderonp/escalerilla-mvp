@@ -50,7 +50,6 @@ type WizardValues = {
   level: "principiante" | "intermedio_bajo" | "intermedio_alto" | "avanzado";
   dominantHand: "diestro" | "zurdo";
   backhand: "una_mano" | "dos_manos";
-  yearsPlaying: string;
   availMonday: boolean;
   availTuesday: boolean;
   availWednesday: boolean;
@@ -71,7 +70,6 @@ const initialValues: WizardValues = {
   level: "intermedio_bajo",
   dominantHand: "diestro",
   backhand: "dos_manos",
-  yearsPlaying: "5",
   availMonday: false,
   availTuesday: false,
   availWednesday: false,
@@ -177,10 +175,7 @@ export function OnboardingWizard() {
       return;
     }
 
-    const parsed = onboardingFullSchema.safeParse({
-      ...values,
-      yearsPlaying: Number(values.yearsPlaying),
-    });
+    const parsed = onboardingFullSchema.safeParse(values);
 
     if (!parsed.success) {
       applyZodErrors(parsed.error.issues);
@@ -192,10 +187,7 @@ export function OnboardingWizard() {
 
     startTransition(async () => {
       try {
-        const result = await submitOnboarding({
-          ...values,
-          yearsPlaying: Number(values.yearsPlaying),
-        });
+        const result = await submitOnboarding(values);
 
         if (result?.error === "rut_taken") {
           setServerError("Ese RUT ya está registrado para otro jugador.");
@@ -371,19 +363,6 @@ export function OnboardingWizard() {
               </div>
             </Field>
           </div>
-
-          <Field label="Años jugando" error={errors.yearsPlaying}>
-            <input
-              type="number"
-              min={0}
-              max={80}
-              className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:border-court"
-              value={values.yearsPlaying}
-              onChange={(event) =>
-                updateValue("yearsPlaying", event.target.value)
-              }
-            />
-          </Field>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
             <Button variant="outline" onClick={() => setStep(1)}>

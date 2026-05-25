@@ -140,7 +140,7 @@ export async function createChallengeAction(formData: FormData) {
 
   if (violations.length > 0 && !overrideNote?.trim()) {
     throw new Error(
-      `${violations.join(". ")}. Para proceder de todas formas, completá el campo "Justificación de override".`,
+      `${violations.join(". ")}. Para proceder de todas formas, completa el campo "Justificación de override".`,
     );
   }
 

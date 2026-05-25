@@ -168,7 +168,6 @@ export async function submitOnboarding(input: unknown) {
             level: data.level,
             dominantHand: data.dominantHand,
             backhand: data.backhand,
-            yearsPlaying: data.yearsPlaying,
             visibility: {
               ...DEFAULT_VISIBILITY,
               ...existingPlayer.visibility,
@@ -209,7 +208,6 @@ export async function submitOnboarding(input: unknown) {
             level: data.level,
             dominantHand: data.dominantHand,
             backhand: data.backhand,
-            yearsPlaying: data.yearsPlaying,
             joinedLadderOn: today,
             visibility: {
               ...DEFAULT_VISIBILITY,
@@ -259,7 +257,6 @@ export async function submitOnboarding(input: unknown) {
           level: data.level,
           dominantHand: data.dominantHand,
           backhand: data.backhand,
-          yearsPlaying: data.yearsPlaying,
           visibility: {
             ...DEFAULT_VISIBILITY,
             ...currentPlayer?.visibility,

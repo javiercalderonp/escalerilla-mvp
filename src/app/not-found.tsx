@@ -9,7 +9,7 @@ export default function NotFound() {
           Página no encontrada
         </h1>
         <p className="mt-4 text-sm leading-6 text-slate-600">
-          La página que buscás no existe o fue movida.
+          La página que buscas no existe o fue movida.
         </p>
         <div className="mt-8 flex justify-center gap-3">
           <Link

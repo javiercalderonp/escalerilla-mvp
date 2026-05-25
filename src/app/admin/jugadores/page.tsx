@@ -242,111 +242,188 @@ export default async function AdminPlayersPage() {
               Aún no hay jugadores cargados en la base.
             </div>
           ) : (
-            <div className="rounded-2xl border border-slate-200">
-              <Table className="table-fixed text-xs sm:text-sm">
-                <colgroup>
-                  <col className="w-[18%]" />
-                  <col className="w-[20%]" />
-                  <col className="w-[8%]" />
-                  <col className="w-[11%]" />
-                  <col className="w-[12%]" />
-                  <col className="w-[6%]" />
-                  <col className="w-[6%]" />
-                  <col className="w-[8%]" />
-                  <col className="w-[7%]" />
-                  <col className="w-[4%]" />
-                </colgroup>
-                <TableHeader className="bg-slate-50">
-                  <TableRow>
-                    <TableHead className="px-2">Jugador</TableHead>
-                    <TableHead className="px-1.5">Email</TableHead>
-                    <TableHead className="px-1.5">Cat.</TableHead>
-                    <TableHead className="px-1.5">Nivel</TableHead>
-                    <TableHead className="px-1.5">Teléfono</TableHead>
-                    <TableHead className="px-1.5 text-right">Edad</TableHead>
-                    <TableHead className="px-1.5 text-right">Pts.</TableHead>
-                    <TableHead className="px-1.5">Estado</TableHead>
-                    <TableHead className="px-1.5">Cuenta</TableHead>
-                    <TableHead className="px-2 text-right">
-                      <span className="sr-only">Opciones</span>
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((row) => {
-                    const player = row.players;
-                    const age = calculateAge(player.birthDate);
+            <>
+              {/* Mobile cards */}
+              <div className="flex flex-col gap-3 md:hidden">
+                {rows.map((row) => {
+                  const player = row.players;
+                  const age = calculateAge(player.birthDate);
 
-                    return (
-                      <TableRow key={player.id}>
-                        <TableCell className="px-2 font-medium text-slate-950">
-                          <div className="truncate" title={player.fullName}>
+                  return (
+                    <div
+                      key={player.id}
+                      className="rounded-2xl border border-slate-200 bg-white p-4"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-slate-950">
                             {player.fullName}
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-1.5 text-slate-600">
-                          <div
-                            className="truncate"
-                            title={player.email ?? "Sin email"}
-                          >
+                          </p>
+                          <p className="mt-0.5 truncate text-sm text-slate-500">
                             {player.email ?? "Sin email"}
+                          </p>
+                        </div>
+                        <PlayerRowActions
+                          player={{
+                            id: player.id,
+                            fullName: player.fullName,
+                            email: player.email,
+                            gender: player.gender,
+                            initialPoints: player.initialPoints,
+                            level: player.level,
+                            status: player.status,
+                            notes: player.notes,
+                            userId: row.users?.id ?? null,
+                            userRole: row.users?.role ?? null,
+                          }}
+                        />
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {statusBadge(player.status)}
+                        <Badge variant="outline" className="text-slate-600">
+                          {player.gender === "M" ? "Hombres" : "Mujeres"}
+                        </Badge>
+                        {levelBadge(player.level)}
+                        {row.users?.role === "admin" ? (
+                          <Badge className="bg-violet-100 text-violet-800">Admin</Badge>
+                        ) : row.users !== null ? (
+                          <Badge className="bg-blue-100 text-blue-800">Cuenta activa</Badge>
+                        ) : null}
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm text-slate-600">
+                        {player.phone ? (
+                          <div>
+                            <span className="text-xs font-medium text-slate-400">Tel.</span>{" "}
+                            {player.phone}
                           </div>
-                        </TableCell>
-                        <TableCell className="px-1.5">
-                          {player.gender === "M" ? "H" : "M"}
-                        </TableCell>
-                        <TableCell className="px-1.5">
-                          <div className="truncate">
-                            {levelBadge(player.level)}
+                        ) : null}
+                        {age !== null ? (
+                          <div>
+                            <span className="text-xs font-medium text-slate-400">Edad</span>{" "}
+                            {age} años
                           </div>
-                        </TableCell>
-                        <TableCell className="px-1.5 text-slate-600">
-                          <div className="truncate" title={player.phone ?? "—"}>
-                            {player.phone ?? "—"}
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-1.5 text-right tabular-nums text-slate-700">
-                          {age === null ? "—" : age}
-                        </TableCell>
-                        <TableCell className="px-1.5 text-right tabular-nums">
-                          {getCurrentPoints(row)}
-                        </TableCell>
-                        <TableCell className="px-1.5">
-                          <div className="truncate">
-                            {statusBadge(player.status)}
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-1.5">
-                          {row.users?.role === "admin" ? (
-                            <Badge className="bg-violet-100 text-violet-800">Admin</Badge>
-                          ) : row.users !== null ? (
-                            <Badge className="bg-blue-100 text-blue-800">Activa</Badge>
-                          ) : (
-                            <span className="text-sm text-slate-400">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="px-2">
-                          <PlayerRowActions
-                            player={{
-                              id: player.id,
-                              fullName: player.fullName,
-                              email: player.email,
-                              gender: player.gender,
-                              initialPoints: player.initialPoints,
-                              level: player.level,
-                              status: player.status,
-                              notes: player.notes,
-                              userId: row.users?.id ?? null,
-                              userRole: row.users?.role ?? null,
-                            }}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                        ) : null}
+                        <div>
+                          <span className="text-xs font-medium text-slate-400">Pts.</span>{" "}
+                          <span className="tabular-nums font-medium text-slate-950">
+                            {getCurrentPoints(row)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden rounded-2xl border border-slate-200 md:block">
+                <Table className="table-fixed text-xs sm:text-sm">
+                  <colgroup>
+                    <col className="w-[18%]" />
+                    <col className="w-[20%]" />
+                    <col className="w-[8%]" />
+                    <col className="w-[11%]" />
+                    <col className="w-[12%]" />
+                    <col className="w-[6%]" />
+                    <col className="w-[6%]" />
+                    <col className="w-[8%]" />
+                    <col className="w-[7%]" />
+                    <col className="w-[4%]" />
+                  </colgroup>
+                  <TableHeader className="bg-slate-50">
+                    <TableRow>
+                      <TableHead className="px-2">Jugador</TableHead>
+                      <TableHead className="px-1.5">Email</TableHead>
+                      <TableHead className="px-1.5">Cat.</TableHead>
+                      <TableHead className="px-1.5">Nivel</TableHead>
+                      <TableHead className="px-1.5">Teléfono</TableHead>
+                      <TableHead className="px-1.5 text-right">Edad</TableHead>
+                      <TableHead className="px-1.5 text-right">Pts.</TableHead>
+                      <TableHead className="px-1.5">Estado</TableHead>
+                      <TableHead className="px-1.5">Cuenta</TableHead>
+                      <TableHead className="px-2 text-right">
+                        <span className="sr-only">Opciones</span>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((row) => {
+                      const player = row.players;
+                      const age = calculateAge(player.birthDate);
+
+                      return (
+                        <TableRow key={player.id}>
+                          <TableCell className="px-2 font-medium text-slate-950">
+                            <div className="truncate" title={player.fullName}>
+                              {player.fullName}
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-1.5 text-slate-600">
+                            <div
+                              className="truncate"
+                              title={player.email ?? "Sin email"}
+                            >
+                              {player.email ?? "Sin email"}
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-1.5">
+                            {player.gender === "M" ? "H" : "M"}
+                          </TableCell>
+                          <TableCell className="px-1.5">
+                            <div className="truncate">
+                              {levelBadge(player.level)}
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-1.5 text-slate-600">
+                            <div className="truncate" title={player.phone ?? "—"}>
+                              {player.phone ?? "—"}
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-1.5 text-right tabular-nums text-slate-700">
+                            {age === null ? "—" : age}
+                          </TableCell>
+                          <TableCell className="px-1.5 text-right tabular-nums">
+                            {getCurrentPoints(row)}
+                          </TableCell>
+                          <TableCell className="px-1.5">
+                            <div className="truncate">
+                              {statusBadge(player.status)}
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-1.5">
+                            {row.users?.role === "admin" ? (
+                              <Badge className="bg-violet-100 text-violet-800">Admin</Badge>
+                            ) : row.users !== null ? (
+                              <Badge className="bg-blue-100 text-blue-800">Activa</Badge>
+                            ) : (
+                              <span className="text-sm text-slate-400">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="px-2">
+                            <PlayerRowActions
+                              player={{
+                                id: player.id,
+                                fullName: player.fullName,
+                                email: player.email,
+                                gender: player.gender,
+                                initialPoints: player.initialPoints,
+                                level: player.level,
+                                status: player.status,
+                                notes: player.notes,
+                                userId: row.users?.id ?? null,
+                                userRole: row.users?.role ?? null,
+                              }}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </div>
       </section>

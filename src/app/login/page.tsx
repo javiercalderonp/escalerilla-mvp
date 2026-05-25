@@ -16,7 +16,7 @@ export default async function LoginPage({
       <div className="w-full rounded-3xl bg-white p-8 shadow-sm ring-1 ring-black/5">
         <p className="text-sm font-medium text-emerald-700">Club La Dehesa</p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
-          Ingresá con tu cuenta
+          Inicia sesión con tu cuenta
         </h1>
         <p className="mt-3 text-sm leading-6 text-slate-600">
           Accede al ranking, declara tu disponibilidad semanal, revisa la
@@ -27,7 +27,7 @@ export default async function LoginPage({
           <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
             {error === "CredentialsSignin"
               ? "Email o contraseña incorrectos."
-              : "Error al ingresar. Intentá de nuevo."}
+              : "Error al ingresar. Intenta de nuevo."}
           </p>
         )}
 
@@ -93,12 +93,12 @@ export default async function LoginPage({
         </form>
 
         <p className="mt-4 text-center text-sm text-slate-500">
-          ¿No tenés cuenta?{" "}
+          ¿No tienes cuenta?{" "}
           <Link
             href="/register"
             className="font-medium text-emerald-700 hover:underline"
           >
-            Creá una acá
+            Crea una aquí
           </Link>
         </p>
 
@@ -107,7 +107,7 @@ export default async function LoginPage({
             <div className="w-full border-t border-slate-200" />
           </div>
           <div className="relative flex justify-center text-xs text-slate-400">
-            <span className="bg-white px-3">o también podés</span>
+            <span className="bg-white px-3">o también puedes</span>
           </div>
         </div>
 

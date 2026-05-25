@@ -18,7 +18,6 @@ describe("isProfileComplete", () => {
         level: "intermedio_bajo",
         dominantHand: "diestro",
         backhand: "dos_manos",
-        yearsPlaying: 8,
         joinedLadderOn: "2026-04-29",
       })
     ).toBe(false)
@@ -35,7 +34,6 @@ describe("isProfileComplete", () => {
         level: "intermedio_bajo",
         dominantHand: "diestro",
         backhand: "dos_manos",
-        yearsPlaying: 8,
         joinedLadderOn: "2026-04-29",
       })
     ).toBe(true)

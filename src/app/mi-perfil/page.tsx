@@ -276,7 +276,6 @@ export default async function MiPerfilPage() {
       level: players.level,
       dominantHand: players.dominantHand,
       backhand: players.backhand,
-      yearsPlaying: players.yearsPlaying,
       birthDate: players.birthDate,
       phone: players.phone,
     })
@@ -1058,15 +1057,6 @@ export default async function MiPerfilPage() {
                     </dd>
                   </div>
                 )}
-                {player.yearsPlaying !== null &&
-                  player.yearsPlaying !== undefined && (
-                    <div className="flex items-center justify-between py-2.5">
-                      <dt className="text-sm text-[#776f66]">Años jugando</dt>
-                      <dd className="text-sm font-medium text-[#0d1b2a]">
-                        {player.yearsPlaying}
-                      </dd>
-                    </div>
-                  )}
                 {player.level && (
                   <div className="flex items-center justify-between py-2.5">
                     <dt className="text-sm text-[#776f66]">Nivel</dt>
@@ -1089,7 +1079,6 @@ export default async function MiPerfilPage() {
               {!age &&
                 !player.dominantHand &&
                 !player.backhand &&
-                !player.yearsPlaying &&
                 !player.level &&
                 !player.phone && (
                   <p className="mt-4 text-sm text-[#776f66]">

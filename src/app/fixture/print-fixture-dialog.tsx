@@ -53,7 +53,7 @@ export function PrintFixtureDialog({ weekId }: PrintFixtureDialogProps) {
         <DialogHeader>
           <DialogTitle>Imprimir semana</DialogTitle>
           <DialogDescription>
-            Elegí qué documento querés abrir para imprimir o guardar como PDF.
+            Elige qué documento quieres abrir para imprimir o guardar como PDF.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-2">

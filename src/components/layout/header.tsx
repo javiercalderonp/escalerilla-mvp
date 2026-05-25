@@ -113,7 +113,7 @@ export async function Header() {
     : null;
 
   return (
-    <header className="sticky top-0 z-50 bg-[#0d1b2a]">
+    <header className="sticky top-0 z-50 bg-[#0d1b2a] max-md:pt-[env(safe-area-inset-top)] max-md:before:fixed max-md:before:left-0 max-md:before:top-0 max-md:before:z-[60] max-md:before:h-[env(safe-area-inset-top)] max-md:before:w-full max-md:before:bg-[#0d1b2a] max-md:before:content-['']">
       {/* Mobile layout: hamburger left | logo center | spacer right */}
       <div className="flex items-center px-4 py-3 md:hidden">
         <MobileNav
@@ -198,9 +198,10 @@ export async function Header() {
             <div className="group relative flex items-center gap-3">
               <Link
                 href="/mi-perfil"
-                className="max-w-48 truncate text-white/60 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay/70 focus-visible:ring-offset-4 focus-visible:ring-offset-[#0d1b2a]"
+                className="flex max-w-52 items-center gap-1.5 border-l border-white/15 pl-5 font-semibold text-clay transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay/70 focus-visible:ring-offset-4 focus-visible:ring-offset-[#0d1b2a]"
               >
-                {displayName}
+                <UserIcon className="size-4 shrink-0" aria-hidden="true" />
+                <span className="truncate">{displayName}</span>
               </Link>
               {isAdmin && (
                 <span className="rounded-full bg-clay/20 px-3 py-1 text-xs font-medium text-clay">

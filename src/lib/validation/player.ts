@@ -41,7 +41,6 @@ export const onboardingStep2Schema = z.object({
   ]),
   dominantHand: z.enum(["diestro", "zurdo"]),
   backhand: z.enum(["una_mano", "dos_manos"]),
-  yearsPlaying: z.coerce.number().int().min(0).max(80),
 });
 
 export const onboardingStep3Schema = z.object({

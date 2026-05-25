@@ -334,8 +334,8 @@ export function AdminMatchesCreateMenu({
             </DialogTitle>
             <DialogDescription>
               {mode === "match"
-                ? "Seleccioná dos jugadores y marca si corresponde a desafío."
-                : "Elegí qué querés crear desde partidos."}
+                ? "Selecciona dos jugadores y marca si corresponde a desafío."
+                : "Elige qué quieres crear desde partidos."}
             </DialogDescription>
           </DialogHeader>
 

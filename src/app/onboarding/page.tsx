@@ -44,8 +44,8 @@ export default async function OnboardingPage() {
               Tu solicitud quedó pendiente de aprobación
             </h1>
             <p className="mt-3 text-sm leading-6 text-slate-600">
-              Ya guardamos tu perfil. Como no encontramos una ficha activa en la
-              escalerilla actual asociada a tu correo o teléfono, un
+              Ya guardamos tu perfil. Como no encontramos un registro activo en la
+              escalerilla actual asociado a tu correo o teléfono, un
               administrador debe revisar y aceptar tu incorporación antes de que
               aparezcas en el ranking.
             </p>

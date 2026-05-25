@@ -252,11 +252,6 @@ export function PlayerCardModal({
                   }
                 />
                 <InfoRow
-                  icon={<Clock3Icon className="size-4" />}
-                  label="Años jugando"
-                  value={p.yearsPlaying != null ? String(p.yearsPlaying) : "—"}
-                />
-                <InfoRow
                   icon={<TrophyIcon className="size-4" />}
                   label="En la escalerilla"
                   value={

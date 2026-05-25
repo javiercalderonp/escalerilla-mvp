@@ -99,7 +99,7 @@ export default async function AdminCongelacionesPage() {
           Congelaciones
         </h1>
         <p className="mt-3 text-sm text-slate-600">
-          Registrá períodos de exención de penalidad por inactividad (RN-09: máx
+          Registra períodos de exención de penalidad por inactividad (RN-09: máx
           3 por semestre).
           {activeSeason && (
             <span className="ml-2 text-slate-400">

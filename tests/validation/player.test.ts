@@ -50,21 +50,9 @@ describe("onboarding schemas", () => {
       level: "intermedio_alto",
       dominantHand: "diestro",
       backhand: "dos_manos",
-      yearsPlaying: 12,
     });
 
-    expect(parsed.yearsPlaying).toBe(12);
-  });
-
-  it("rechaza yearsPlaying fuera de rango", () => {
-    expect(() =>
-      onboardingStep2Schema.parse({
-        level: "avanzado",
-        dominantHand: "zurdo",
-        backhand: "una_mano",
-        yearsPlaying: 81,
-      }),
-    ).toThrow();
+    expect(parsed.backhand).toBe("dos_manos");
   });
 
   it("acepta payload completo", () => {
@@ -78,7 +66,6 @@ describe("onboarding schemas", () => {
       level: "intermedio_bajo",
       dominantHand: "diestro",
       backhand: "dos_manos",
-      yearsPlaying: 5,
       availMonday: true,
       availTuesday: false,
       availWednesday: false,

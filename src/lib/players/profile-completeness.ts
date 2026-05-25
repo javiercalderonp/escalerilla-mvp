@@ -7,7 +7,6 @@ const REQUIRED_FIELDS = [
   "level",
   "dominantHand",
   "backhand",
-  "yearsPlaying",
   "joinedLadderOn",
 ] as const
 

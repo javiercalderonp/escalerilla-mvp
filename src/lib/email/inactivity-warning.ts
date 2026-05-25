@@ -48,8 +48,8 @@ export function buildInactivityWarningEmail(target: InactivityWarningTarget) {
     </td>
   </tr>
 </table>
-<p class="em-email-intro" style="margin:0 0 16px;font-size:15px;color:#0d1b2a;line-height:1.6;text-align:center;">Si no jugás pronto, perderás <strong>40 puntos</strong> por inactividad.</p>
-<p class="em-email-intro" style="margin:0 0 28px;font-size:15px;color:#776f66;line-height:1.6;text-align:center;">¡Agendá tu partido esta semana!</p>
+<p class="em-email-intro" style="margin:0 0 16px;font-size:15px;color:#0d1b2a;line-height:1.6;text-align:center;">Si no juegas pronto, perderás <strong>40 puntos</strong> por inactividad.</p>
+<p class="em-email-intro" style="margin:0 0 28px;font-size:15px;color:#776f66;line-height:1.6;text-align:center;">¡Agenda tu partido esta semana!</p>
 <div style="text-align:center;">
   <a href="${escapeHtml(fixtureUrl)}" class="em-email-action" style="display:inline-block;padding:15px 40px;background-color:#e8720c;color:#ffffff;text-decoration:none;border-radius:50px;font-weight:700;font-size:15px;line-height:1;">Ver partidos</a>
 </div>`;

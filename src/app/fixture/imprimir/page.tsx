@@ -497,7 +497,7 @@ export default async function FixturePrintPage({
           <div>
             <p className="text-sm font-semibold">Documento de impresión</p>
             <p className="text-xs text-muted-foreground">
-              Si el diálogo no se abre automáticamente, usá el botón.
+              Si el diálogo no se abre automáticamente, usa el botón.
             </p>
           </div>
           <PrintNowButton />

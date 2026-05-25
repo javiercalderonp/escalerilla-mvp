@@ -97,7 +97,7 @@ export function MobileNav({
                 <Link
                   href={profileItem.href}
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 border-b border-white/10 px-6 py-4 text-sm font-medium text-white transition hover:bg-white/5"
+                  className="flex items-center gap-3 border-b border-clay/20 bg-clay/10 px-6 py-4 text-sm font-semibold text-clay transition hover:bg-clay/15 hover:text-white"
                 >
                   <UserIcon className="size-4 shrink-0 text-clay" />
                   {profileItem.label}

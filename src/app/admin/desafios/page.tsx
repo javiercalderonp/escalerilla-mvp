@@ -117,9 +117,9 @@ export default async function AdminDesafiosPage() {
           Desafíos
         </h1>
         <p className="mt-3 text-sm text-slate-600">
-          Registrá partidos de tipo desafío. Se validan RN-06 (diferencia de
+          Registra partidos de tipo desafío. Se validan RN-06 (diferencia de
           posición ≤ 5) y RN-03 (sin enfrentamiento en los últimos 30 días).
-          Podés hacer un override si completás la justificación.
+          Puedes hacer un override si completas la justificación.
         </p>
       </section>
 
