@@ -19,8 +19,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { AvailabilityToggle } from "./availability-toggle";
-
-type NavItem = { href: string; label: string };
+import type { NavItem } from "./nav-links";
 
 const navIcons: Record<string, LucideIcon> = {
   "/": HomeIcon,

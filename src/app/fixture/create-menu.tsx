@@ -208,10 +208,12 @@ export function AdminMatchesCreateMenu({
   playerOptions,
   programmingHref,
   nextWeekStartsOn,
+  initialMode,
 }: {
   playerOptions: PlayerOption[];
   programmingHref: string | null;
   nextWeekStartsOn: string;
+  initialMode?: Exclude<CreateMode, null> | null;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -240,6 +242,17 @@ export function AdminMatchesCreateMenu({
     setPlayer1Id((current) => current || playerOptions[0]?.id || "");
     setPlayer2Id((current) => current || playerOptions[1]?.id || "");
   }, [playerOptions]);
+
+  useEffect(() => {
+    if (!initialMode) return;
+    if (initialMode === "programming" && programmingHref) {
+      router.push(programmingHref);
+      return;
+    }
+
+    setMode(initialMode);
+    setOpen(true);
+  }, [initialMode, programmingHref, router]);
 
   function handleOpenChange(nextOpen: boolean) {
     setOpen(nextOpen);

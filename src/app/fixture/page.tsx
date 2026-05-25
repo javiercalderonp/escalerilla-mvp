@@ -25,6 +25,7 @@ import iconWoman from "../../../icon-woman.png";
 type FixturePageProps = {
   searchParams?: Promise<{
     categoria?: string;
+    crear?: string;
     week?: string;
   }>;
 };
@@ -210,6 +211,12 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
   const session = await auth();
   const query = searchParams ? await searchParams : undefined;
   const requestedWeekId = query?.week;
+  const initialCreateMode =
+    query?.crear === "partido"
+      ? "match"
+      : query?.crear === "programacion"
+        ? "programming"
+        : null;
   const selectedCategory = query?.categoria === "mujeres" ? "F" : "M";
   const selectedCategoryLabel =
     selectedCategory === "M" ? "Hombres" : "Mujeres";
@@ -507,6 +514,7 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
               playerOptions={playerOptions}
               programmingHref={programmingHref}
               nextWeekStartsOn={defaultWeekStartsOn}
+              initialMode={initialCreateMode}
             />
           </div>
         ) : null}

@@ -56,6 +56,26 @@ type MatchRecord = {
   category: "M" | "F";
 };
 
+function validateScoreInput(input: PlayerResultInput) {
+  if (input.format === "wo") {
+    if (!input.woWinnerId) {
+      return "Debes indicar el ganador del W.O.";
+    }
+
+    return null;
+  }
+
+  if (!input.sets?.length) return "Faltan los sets del partido";
+
+  const validation = isValidMatchScore(
+    input.sets,
+    input.format === "set_largo" ? "set_largo" : "mr3",
+    input.format === "empate",
+  );
+
+  return validation.valid ? null : validation.reason;
+}
+
 export async function playerReportResultAction(
   input: PlayerResultInput,
 ): Promise<{ success: true } | { error: string }> {
@@ -77,6 +97,7 @@ export async function playerReportResultAction(
     const playerId = actor.playerId;
     const resultPlayedOn = input.playedOn || getTodayInSantiago();
     let match: MatchRecord;
+    let unscheduledCategory: "M" | "F" | null = null;
 
     if (input.kind === "scheduled") {
       const [existing] = await db
@@ -103,6 +124,10 @@ export async function playerReportResultAction(
 
       match = existing as MatchRecord;
     } else {
+      if (input.opponentId === playerId) {
+        return { error: "Selecciona un rival distinto a ti" };
+      }
+
       const [myPlayer] = await db
         .select({ gender: players.gender })
         .from(players)
@@ -110,13 +135,34 @@ export async function playerReportResultAction(
         .limit(1);
 
       if (!myPlayer) return { error: "Jugador no encontrado" };
+      unscheduledCategory = myPlayer.gender;
 
+      match = {
+        id: "",
+        player1Id: playerId,
+        player2Id: input.opponentId,
+        category: myPlayer.gender,
+      };
+    }
+
+    const scoreError = validateScoreInput(input);
+    if (scoreError) return { error: scoreError };
+
+    if (
+      input.format === "wo" &&
+      input.woWinnerId !== match.player1Id &&
+      input.woWinnerId !== match.player2Id
+    ) {
+      return { error: "El ganador del W.O. debe ser uno de los jugadores" };
+    }
+
+    if (input.kind === "unscheduled") {
       const [created] = await db
         .insert(matches)
         .values({
           player1Id: playerId,
           player2Id: input.opponentId,
-          category: myPlayer.gender,
+          category: unscheduledCategory ?? match.category,
           type: input.isChallenge ? "desafio" : "sorteo",
           status: "pendiente",
         })
@@ -131,27 +177,18 @@ export async function playerReportResultAction(
     }
 
     if (input.format === "wo") {
-      if (!input.woWinnerId) {
-        return { error: "Debes indicar el ganador del W.O." };
-      }
-      if (
-        input.woWinnerId !== match.player1Id &&
-        input.woWinnerId !== match.player2Id
-      ) {
-        return { error: "El ganador del W.O. debe ser uno de los jugadores" };
-      }
+      const woWinnerId = input.woWinnerId;
+      if (!woWinnerId) return { error: "Debes indicar el ganador del W.O." };
 
       const loserId =
-        input.woWinnerId === match.player1Id
-          ? match.player2Id
-          : match.player1Id;
+        woWinnerId === match.player1Id ? match.player2Id : match.player1Id;
 
       await db
         .update(matches)
         .set({
           status: "wo",
           format: null,
-          winnerId: input.woWinnerId,
+          winnerId: woWinnerId,
           woLoserId: loserId,
           playedOn: resultPlayedOn,
           reportedAt: new Date(),
@@ -163,7 +200,7 @@ export async function playerReportResultAction(
 
       await db.insert(rankingEvents).values([
         {
-          playerId: input.woWinnerId,
+          playerId: woWinnerId,
           delta: 60,
           reason: "wo_win" as const,
           refType: "match",
@@ -187,13 +224,11 @@ export async function playerReportResultAction(
         action: "match.player_report_walkover",
         entityType: "match",
         entityId: match.id,
-        payload: { winnerId: input.woWinnerId, loserId },
+        payload: { winnerId: woWinnerId, loserId },
       });
     } else if (input.format === "empate") {
-      if (!input.sets?.length) return { error: "Faltan los sets del partido" };
-
-      const validation = isValidMatchScore(input.sets, "mr3", true);
-      if (!validation.valid) return { error: validation.reason };
+      const sets = input.sets;
+      if (!sets?.length) return { error: "Faltan los sets del partido" };
 
       await db
         .update(matches)
@@ -211,7 +246,7 @@ export async function playerReportResultAction(
         .where(eq(matches.id, match.id));
 
       await db.insert(matchSets).values(
-        input.sets.map((s) => ({
+        sets.map((s) => ({
           matchId: match.id,
           setNumber: s.setNumber,
           gamesP1: s.gamesP1,
@@ -247,14 +282,14 @@ export async function playerReportResultAction(
         action: "match.player_report_draw",
         entityType: "match",
         entityId: match.id,
-        payload: { sets: input.sets },
+        payload: { sets },
       });
     } else {
-      if (!input.sets?.length) return { error: "Faltan los sets del partido" };
-
       const fmt = input.format;
-      const validation = isValidMatchScore(input.sets, fmt, false);
-      if (!validation.valid) return { error: validation.reason };
+      const sets = input.sets;
+      if (!sets?.length) return { error: "Faltan los sets del partido" };
+
+      const validation = isValidMatchScore(sets, fmt, false);
       if (validation.winnerIndex == null) {
         return { error: "No se determinó un ganador claro" };
       }
@@ -263,7 +298,7 @@ export async function playerReportResultAction(
         validation.winnerIndex === 1 ? match.player1Id : match.player2Id;
       const loserId =
         validation.winnerIndex === 1 ? match.player2Id : match.player1Id;
-      const winnerWent3Sets = fmt === "mr3" && input.sets.length >= 3;
+      const winnerWent3Sets = fmt === "mr3" && sets.length >= 3;
       const scoring = calculateWinLossPoints(fmt, winnerWent3Sets);
       const loserReason = getLoserReason(fmt, winnerWent3Sets);
 
@@ -283,7 +318,7 @@ export async function playerReportResultAction(
         .where(eq(matches.id, match.id));
 
       await db.insert(matchSets).values(
-        input.sets.map((s) => ({
+        sets.map((s) => ({
           matchId: match.id,
           setNumber: s.setNumber,
           gamesP1: s.gamesP1,
@@ -319,7 +354,7 @@ export async function playerReportResultAction(
         action: "match.player_report_result",
         entityType: "match",
         entityId: match.id,
-        payload: { format: fmt, winnerId, loserId, sets: input.sets },
+        payload: { format: fmt, winnerId, loserId, sets },
       });
     }
 

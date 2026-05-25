@@ -15,7 +15,7 @@ import { players } from "@/lib/db/schema";
 import { formatPersonName } from "@/lib/format/name";
 import { AvailabilityToggle } from "./availability-toggle";
 import { MobileNav } from "./mobile-nav";
-import { NavLinks } from "./nav-links";
+import { NavLinks, type NavItem } from "./nav-links";
 
 async function signOutAction() {
   "use server";
@@ -90,9 +90,26 @@ export async function Header() {
     }
   }
 
-  const navItems = [
+  const navItems: NavItem[] = [
     { href: "/ranking/hombres", label: "Ranking" },
-    { href: "/fixture", label: "Partidos" },
+    {
+      href: "/fixture",
+      label: "Partidos",
+      children: isAdmin
+        ? [
+            {
+              href: "/fixture?crear=partido",
+              label: "Agregar partido",
+              icon: "swords",
+            },
+            {
+              href: "/fixture?crear=programacion",
+              label: "Crear programación",
+              icon: "calendar-plus",
+            },
+          ]
+        : undefined,
+    },
     ...(isPlayer
       ? [{ href: "/ingresar-resultado", label: "Ingresar resultado" }]
       : []),

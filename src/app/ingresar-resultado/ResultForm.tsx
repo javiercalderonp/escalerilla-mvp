@@ -21,6 +21,7 @@ import {
 } from "react";
 
 import { getTodayInSantiago } from "@/lib/date";
+import { isValidMatchScore } from "@/lib/rules/scoring";
 import { normalizeSearchText } from "@/lib/utils";
 
 import type { ParsedSet } from "./actions";
@@ -634,6 +635,43 @@ export function ResultForm({
     setError(null);
   }
 
+  function buildSetsFromForm(): ParsedSet[] | undefined {
+    if (!format || format === "wo") return undefined;
+
+    const sets: ParsedSet[] = [
+      buildSetFromDisplayOrder({
+        setNumber: 1,
+        playerGames: parseInt(s1p1, 10),
+        opponentGames: parseInt(s1p2, 10),
+        shouldSwap: shouldSwapScores,
+      }),
+    ];
+
+    if (format !== "set_largo") {
+      sets.push(
+        buildSetFromDisplayOrder({
+          setNumber: 2,
+          playerGames: parseInt(s2p1, 10),
+          opponentGames: parseInt(s2p2, 10),
+          shouldSwap: shouldSwapScores,
+        }),
+      );
+
+      if (format !== "empate" && hasSet3) {
+        sets.push(
+          buildSetFromDisplayOrder({
+            setNumber: 3,
+            playerGames: parseInt(s3p1, 10),
+            opponentGames: parseInt(s3p2, 10),
+            shouldSwap: shouldSwapScores,
+          }),
+        );
+      }
+    }
+
+    return sets;
+  }
+
   function validateAndGoToReview() {
     if (matchSelection === null) {
       setError("Selecciona un partido");
@@ -664,6 +702,26 @@ export function ResultForm({
         setError("Para marcar empate, cada jugador debe ganar un set");
         return;
       }
+      if (format === "mr3" && hasSet3 && (s3p1 === "" || s3p2 === "")) {
+        setError("Completa el puntaje del 3er set");
+        return;
+      }
+
+      const sets = buildSetsFromForm();
+      if (!sets) {
+        setError("Faltan los sets del partido");
+        return;
+      }
+
+      const validation = isValidMatchScore(
+        sets,
+        format === "set_largo" ? "set_largo" : "mr3",
+        format === "empate",
+      );
+      if (!validation.valid) {
+        setError(validation.reason);
+        return;
+      }
     }
     setError(null);
     setUiStep(2);
@@ -683,48 +741,7 @@ export function ResultForm({
       return;
     }
 
-    let sets: ParsedSet[] | undefined;
-
-    if (format && format !== "wo") {
-      const g1p1 = parseInt(s1p1, 10);
-      const g1p2 = parseInt(s1p2, 10);
-      sets = [
-        buildSetFromDisplayOrder({
-          setNumber: 1,
-          playerGames: g1p1,
-          opponentGames: g1p2,
-          shouldSwap: shouldSwapScores,
-        }),
-      ];
-
-      if (format !== "set_largo") {
-        const g2p1 = parseInt(s2p1, 10);
-        const g2p2 = parseInt(s2p2, 10);
-        sets.push(
-          buildSetFromDisplayOrder({
-            setNumber: 2,
-            playerGames: g2p1,
-            opponentGames: g2p2,
-            shouldSwap: shouldSwapScores,
-          }),
-        );
-
-        if (format !== "empate" && hasSet3) {
-          const g3p1 = parseInt(s3p1, 10);
-          const g3p2 = parseInt(s3p2, 10);
-          if (!Number.isNaN(g3p1) && !Number.isNaN(g3p2)) {
-            sets.push(
-              buildSetFromDisplayOrder({
-                setNumber: 3,
-                playerGames: g3p1,
-                opponentGames: g3p2,
-                shouldSwap: shouldSwapScores,
-              }),
-            );
-          }
-        }
-      }
-    }
+    const sets = buildSetsFromForm();
 
     const base = {
       format,

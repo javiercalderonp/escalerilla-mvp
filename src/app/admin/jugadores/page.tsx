@@ -1,4 +1,6 @@
-import { asc, eq, sql } from "drizzle-orm";
+import { asc, eq, ilike, or, sql } from "drizzle-orm";
+import { Search } from "lucide-react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { CreatePlayerDialog } from "@/app/admin/jugadores/create-player-dialog";
@@ -16,10 +18,19 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { players, rankingEvents, users } from "@/lib/db/schema";
 
-async function getPlayers() {
+async function getPlayers(searchTerm?: string) {
   if (!db) {
     return [];
   }
+
+  const normalizedSearchTerm = searchTerm?.trim();
+  const searchCondition = normalizedSearchTerm
+    ? or(
+        ilike(players.fullName, `%${normalizedSearchTerm}%`),
+        ilike(players.email, `%${normalizedSearchTerm}%`),
+        ilike(players.phone, `%${normalizedSearchTerm}%`),
+      )
+    : undefined;
 
   const pointTotals = db.$with("point_totals").as(
     db
@@ -39,6 +50,7 @@ async function getPlayers() {
     .from(players)
     .leftJoin(pointTotals, eq(pointTotals.playerId, players.id))
     .leftJoin(users, eq(users.playerId, players.id))
+    .where(searchCondition)
     .orderBy(asc(players.gender), asc(players.fullName));
 }
 
@@ -93,103 +105,15 @@ function calculateAge(birthDate: PlayerRow["players"]["birthDate"]) {
   return age;
 }
 
-const inputClass =
-  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-emerald-500";
+type AdminPlayersPageProps = {
+  searchParams?: Promise<{
+    q?: string;
+  }>;
+};
 
-function PlayerFields({ player }: { player?: PlayerRow }) {
-  const playerData = player?.players;
-
-  return (
-    <div className="grid gap-4 sm:grid-cols-2">
-      <label className="space-y-2 text-sm text-slate-700 sm:col-span-2">
-        <span className="font-medium">Nombre completo</span>
-        <input
-          name="fullName"
-          defaultValue={playerData?.fullName ?? ""}
-          required
-          className={inputClass}
-        />
-      </label>
-
-      <label className="space-y-2 text-sm text-slate-700">
-        <span className="font-medium">Email</span>
-        <input
-          name="email"
-          type="email"
-          defaultValue={playerData?.email ?? ""}
-          className={inputClass}
-        />
-      </label>
-
-      <label className="space-y-2 text-sm text-slate-700">
-        <span className="font-medium">Categoría</span>
-        <select
-          name="gender"
-          defaultValue={playerData?.gender ?? "M"}
-          className={inputClass}
-        >
-          <option value="M">Hombres</option>
-          <option value="F">Mujeres</option>
-        </select>
-      </label>
-
-      <label className="space-y-2 text-sm text-slate-700">
-        <span className="font-medium">Puntos iniciales</span>
-        <input
-          name="initialPoints"
-          type="number"
-          min={0}
-          defaultValue={playerData?.initialPoints ?? 0}
-          className={inputClass}
-        />
-      </label>
-
-      <label className="space-y-2 text-sm text-slate-700">
-        <span className="font-medium">Nivel</span>
-        <select
-          name="level"
-          defaultValue={playerData?.level ?? ""}
-          className={inputClass}
-        >
-          <option value="">Sin definir</option>
-          <option value="principiante">Principiante</option>
-          <option value="intermedio_bajo">Intermedio bajo</option>
-          <option value="intermedio_alto">Intermedio alto</option>
-          <option value="avanzado">Avanzado</option>
-        </select>
-      </label>
-
-      <label className="space-y-2 text-sm text-slate-700">
-        <span className="font-medium">Estado</span>
-        <select
-          name="status"
-          defaultValue={playerData?.status ?? "activo"}
-          className={inputClass}
-        >
-          {playerData?.status === "pendiente" ? (
-            <option value="pendiente">Pendiente</option>
-          ) : null}
-          <option value="activo">Activo</option>
-          <option value="congelado">Congelado</option>
-          <option value="retirado">Retirado</option>
-        </select>
-      </label>
-
-      <label className="space-y-2 text-sm text-slate-700 sm:col-span-2">
-        <span className="font-medium">Notas</span>
-        <textarea
-          name="notes"
-          rows={3}
-          defaultValue={playerData?.notes ?? ""}
-          className={inputClass}
-        />
-      </label>
-    </div>
-  );
-}
-
-
-export default async function AdminPlayersPage() {
+export default async function AdminPlayersPage({
+  searchParams,
+}: AdminPlayersPageProps) {
   const session = await auth();
 
   if (!session?.user) {
@@ -200,7 +124,9 @@ export default async function AdminPlayersPage() {
     redirect("/");
   }
 
-  const rows = await getPlayers();
+  const query = searchParams ? await searchParams : undefined;
+  const searchTerm = query?.q?.trim() ?? "";
+  const rows = await getPlayers(searchTerm);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6">
@@ -218,7 +144,8 @@ export default async function AdminPlayersPage() {
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
-              {rows.length} jugadores cargados
+              {rows.length}{" "}
+              {searchTerm ? "jugadores encontrados" : "jugadores cargados"}
             </div>
             <CreatePlayerDialog />
           </div>
@@ -226,7 +153,7 @@ export default async function AdminPlayersPage() {
       </section>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-slate-950">Jugadores</h2>
             <p className="mt-2 text-sm text-slate-600">
@@ -234,12 +161,47 @@ export default async function AdminPlayersPage() {
               fila.
             </p>
           </div>
+
+          <form
+            action="/admin/jugadores"
+            className="flex w-full flex-col gap-2 sm:flex-row lg:max-w-xl"
+          >
+            <label className="relative flex-1">
+              <span className="sr-only">Buscar jugador</span>
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="search"
+                name="q"
+                defaultValue={searchTerm}
+                placeholder="Buscar por nombre, email o teléfono"
+                className="h-10 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-3 focus:ring-emerald-500/10"
+              />
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                className="h-10 rounded-lg bg-slate-950 px-4 text-sm font-medium text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-slate-950/20"
+              >
+                Buscar
+              </button>
+              {searchTerm ? (
+                <Link
+                  href="/admin/jugadores"
+                  className="flex h-10 items-center rounded-lg border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-slate-300/40"
+                >
+                  Limpiar
+                </Link>
+              ) : null}
+            </div>
+          </form>
         </div>
 
         <div className="mt-6">
           {rows.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center text-sm text-slate-500">
-              Aún no hay jugadores cargados en la base.
+              {searchTerm
+                ? `No hay jugadores que coincidan con "${searchTerm}".`
+                : "Aún no hay jugadores cargados en la base."}
             </div>
           ) : (
             <>
@@ -286,27 +248,37 @@ export default async function AdminPlayersPage() {
                         </Badge>
                         {levelBadge(player.level)}
                         {row.users?.role === "admin" ? (
-                          <Badge className="bg-violet-100 text-violet-800">Admin</Badge>
+                          <Badge className="bg-violet-100 text-violet-800">
+                            Admin
+                          </Badge>
                         ) : row.users !== null ? (
-                          <Badge className="bg-blue-100 text-blue-800">Cuenta activa</Badge>
+                          <Badge className="bg-blue-100 text-blue-800">
+                            Cuenta activa
+                          </Badge>
                         ) : null}
                       </div>
 
                       <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm text-slate-600">
                         {player.phone ? (
                           <div>
-                            <span className="text-xs font-medium text-slate-400">Tel.</span>{" "}
+                            <span className="text-xs font-medium text-slate-400">
+                              Tel.
+                            </span>{" "}
                             {player.phone}
                           </div>
                         ) : null}
                         {age !== null ? (
                           <div>
-                            <span className="text-xs font-medium text-slate-400">Edad</span>{" "}
+                            <span className="text-xs font-medium text-slate-400">
+                              Edad
+                            </span>{" "}
                             {age} años
                           </div>
                         ) : null}
                         <div>
-                          <span className="text-xs font-medium text-slate-400">Pts.</span>{" "}
+                          <span className="text-xs font-medium text-slate-400">
+                            Pts.
+                          </span>{" "}
                           <span className="tabular-nums font-medium text-slate-950">
                             {getCurrentPoints(row)}
                           </span>
@@ -377,7 +349,10 @@ export default async function AdminPlayersPage() {
                             </div>
                           </TableCell>
                           <TableCell className="px-1.5 text-slate-600">
-                            <div className="truncate" title={player.phone ?? "—"}>
+                            <div
+                              className="truncate"
+                              title={player.phone ?? "—"}
+                            >
                               {player.phone ?? "—"}
                             </div>
                           </TableCell>
@@ -394,9 +369,13 @@ export default async function AdminPlayersPage() {
                           </TableCell>
                           <TableCell className="px-1.5">
                             {row.users?.role === "admin" ? (
-                              <Badge className="bg-violet-100 text-violet-800">Admin</Badge>
+                              <Badge className="bg-violet-100 text-violet-800">
+                                Admin
+                              </Badge>
                             ) : row.users !== null ? (
-                              <Badge className="bg-blue-100 text-blue-800">Activa</Badge>
+                              <Badge className="bg-blue-100 text-blue-800">
+                                Activa
+                              </Badge>
                             ) : (
                               <span className="text-sm text-slate-400">—</span>
                             )}
