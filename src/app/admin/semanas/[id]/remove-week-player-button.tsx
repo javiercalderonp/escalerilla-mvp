@@ -23,12 +23,6 @@ export function RemoveWeekPlayerButton({
   function handleRemove() {
     setError(null);
 
-    const confirmed = window.confirm(
-      `Quitar a ${playerName} de los jugadores de la semana?`,
-    );
-
-    if (!confirmed) return;
-
     startTransition(async () => {
       try {
         await removePlayerFromWeekAvailabilityAction({ weekId, playerId });

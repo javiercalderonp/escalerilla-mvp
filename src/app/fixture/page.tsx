@@ -486,14 +486,11 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
           .from(weeks)
           .where(
             and(
-              inArray(weeks.status, ["abierta", "borrador"]),
+              eq(weeks.status, "abierta"),
               gte(weeks.startsOn, defaultWeekStartsOn),
             ),
           )
-          .orderBy(
-            sql`case when ${weeks.status} = 'abierta' then 0 else 1 end`,
-            desc(weeks.startsOn),
-          )
+          .orderBy(desc(weeks.startsOn))
           .limit(1),
       ])
     : [[], []];

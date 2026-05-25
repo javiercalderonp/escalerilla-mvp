@@ -61,6 +61,15 @@ export async function createWeekAction(formData: FormData) {
     throw new Error("No hay temporada activa");
   }
 
+  const staleDraftWeeks = await dbClient
+    .delete(weeks)
+    .where(and(eq(weeks.seasonId, season.id), eq(weeks.status, "borrador")))
+    .returning({
+      id: weeks.id,
+      startsOn: weeks.startsOn,
+      endsOn: weeks.endsOn,
+    });
+
   const [week] = await dbClient
     .insert(weeks)
     .values({
@@ -125,6 +134,7 @@ export async function createWeekAction(formData: FormData) {
     payload: {
       startsOn,
       endsOn,
+      deletedDraftWeekIds: staleDraftWeeks.map((draft) => draft.id),
       seededPlayerIds: playersToSchedule.map((player) => player.id),
     },
   });
