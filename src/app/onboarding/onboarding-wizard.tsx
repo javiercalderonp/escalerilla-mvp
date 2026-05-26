@@ -57,11 +57,19 @@ const phoneCountries = [
     code: "+1",
     placeholder: "415 555 2671",
   },
+  {
+    iso: "CH",
+    flag: "🇨🇭",
+    name: "Suiza",
+    code: "+41",
+    placeholder: "79 123 45 67",
+  },
 ] as const;
 
 type PhoneCountry = (typeof phoneCountries)[number];
 
 const defaultPhoneCountry = phoneCountries[0];
+const customPhoneCountryValue = "OTHER";
 
 const levelOptions = [
   {
@@ -304,14 +312,12 @@ export function OnboardingWizard() {
                 ariaLabel="Hombres"
                 onClick={() => updateValue("gender", "M")}
               >
-                <span className="flex size-14 items-center justify-center rounded-full bg-court/10 sm:size-16">
-                  <Image
-                    src={iconMan}
-                    alt=""
-                    aria-hidden="true"
-                    className="size-10 object-contain sm:size-11"
-                  />
-                </span>
+                <Image
+                  src={iconMan}
+                  alt=""
+                  aria-hidden="true"
+                  className="size-10 object-contain sm:size-11"
+                />
                 <span className="sr-only">Hombres</span>
               </ToggleCard>
               <ToggleCard
@@ -319,14 +325,12 @@ export function OnboardingWizard() {
                 ariaLabel="Mujeres"
                 onClick={() => updateValue("gender", "F")}
               >
-                <span className="flex size-14 items-center justify-center rounded-full bg-court/10 sm:size-16">
-                  <Image
-                    src={iconWoman}
-                    alt=""
-                    aria-hidden="true"
-                    className="size-10 object-contain sm:size-11"
-                  />
-                </span>
+                <Image
+                  src={iconWoman}
+                  alt=""
+                  aria-hidden="true"
+                  className="size-10 object-contain sm:size-11"
+                />
                 <span className="sr-only">Mujeres</span>
               </ToggleCard>
             </div>
@@ -500,12 +504,34 @@ function PhoneInput({
   const [countryCode, setCountryCode] = useState<string>(
     defaultPhoneCountry.code,
   );
+  const [customCountryCode, setCustomCountryCode] = useState("+");
   const selectedCountry =
-    (value ? getPhoneCountry(value) : getPhoneCountryByCode(countryCode)) ??
-    defaultPhoneCountry;
-  const localNumber = getLocalPhoneNumber(value, selectedCountry);
+    countryCode === customPhoneCountryValue
+      ? null
+      : ((value
+          ? getPhoneCountry(value)
+          : getPhoneCountryByCode(countryCode)) ?? defaultPhoneCountry);
+  const activeCountryCode =
+    selectedCountry?.code ?? normalizeCustomCountryCode(customCountryCode);
+  const localNumber = getLocalPhoneNumber(
+    value,
+    activeCountryCode,
+    selectedCountry?.iso,
+  );
 
   function handleCountryChange(countryCode: string) {
+    if (countryCode === customPhoneCountryValue) {
+      const digits = cleanPhone(localNumber).replace(/\D/g, "");
+      const nextCountryCode = normalizeCustomCountryCode(customCountryCode);
+      setCountryCode(customPhoneCountryValue);
+      onChange(
+        digits && nextCountryCode.length > 1
+          ? `${nextCountryCode}${digits}`
+          : "",
+      );
+      return;
+    }
+
     const nextCountry =
       getPhoneCountryByCode(countryCode) ?? defaultPhoneCountry;
     const digits = cleanPhone(localNumber).replace(/^\+/, "");
@@ -513,9 +539,22 @@ function PhoneInput({
     onChange(digits ? `${nextCountry.code}${digits}` : "");
   }
 
+  function handleCustomCountryCodeChange(nextValue: string) {
+    const nextCountryCode = normalizeCustomCountryCode(nextValue);
+    const digits = cleanPhone(localNumber).replace(/\D/g, "");
+    setCustomCountryCode(nextCountryCode);
+    onChange(
+      digits && nextCountryCode.length > 1 ? `${nextCountryCode}${digits}` : "",
+    );
+  }
+
   function handleLocalNumberChange(nextValue: string) {
     const digits = cleanPhone(nextValue).replace(/\D/g, "");
-    onChange(digits ? `${selectedCountry.code}${digits}` : "");
+    onChange(
+      digits && activeCountryCode.length > 1
+        ? `${activeCountryCode}${digits}`
+        : "",
+    );
   }
 
   return (
@@ -530,22 +569,35 @@ function PhoneInput({
       <select
         id="phone-country"
         aria-label="Código de país"
-        className="w-[7.25rem] shrink-0 border-border border-r bg-muted px-3 text-sm font-medium text-foreground outline-none"
-        value={selectedCountry.code}
+        className="w-[5.75rem] shrink-0 border-border border-r bg-muted px-3 text-sm font-medium text-foreground outline-none"
+        value={selectedCountry?.code ?? customPhoneCountryValue}
         onChange={(event) => handleCountryChange(event.target.value)}
       >
         {phoneCountries.map((country) => (
           <option key={country.iso} value={country.code}>
-            {country.flag} {country.code} {country.name}
+            {country.flag} {country.code}
           </option>
         ))}
+        <option value={customPhoneCountryValue}>Otro</option>
       </select>
+      {countryCode === customPhoneCountryValue ? (
+        <input
+          aria-label="Código de país manual"
+          className="w-20 shrink-0 border-border border-r bg-muted px-3 text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground"
+          inputMode="tel"
+          placeholder="+41"
+          value={customCountryCode}
+          onChange={(event) =>
+            handleCustomCountryCodeChange(event.target.value)
+          }
+        />
+      ) : null}
       <input
         aria-label="Número de teléfono"
         className="min-w-0 flex-1 bg-transparent px-4 py-2.5 text-sm outline-none placeholder:text-muted-foreground sm:py-3"
         inputMode="tel"
         autoComplete="tel-national"
-        placeholder={selectedCountry.placeholder}
+        placeholder={selectedCountry?.placeholder ?? "Número"}
         value={localNumber}
         onChange={(event) => handleLocalNumberChange(event.target.value)}
       />
@@ -553,31 +605,38 @@ function PhoneInput({
   );
 }
 
-function getPhoneCountry(value: string): PhoneCountry {
+function getPhoneCountry(value: string): PhoneCountry | undefined {
   const normalized = cleanPhone(value);
-  return (
-    phoneCountries
-      .filter((country) => normalized.startsWith(country.code))
-      .sort((a, b) => b.code.length - a.code.length)[0] ?? defaultPhoneCountry
-  );
+  return phoneCountries
+    .filter((country) => normalized.startsWith(country.code))
+    .sort((a, b) => b.code.length - a.code.length)[0];
 }
 
 function getPhoneCountryByCode(countryCode: string) {
   return phoneCountries.find((country) => country.code === countryCode);
 }
 
-function getLocalPhoneNumber(value: string, country: PhoneCountry) {
+function normalizeCustomCountryCode(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 4);
+  return digits ? `+${digits}` : "+";
+}
+
+function getLocalPhoneNumber(
+  value: string,
+  countryCode: string,
+  countryIso?: PhoneCountry["iso"],
+) {
   const normalized = cleanPhone(value);
 
-  if (normalized.startsWith(country.code)) {
+  if (countryCode.length > 1 && normalized.startsWith(countryCode)) {
     return formatLocalPhoneNumber(
-      normalized.slice(country.code.length),
-      country.iso,
+      normalized.slice(countryCode.length),
+      countryIso,
     );
   }
 
   if (!normalized.startsWith("+")) {
-    return formatLocalPhoneNumber(normalized, country.iso);
+    return formatLocalPhoneNumber(normalized, countryIso);
   }
 
   return "";
@@ -585,7 +644,7 @@ function getLocalPhoneNumber(value: string, country: PhoneCountry) {
 
 function formatLocalPhoneNumber(
   value: string,
-  countryIso: PhoneCountry["iso"],
+  countryIso?: PhoneCountry["iso"],
 ) {
   const digits = value.replace(/\D/g, "");
 
