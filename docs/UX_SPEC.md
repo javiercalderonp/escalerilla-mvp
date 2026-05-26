@@ -249,9 +249,9 @@ En móvil, la nav colapsa a hamburguesa con los mismos ítems.
 ```
 
 - Dropdown "Asignar manual" lista jugadores disponibles restantes.
-- Botón "Publicar" pasa estado a `fixture_publicado` y revela botón "Copiar mensaje WhatsApp".
+- Botón "Publicar" deja la semana cerrada/publicada y revela acciones para compartir o imprimir fixture.
 
-### 4.7 `/admin/partidos/[id]` — Registrar resultado
+### 4.7 `/ingresar-resultado` — Registrar resultado
 
 ```
 ┌────────────────────────────────────────────┐
@@ -508,7 +508,7 @@ En móvil, la nav colapsa a hamburguesa con los mismos ítems.
 ```gherkin
 Escenario: Jugador declara disponibilidad por primera vez
   Dado que soy un jugador activo
-  Y la semana está en estado "disponibilidad_abierta"
+  Y la semana está en estado "abierta"
   Cuando abro /disponibilidad
   Y marco días ["Martes", "Jueves"]
   Y selecciono max_matches = 2
@@ -517,7 +517,7 @@ Escenario: Jugador declara disponibilidad por primera vez
   Y la próxima vez que abra la pantalla, veo mis datos pre-cargados
 
 Escenario: Jugador intenta declarar tras cierre
-  Dado que la semana está en "disponibilidad_cerrada"
+  Dado que la semana está en "cerrada"
   Cuando abro /disponibilidad
   Entonces el formulario está en solo-lectura
   Y veo un mensaje "Inscripción cerrada"
@@ -556,7 +556,7 @@ Escenario: Dos jugadores ya jugaron hace menos de 30 días
 ```gherkin
 Escenario: Admin confirma resultado 2-1 en MR3
   Dado un partido pendiente entre Juan y Pedro
-  Cuando abro /admin/partidos/{id}
+  Cuando abro /ingresar-resultado
   Y selecciono modalidad "MR3"
   Y ingreso sets: 6-4, 3-6, 10-7
   Y hago click "Confirmar resultado"

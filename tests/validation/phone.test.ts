@@ -7,7 +7,7 @@ import {
   whatsappUrl,
 } from "../../src/lib/validation/phone";
 
-describe("CL phone validation", () => {
+describe("phone validation", () => {
   it("limpia separadores comunes", () => {
     expect(cleanPhone("9 1234 5678")).toBe("912345678");
     expect(cleanPhone("(+56) 9 1234-5678")).toBe("+56912345678");
@@ -20,16 +20,14 @@ describe("CL phone validation", () => {
     expect(normalizePhone("9 1234 5678")).toBe("+56912345678");
   });
 
-  it("schema acepta móviles chilenos y rechaza otros formatos", () => {
+  it("schema acepta móviles chilenos y teléfonos internacionales E.164", () => {
     expect(phoneSchema.parse("912345678")).toBe("+56912345678");
-    expect(() => phoneSchema.parse("+1234567890")).toThrow(
-      "Teléfono móvil chileno inválido (+569XXXXXXXX)",
-    );
+    expect(phoneSchema.parse("+14155552671")).toBe("+14155552671");
     expect(() => phoneSchema.parse("+5621234567")).toThrow(
-      "Teléfono móvil chileno inválido (+569XXXXXXXX)",
+      "Teléfono inválido. Para Chile usa móvil +569XXXXXXXX",
     );
     expect(() => phoneSchema.parse("123")).toThrow(
-      "Teléfono móvil chileno inválido (+569XXXXXXXX)",
+      "Teléfono inválido. Para Chile usa móvil +569XXXXXXXX",
     );
   });
 

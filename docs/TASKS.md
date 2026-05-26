@@ -1,6 +1,8 @@
 # Tasks — Escalerilla de Tenis Club La Dehesa
 
 > Backlog de trabajo organizado por **milestones entregables**. Cada milestone deja algo funcionando que se puede mostrar y probar. Las estimaciones son gruesas (orden de magnitud), asumiendo un desarrollador part-time.
+>
+> Estado general actualizado el **2026-05-26**: MVP operativo en código local, con M8 mayormente integrado (perfil enriquecido, onboarding, ranking/fixture renovados, PWA, emails y disponibilidad preferente). Pendiente principal: verificación final de producción/Playwright, dominio y hardening operativo.
 
 ---
 
@@ -18,20 +20,20 @@
 **Objetivo**: repo corriendo localmente y desplegado en Vercel con un "hola mundo" autenticado.
 **Estimación**: ~1 día.
 
-> Estado actual (2026-04-28): app completa corriendo en local. Deploy en Vercel pendiente (linkear proyecto y configurar env vars).
+> Estado actual (2026-05-26): app completa corriendo en local. Falta confirmar deploy production y env vars finales en Vercel.
 
-- [x] 🔴 Inicializar proyecto Next.js 15 con TypeScript + Tailwind
+- [x] 🔴 Inicializar proyecto Next.js con TypeScript + Tailwind
 - [x] 🔴 Crear repositorio en GitHub y push inicial
 - [ ] 🔴 Linkear proyecto a Vercel (`vercel link`)
 - [x] 🔴 Provisionar Neon Postgres (Neon conectado y funcionando)
-- [x] 🔴 Configurar Drizzle y primer `pnpm drizzle-kit push`
+- [x] 🔴 Configurar Drizzle y primer push de schema
 - [x] 🔴 Configurar NextAuth con proveedor Google
 - [ ] 🔴 Configurar env vars en Vercel (`vercel env add`) y validar deploy autenticado en producción
 - [x] 🔴 Crear layout base con header + navegación + footer
 - [x] 🔴 Instalar y configurar shadcn/ui (Button, Input, Table, Card, Dialog)
-- [x] 🟡 Configurar ESLint + Prettier + tsconfig estricto
+- [x] 🟡 Configurar lint/format con Biome + tsconfig estricto
 - [ ] 🟡 Deploy de preview y production funcionando
-- [ ] 🟢 Crear `vercel.ts` con configuración base
+- [ ] 🟢 Crear `vercel.ts` con configuración base si se decide usar SDK/CLI programático
 
 **Criterio de aceptación**: entro a la URL de production, hago login con Google, veo mi nombre en el header.
 
@@ -42,7 +44,7 @@
 **Objetivo**: modelo de jugadores cargado y ranking público navegable.
 **Estimación**: ~2-3 días.
 
-> Estado actual (2026-04-28): admin de jugadores operativo, import CSV inicial listo, historial por jugador visible en ranking, migración de `matches` + `match_sets` aplicada en DB real y 60 partidos históricos confirmados cargados manualmente en la base. El ranking ya tiene datos suficientes para empezar a validar desempates reales. Falta convertir esta carga manual en flujo de producto para registrar resultados desde la app.
+> Estado actual (2026-05-26): admin de jugadores operativo, perfiles enriquecidos, historial por jugador visible, ranking con desempates y mejor posición histórica. La carga histórica se complementa con scripts de backfill/resultados.
 
 - [x] 🔴 Schema Drizzle: `users`, `players`, `seasons`, `ranking_events`, `audit_log`
 - [x] 🔴 Seed de temporada 2026 (`seasons`)
@@ -52,7 +54,7 @@
 - [x] 🔴 Vista `/ranking/[categoria]` con historial de eventos al hacer click en un jugador
 - [x] 🔴 Cálculo de puntos vigentes = `sum(ranking_events.delta)`
 - [x] 🔴 Desempate RN-11 (H2H, sets, games, sorteo) implementado
-- [ ] 🟡 Link del jugador al perfil público con sus partidos jugados
+- [x] 🟡 Link del jugador al perfil público con sus partidos jugados
 - [x] 🟡 Auditoría de alta/edición de jugadores
 - [ ] 🟢 Export CSV del ranking actual
 
@@ -65,7 +67,7 @@
 **Objetivo**: los jugadores declaran disponibilidad, el admin la ve consolidada.
 **Estimación**: ~1-2 días.
 
-> Estado actual (2026-04-28): completo. Schema `weeks` + `availability` en Neon, flujo admin y formulario de jugador operativos.
+> Estado actual (2026-05-26): completo. Schema `weeks` + `availability`, formulario de jugador y preferencias de disponibilidad general operativos.
 
 - [x] 🔴 Schema Drizzle: `weeks`, `availability`
 - [x] 🔴 Vista `/admin/semanas` con lista de semanas y estados
@@ -86,7 +88,7 @@
 **Objetivo**: propuesta automática de cruces + edición manual + publicación + mensaje para WhatsApp.
 **Estimación**: ~2-3 días.
 
-> Estado actual (2026-04-28): completo. Algoritmo greedy operativo, editor interactivo con regeneración por categoría, publicación transaccional, vista pública con resaltado de partidos propios.
+> Estado actual (2026-05-26): completo. Algoritmo greedy operativo, editor interactivo, publicación transaccional, vista pública con WeekStepper, impresión y resaltado de partidos propios.
 
 - [x] 🔴 Schema Drizzle: `matches`, `match_sets`
 - [x] 🔴 Algoritmo `lib/fixture/propose.ts`:
@@ -114,11 +116,11 @@
 **Objetivo**: el admin registra resultados y el ranking se actualiza solo.
 **Estimación**: ~3 días.
 
-> Estado actual (2026-04-28): completo. Registro de resultados mr3 y set largo, W.O., empates, correcciones. Filtros en `/admin/partidos`. Historial de partidos con detalle en `/mi-perfil/partidos/[id]`.
+> Estado actual (2026-05-26): completo. Registro de resultados MR3 y set largo, W.O., empates, correcciones y flujo `/ingresar-resultado`. Historial de partidos con detalle en `/mi-perfil/partidos/[id]`.
 
 - [x] 🔴 `lib/rules/scoring.ts` que dado `matches` + `match_sets` devuelve los deltas de cada jugador según RN-01 y RN-02
 - [x] 🔴 Validaciones de scores tenis (6-0..6-4, 7-5, 7-6, super tie-break)
-- [x] 🔴 Vista `/admin/partidos` con partidos pendientes / jugados / WO
+- [x] 🔴 Vista `/ingresar-resultado` / admin con partidos pendientes, jugados y WO
 - [x] 🔴 Form de registro de resultado con formato (mr3 / set_largo) y sets dinámicos
 - [x] 🔴 Soporte de empate (status=`empate`) con puntos correctos
 - [x] 🔴 Soporte de W.O. (status=`wo`, `wo_loser_id`)
@@ -137,7 +139,7 @@
 **Objetivo**: cerrar las reglas del reglamento que quedan.
 **Estimación**: ~2 días.
 
-> Estado actual (2026-04-28): completo. Schema `freezes` en Neon, admin congelaciones con validación RN-09 (máx 3/semestre), admin desafíos con validación RN-06/RN-03 y override, `/mi-perfil` con zona desafiable y partidos recientes, cron `/api/cron/inactividad` con idempotencia completa y exención por freeze, configurado en `vercel.json` (lunes 6am UTC).
+> Estado actual (2026-05-26): funcional. Schema `freezes`, admin congelaciones, admin desafíos, zona desafiable y cron `/api/cron/inactividad` existen. En `vercel.json` hoy solo está programado el recordatorio de disponibilidad; la activación programada de inactividad queda pendiente de decisión operativa.
 
 - [x] 🔴 Schema Drizzle: `freezes`
 - [x] 🔴 Vista `/admin/congelaciones`: registrar freeze (validar máx 3/semestre RN-09)
@@ -149,7 +151,7 @@
   - [x] 🔴 -50% a quien no juega 6 meses, idempotente
   - [x] 🔴 -100% a quien no juega 1 año, idempotente
   - [x] 🔴 Exención para lesionados justificados (RN-10)
-- [x] 🔴 Configurar cron en `vercel.json` (lunes 6am UTC)
+- [ ] 🔴 Configurar cron de inactividad en `vercel.json` si el Comité confirma la política de aplicación automática
 - [x] 🟡 Contador de desafíos aceptados en el mes en `/mi-perfil`
 - [ ] 🟡 Job manual "recalcular inactividad ahora" en admin
 
@@ -162,7 +164,7 @@
 **Objetivo**: registrar podios y partidos de campeonatos para aplicar los bonus del reglamento.
 **Estimación**: ~1 día.
 
-> Estado actual (2026-04-28): completo. Schema `championships` + `championship_placements` + enum `championship_type` en Neon (pendiente `drizzle-kit push`). `/admin/campeonatos` con formulario de podio (campeón +150, finalista +75, 3.er lugar +40). Hitos de la temporada visibles en `/ranking/[categoria]`.
+> Estado actual (2026-05-26): completo en código. Schema `championships` + `championship_placements` + enum `championship_type`, `/admin/campeonatos` con formulario de podio y bonus. Verificar migraciones aplicadas en cada ambiente antes de operar production.
 
 - [x] 🔴 Schema Drizzle: `championships`, `championship_placements`
 - [x] 🔴 Vista `/admin/campeonatos`: crear campeonato (regular / clausura / especial), registrar podio
@@ -179,14 +181,14 @@
 **Objetivo**: dejar la app lista para ser usada por los socios del club.
 **Estimación**: ~1-2 días.
 
-> Estado actual (2026-04-28): completo. Mobile nav con hamburger, error pages en español, copy de onboarding actualizado, home con "¿Cómo funciona?", OpenGraph configurado, 26 tests Vitest en verde (scoring + tiebreak RN-11 + elegibilidad desafío RN-06/RN-03).
+> Estado actual (2026-05-26): casi completo. Mobile nav, error pages en español, home, PWA icons/manifest, OpenGraph y tests unitarios de reglas/validaciones. Falta Playwright happy path y verificación production.
 
 - [x] 🔴 Revisión mobile de todas las pantallas (hamburger nav para móvil)
 - [x] 🔴 Copy de onboarding en `/login` y en la primera visita
 - [x] 🔴 Mensaje "¿Cómo funciona?" en home para jugadores nuevos
-- [ ] 🔴 Guía para el admin (`docs/ADMIN_GUIDE.md`)
+- [x] 🔴 Guía para el admin (`docs/ADMIN_GUIDE.md`)
 - [x] 🟡 Manejo de errores amable (páginas 404 / 500 en español)
-- [x] 🟡 Tests Vitest de reglas críticas (scoring, desempates RN-11, elegibilidad desafío RN-06/RN-03) — 26 tests
+- [x] 🟡 Tests Vitest de reglas críticas y validaciones de perfil
 - [ ] 🟡 Test Playwright del happy path completo
 - [ ] 🟢 Dominio custom del club (si lo hay)
 - [x] 🟢 OpenGraph metadata configurada
@@ -198,17 +200,17 @@
 **Objetivo**: que la app deje de sentirse "MVP funcional" y se convierta en una experiencia tipo mini-ATP. Perfiles ricos accesibles desde modal, onboarding bloqueante con datos personales y deportivos, navegación entre semanas pasadas/futuras del fixture, paleta visual de torneo.
 **Estimación**: ~5-7 días.
 
-> **Detalle ejecutable** completo en [`docs/M8_REDESIGN.md`](./M8_REDESIGN.md). Este resumen solo entrega el alcance.
+> **Detalle ejecutable** histórico en [`docs/M8_REDESIGN.md`](./M8_REDESIGN.md). Este resumen refleja el estado actual del código.
 
-- [ ] 🔴 Schema extendido de `players` (firstName, lastName, birthDate, phone, rut, level, dominantHand, backhand, yearsPlaying, joinedLadderOn, visibility) + enums + migración aditiva
-- [ ] 🔴 Validación RUT (módulo 11) y teléfono CL (E.164) con tests
-- [ ] 🔴 Design system ATP-inspired: tokens court/grass/clay/gold + componentes (Avatar, Badge, Tabs, Skeleton, EmptyState, WeekStepper, StreakDots)
-- [ ] 🔴 Onboarding bloqueante de 2 pasos (identidad + tenis) con guard `requireCompleteProfile`
-- [ ] 🔴 PlayerCardModal con tabs Info + Rendimiento, deep-link `?player=<id>`
-- [ ] 🔴 Ranking refactor: tabular-nums, top-3 destacado, click → modal
-- [ ] 🔴 Fixture con WeekStepper para navegar semanas (excluye `disponibilidad_*`)
-- [ ] 🟡 Admin /jugadores: edición de `level`
-- [ ] 🟡 Header con paleta court
+- [x] 🔴 Schema extendido de `players` + enums + migraciones aditivas
+- [x] 🔴 Validación RUT (módulo 11) y teléfono CL (E.164) con tests
+- [x] 🔴 Design system ATP-inspired: componentes `Avatar`, `Badge`, `Tabs`, `Skeleton`, `EmptyState`, `WeekStepper`, `StreakDots`
+- [x] 🔴 Onboarding bloqueante con identidad, tenis y disponibilidad general
+- [x] 🔴 PlayerCardModal con tabs Info + Rendimiento y link de perfil
+- [x] 🔴 Ranking refactor: tabular-nums, top-3 destacado, click → perfil/modal
+- [x] 🔴 Fixture con WeekStepper para navegar semanas publicadas
+- [x] 🟡 Admin /jugadores: edición de `level` y datos de perfil
+- [x] 🟡 Header/mobile nav con paleta actual
 - [ ] 🔴 Build, lint, tests verdes y verificación manual mobile 375px
 
 **Criterio de aceptación**: un jugador nuevo entra con Google, completa onboarding obligatorio, ve el ranking con paleta ATP, hace click en cualquier jugador y abre un modal con su info y rendimiento, navega entre semanas pasadas del fixture.
@@ -221,16 +223,16 @@
 
 - [ ] 🟡 Confirmación de email con código para cuentas creadas con email/password (no Google)
 - [ ] 🟢 Dashboard admin con métricas: jugadores activos, partidos de la semana, % participación
-- [ ] 🟢 Export a PDF del fixture publicado
-- [ ] 🟢 Notificación por email cuando se publica fixture (requiere decisión)
-- [ ] 🟢 Estadísticas individuales (winrate, sets ganados, etc.) en perfil público
+- [x] 🟢 Vista imprimible del fixture publicado
+- [ ] 🟢 Envío real de email cuando se publica fixture (templates/eventos existen; falta activar proveedor y política)
+- [x] 🟢 Estadísticas individuales básicas en perfil público
 
 ---
 
 ## Riesgos conocidos
 
 - **Regla RN-10 escalonada (PD-01)**: la interpretación requiere confirmación del Comité antes de implementar el cron. Si se interpreta mal, jugadores pueden perder puntos injustamente.
-- **Seed inicial de ranking (PD-02)**: depende del Organizador entregar el CSV. Puede ser el cuello de botella del M1.
+- **Migraciones por ambiente**: varias migraciones/backfills ya existen; antes de production hay que confirmar que Neon production tiene exactamente el schema esperado.
 - **Volumen de cambios a mitad de temporada**: si el reglamento cambia durante el año, hay que versionar. No está modelado.
 - **Admin único punto de falla**: todo pasa por el admin. Si no registra, nada se mueve. Mitigar con múltiples admins.
 
@@ -246,6 +248,6 @@
 6. M5 (desafíos, congelaciones, inactividad) — reglas complejas que se pueden agregar sin bloquear el uso.
 7. M6 (campeonatos) — solo relevante cuando se juegue uno.
 8. M7 (pulido) — antes de abrir a los socios.
-9. M8 (rediseño + perfil enriquecido) — primer milestone post-MVP, eleva la experiencia a estilo torneo profesional.
+9. M8 (rediseño + perfil enriquecido) — experiencia tipo torneo profesional, ya integrada en su mayor parte.
 
-Se puede arrancar el uso real tras M4 con algunas cosas manualmente gestionadas en el admin.
+Se puede operar el uso real con el estado actual, dejando como cierre recomendado verificación production, Playwright y decisión sobre inactividad automática.

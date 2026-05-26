@@ -11,11 +11,54 @@ import {
   hasAnyAvailability,
 } from "@/lib/availability";
 import { formatPersonName } from "@/lib/format/name";
+import { cleanPhone } from "@/lib/validation/phone";
 import {
   onboardingFullSchema,
   onboardingStep1Schema,
   onboardingStep2Schema,
 } from "@/lib/validation/player";
+
+const phoneCountries = [
+  {
+    iso: "CL",
+    flag: "🇨🇱",
+    name: "Chile",
+    code: "+56",
+    placeholder: "9 1234 5678",
+  },
+  {
+    iso: "AR",
+    flag: "🇦🇷",
+    name: "Argentina",
+    code: "+54",
+    placeholder: "9 11 2345 6789",
+  },
+  {
+    iso: "PE",
+    flag: "🇵🇪",
+    name: "Perú",
+    code: "+51",
+    placeholder: "987 654 321",
+  },
+  {
+    iso: "CO",
+    flag: "🇨🇴",
+    name: "Colombia",
+    code: "+57",
+    placeholder: "300 123 4567",
+  },
+  {
+    iso: "US",
+    flag: "🇺🇸",
+    name: "Estados Unidos",
+    code: "+1",
+    placeholder: "415 555 2671",
+  },
+] as const;
+
+type PhoneCountry = (typeof phoneCountries)[number];
+
+const defaultPhoneCountry = phoneCountries[0];
 
 const levelOptions = [
   {
@@ -282,11 +325,10 @@ export function OnboardingWizard() {
               />
             </Field>
             <Field label="Teléfono" error={errors.phone}>
-              <input
-                className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:border-court"
-                placeholder="+56 9 1234 5678"
+              <PhoneInput
                 value={values.phone}
-                onChange={(event) => updateValue("phone", event.target.value)}
+                onChange={(phone) => updateValue("phone", phone)}
+                invalid={Boolean(errors.phone)}
               />
             </Field>
           </div>
@@ -424,6 +466,114 @@ function Field({
       {error ? <span className="text-xs text-rose-600">{error}</span> : null}
     </div>
   );
+}
+
+function PhoneInput({
+  value,
+  onChange,
+  invalid,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  invalid?: boolean;
+}) {
+  const [countryCode, setCountryCode] = useState<string>(
+    defaultPhoneCountry.code,
+  );
+  const selectedCountry =
+    (value ? getPhoneCountry(value) : getPhoneCountryByCode(countryCode)) ??
+    defaultPhoneCountry;
+  const localNumber = getLocalPhoneNumber(value, selectedCountry);
+
+  function handleCountryChange(countryCode: string) {
+    const nextCountry =
+      getPhoneCountryByCode(countryCode) ?? defaultPhoneCountry;
+    const digits = cleanPhone(localNumber).replace(/^\+/, "");
+    setCountryCode(nextCountry.code);
+    onChange(digits ? `${nextCountry.code}${digits}` : "");
+  }
+
+  function handleLocalNumberChange(nextValue: string) {
+    const digits = cleanPhone(nextValue).replace(/\D/g, "");
+    onChange(digits ? `${selectedCountry.code}${digits}` : "");
+  }
+
+  return (
+    <div
+      className={`flex min-h-12 w-full overflow-hidden rounded-2xl border bg-background transition focus-within:border-court ${
+        invalid ? "border-rose-300" : "border-border"
+      }`}
+    >
+      <label className="sr-only" htmlFor="phone-country">
+        Código de país
+      </label>
+      <select
+        id="phone-country"
+        aria-label="Código de país"
+        className="w-[7.25rem] shrink-0 border-border border-r bg-muted px-3 text-sm font-medium text-foreground outline-none"
+        value={selectedCountry.code}
+        onChange={(event) => handleCountryChange(event.target.value)}
+      >
+        {phoneCountries.map((country) => (
+          <option key={country.iso} value={country.code}>
+            {country.flag} {country.code} {country.name}
+          </option>
+        ))}
+      </select>
+      <input
+        aria-label="Número de teléfono"
+        className="min-w-0 flex-1 bg-transparent px-4 py-3 text-sm outline-none placeholder:text-muted-foreground"
+        inputMode="tel"
+        autoComplete="tel-national"
+        placeholder={selectedCountry.placeholder}
+        value={localNumber}
+        onChange={(event) => handleLocalNumberChange(event.target.value)}
+      />
+    </div>
+  );
+}
+
+function getPhoneCountry(value: string): PhoneCountry {
+  const normalized = cleanPhone(value);
+  return (
+    phoneCountries
+      .filter((country) => normalized.startsWith(country.code))
+      .sort((a, b) => b.code.length - a.code.length)[0] ?? defaultPhoneCountry
+  );
+}
+
+function getPhoneCountryByCode(countryCode: string) {
+  return phoneCountries.find((country) => country.code === countryCode);
+}
+
+function getLocalPhoneNumber(value: string, country: PhoneCountry) {
+  const normalized = cleanPhone(value);
+
+  if (normalized.startsWith(country.code)) {
+    return formatLocalPhoneNumber(
+      normalized.slice(country.code.length),
+      country.iso,
+    );
+  }
+
+  if (!normalized.startsWith("+")) {
+    return formatLocalPhoneNumber(normalized, country.iso);
+  }
+
+  return "";
+}
+
+function formatLocalPhoneNumber(
+  value: string,
+  countryIso: PhoneCountry["iso"],
+) {
+  const digits = value.replace(/\D/g, "");
+
+  if (countryIso === "CL" && digits.length > 1) {
+    return `${digits.slice(0, 1)} ${digits.slice(1, 5)} ${digits.slice(5, 9)}`.trim();
+  }
+
+  return digits.replace(/(\d{3})(?=\d)/g, "$1 ").trim();
 }
 
 function ToggleCard({

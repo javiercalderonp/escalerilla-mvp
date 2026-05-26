@@ -1,6 +1,6 @@
 # Data Model — Escalerilla de Tenis Club La Dehesa
 
-> **Propósito**: schema completo de base de datos, tipos TS, formato de seed CSV y variables de entorno. Este documento es **la fuente única de verdad del modelo de datos**. Cualquier divergencia entre este documento y el código debe resolverse regenerando migraciones desde aquí.
+> **Propósito**: guía del modelo de datos, tipos TS, formato de seed CSV y variables de entorno. La fuente ejecutable de verdad es `src/lib/db/schema.ts`; cualquier divergencia debe resolverse leyendo el código actual y actualizando este documento antes de generar migraciones.
 >
 > **Audiencia primaria**: agentes IA y desarrolladores. Todo está en forma directamente copiable.
 
@@ -20,7 +20,9 @@
 
 ## 2. Schema completo (Drizzle ORM)
 
-Ubicación: `lib/db/schema.ts`.
+Ubicación actual: `src/lib/db/schema.ts`.
+
+> Nota de mantenimiento: este documento describe el modelo funcional, pero el schema ejecutable es `src/lib/db/schema.ts` y las migraciones viven en `drizzle/`. Cuando haya divergencia, primero leer el código actual antes de generar SQL nuevo.
 
 ```ts
 import {
@@ -55,9 +57,8 @@ export const playerStatusEnum = pgEnum('player_status', [
 export const seasonStatusEnum = pgEnum('season_status', ['activa', 'cerrada']);
 
 export const weekStatusEnum = pgEnum('week_status', [
-  'disponibilidad_abierta',
-  'disponibilidad_cerrada',
-  'fixture_publicado',
+  'borrador',
+  'abierta',
   'cerrada',
 ]);
 
@@ -194,7 +195,6 @@ export const players = pgTable(
     level: playerLevelEnum('level'),
     dominantHand: dominantHandEnum('dominant_hand'),
     backhand: backhandEnum('backhand'),
-    yearsPlaying: integer('years_playing'),
     playFrequency: playFrequencyEnum('play_frequency'), // M9
     // M8: control de visibilidad de PII (jsonb) — default DEFAULT_VISIBILITY
     visibility: jsonb('visibility').$type<PlayerVisibility>().notNull().default(DEFAULT_VISIBILITY),
@@ -230,7 +230,7 @@ export const weeks = pgTable(
       .references(() => seasons.id, { onDelete: 'cascade' }),
     isoWeek: integer('iso_week').notNull(),
     startDate: date('start_date').notNull(), // lunes de la semana (America/Santiago)
-    status: weekStatusEnum('status').notNull().default('disponibilidad_abierta'),
+    status: weekStatusEnum('status').notNull().default('borrador'),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -606,8 +606,7 @@ Estos son invariantes críticos que se **validan en server actions** antes de pe
 | `players.rut` válido (formato + módulo 11) | M8 | `lib/validation/rut.ts::isValidRut` antes de insertar |
 | `players.phone` formato `+569XXXXXXXX` (E.164 móvil CL) | M8 | `lib/validation/phone.ts::phoneSchema` |
 | `players.birthDate` ⇒ edad ∈ [14, 90] | M8 | `onboardingStep1Schema.birthDate` |
-| `players.yearsPlaying` ∈ [0, 80] | M8 | `onboardingStep2Schema.yearsPlaying` |
-| Set obligatorio M8 (firstName, lastName, birthDate, phone, rut, level, dominantHand, backhand, yearsPlaying, joinedLadderOn) presente para acceder a pantallas no-admin | M8 | `lib/players/profile-completeness.ts` + `requireCompleteProfile()` redirige a `/onboarding` |
+| Set obligatorio M8 (firstName, lastName, birthDate, phone, rut, level, dominantHand, backhand, joinedLadderOn) presente para acceder a pantallas no-admin | M8 | `src/lib/players/profile-completeness.ts` + `requireCompleteProfile()` redirige a `/onboarding` |
 
 ---
 
@@ -860,8 +859,8 @@ WHERE player_id = $1
 ## 9. Migraciones
 
 - Drizzle Kit genera migraciones SQL. Se guardan en `drizzle/migrations/`.
-- Comando dev: `pnpm drizzle-kit generate`.
-- Comando apply: `pnpm drizzle-kit migrate` (o `push` en dev).
+- Comando dev: `npm run db:generate`.
+- Comando apply/dev: `npm run db:push`.
 - **En CI/CD**: cada deploy a Vercel corre `drizzle-kit migrate` como parte del `build` si hay migraciones pendientes.
 - **Rollbacks**: no soportados automáticamente. Si algo falla se escribe una nueva migración que deshaga el cambio.
 

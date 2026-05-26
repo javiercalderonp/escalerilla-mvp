@@ -1,10 +1,10 @@
 # Milestone 8 — Perfil enriquecido, identidad ATP y navegación temporal
 
-> Detalle ejecutable del M8. La entrada corta vive en `docs/TASKS.md`. Este archivo es la fuente de verdad para implementación.
+> Detalle ejecutable histórico del M8. La entrada corta y el estado vigente viven en `docs/TASKS.md`.
 
 **Objetivo**: que la app deje de sentirse "MVP funcional" y se convierta en una experiencia tipo mini-ATP: identidad visual de torneo, perfiles ricos accesibles desde modal, onboarding bloqueante con datos personales y deportivos, y navegación entre semanas pasadas/futuras del fixture.
 
-**Estimación**: ~5-7 días dev part-time.
+**Estado 2026-05-26**: implementado en su mayor parte. El código actual incluye perfil enriquecido, validaciones, onboarding con disponibilidad general, componentes visuales, ranking renovado, fixture con navegación temporal y tests de validación. Queda como pendiente de cierre la verificación final lint/test/build/mobile y ajustes finos según producción.
 
 **No entra en M8** (queda para M9): foto upload (Vercel Blob), página `/historial` con filtros, tab "Evolución" (sparkline), bio/club/estilo (paso 3 onboarding), bottom tab bar mobile, snowflake inactividad, dark mode auditado, toggles de privacidad por campo, search global.
 
@@ -21,30 +21,30 @@
 
 ## Set obligatorio (gating onboarding)
 
-`firstName`, `lastName`, `gender`, `birthDate`, `phone`, `rut`, `level`, `dominantHand`, `backhand`, `yearsPlaying`, `joinedLadderOn`. Si cualquiera está null en el `Player` asociado al `User` autenticado, el helper `requireCompleteProfile()` redirige a `/onboarding`.
+`firstName`, `lastName`, `gender`, `birthDate`, `phone`, `rut`, `level`, `dominantHand`, `backhand`, `joinedLadderOn`. Si cualquiera está null en el `Player` asociado al `User` autenticado, el helper `requireCompleteProfile()` redirige a `/onboarding`.
 
 ---
 
 ## Checklist (formato repo)
 
-- [ ] 🔴 **E0** Schema: enums + columnas + migración aditiva en `players`
-- [ ] 🔴 **E0** Backfill `firstName`/`lastName`/`joinedLadderOn`/`visibility` y `SET NOT NULL`
-- [ ] 🔴 **E1** `lib/validation/rut.ts` (módulo 11) con tests
-- [ ] 🔴 **E1** `lib/validation/phone.ts` (E.164 chileno) con tests
-- [ ] 🔴 **E1** Schemas Zod onboarding (paso 1, paso 2, full)
-- [ ] 🔴 **E2** Tokens court/grass/clay/gold/silver/bronze en `globals.css` y `@theme inline`
-- [ ] 🔴 **E2** Componentes UI: `Avatar`, `Badge`, `Tabs`, `Skeleton`, `EmptyState`, `WeekStepper`, `StreakDots`
-- [ ] 🔴 **E3** Helper `isProfileComplete` y `requireCompleteProfile`
-- [ ] 🔴 **E3** Página `/onboarding` (wizard 2 pasos) bloqueante
-- [ ] 🔴 **E3** Server action `submitOnboarding` con manejo de RUT duplicado
-- [ ] 🔴 **E4** Helper `getPlayerCardData` con visibility
-- [ ] 🔴 **E4** `PlayerCardModal` (tabs Info + Rendimiento)
-- [ ] 🔴 **E4** Wrapper deep-link `?player=<id>`
-- [ ] 🔴 **E5** Refactor `ranking-table` a tokens, top-3 dorado/plata/bronce, click → modal
-- [ ] 🟡 **E5** Segmented control de categoría
-- [ ] 🔴 **E6** WeekStepper en `/fixture` con `?week=<id>`, semana actual / pasada read-only / futura publicada
-- [ ] 🟡 **E7** Edición de `level` en `/admin/jugadores`
-- [ ] 🟡 **E8** Header con paleta court
+- [x] 🔴 **E0** Schema: enums + columnas + migración aditiva en `players`
+- [x] 🔴 **E0** Backfill `firstName`/`lastName`/`joinedLadderOn`/`visibility`
+- [x] 🔴 **E1** `lib/validation/rut.ts` (módulo 11) con tests
+- [x] 🔴 **E1** `lib/validation/phone.ts` (E.164 chileno) con tests
+- [x] 🔴 **E1** Schemas Zod onboarding (identidad, tenis, disponibilidad)
+- [x] 🔴 **E2** Tokens visuales en `globals.css`
+- [x] 🔴 **E2** Componentes UI: `Avatar`, `Badge`, `Tabs`, `Skeleton`, `EmptyState`, `WeekStepper`, `StreakDots`
+- [x] 🔴 **E3** Helper `isProfileComplete` y `requireCompleteProfile`
+- [x] 🔴 **E3** Página `/onboarding` bloqueante
+- [x] 🔴 **E3** Server action de onboarding con manejo de RUT duplicado
+- [x] 🔴 **E4** Helper `getPlayerCardData` con visibility
+- [x] 🔴 **E4** `PlayerCardModal` (tabs Info + Rendimiento)
+- [x] 🔴 **E4** Link de perfil/modal desde ranking
+- [x] 🔴 **E5** Refactor `ranking-table` a tokens, top-3 destacado, click a perfil/modal
+- [x] 🟡 **E5** Control de categoría
+- [x] 🔴 **E6** WeekStepper en `/fixture` con navegación de semanas publicadas
+- [x] 🟡 **E7** Edición de `level` en `/admin/jugadores`
+- [x] 🟡 **E8** Header con paleta actual
 - [ ] 🔴 **E9** `npm run lint && typecheck && test && build` en verde
 - [ ] 🔴 **E9** Verificación manual mobile 375px (checklist abajo)
 
@@ -80,7 +80,7 @@ Bloquea todo lo demás.
 
 ### T0.1 Enums y columnas en `players`
 
-Archivo: `src/lib/db/schema.ts`. Agregar al lado de los enums existentes:
+Archivo: `src/lib/db/schema.ts`. En el código actual el schema ejecutable vive ahí; las instrucciones de abajo quedan como referencia histórica de implementación.
 
 ```ts
 export const playerLevelEnum = pgEnum('player_level', [
@@ -118,7 +118,6 @@ Extender `playersTable` con columnas (todas nullable hasta T0.3):
 | `level` | `player_level` | nullable en DB | obligatorio en validación |
 | `dominant_hand` | `dominant_hand` | nullable en DB | obligatorio en validación |
 | `backhand` | `backhand` | nullable en DB | obligatorio en validación |
-| `years_playing` | `integer` | nullable en DB | rango 0-80 |
 | `play_frequency` | `play_frequency` | nullable | M9 |
 | `visibility` | `jsonb` | NOT NULL | default `DEFAULT_VISIBILITY` |
 
@@ -265,7 +264,6 @@ export const onboardingStep2Schema = z.object({
   level: z.enum(['principiante', 'intermedio_bajo', 'intermedio_alto', 'avanzado']),
   dominantHand: z.enum(['diestro', 'zurdo']),
   backhand: z.enum(['una_mano', 'dos_manos']),
-  yearsPlaying: z.coerce.number().int().min(0).max(80),
 });
 
 export const onboardingFullSchema = onboardingStep1Schema.merge(onboardingStep2Schema);
@@ -425,7 +423,7 @@ import type { Player } from '@/lib/db/schema';
 
 const REQUIRED_FIELDS = [
   'firstName', 'lastName', 'birthDate', 'phone', 'rut',
-  'level', 'dominantHand', 'backhand', 'yearsPlaying', 'joinedLadderOn',
+  'level', 'dominantHand', 'backhand', 'joinedLadderOn',
 ] as const;
 
 export function isProfileComplete(p: Player | null | undefined): boolean {
@@ -485,7 +483,6 @@ Al click en "Siguiente": `onboardingStep1Schema.safeParse(values)`, mostrar erro
 - `level` (4 cards visuales seleccionables, grilla 1col mobile / 2col desktop)
 - `dominantHand` (toggle 2 botones: Diestro / Zurdo)
 - `backhand` (toggle: Una mano / Dos manos)
-- `yearsPlaying` (input number)
 
 Al click en "Guardar": `onboardingStep2Schema.safeParse`, luego `submitOnboarding(...)`.
 
@@ -526,7 +523,6 @@ export async function submitOnboarding(input: unknown) {
         level: data.level,
         dominantHand: data.dominantHand,
         backhand: data.backhand,
-        yearsPlaying: data.yearsPlaying,
         joinedLadderOn: today,
       }).returning();
       await db.update(users).set({ playerId: created.id, role: 'player' }).where(eq(users.id, user.id));
@@ -542,7 +538,6 @@ export async function submitOnboarding(input: unknown) {
         level: data.level,
         dominantHand: data.dominantHand,
         backhand: data.backhand,
-        yearsPlaying: data.yearsPlaying,
       }).where(eq(players.id, user.playerId));
     }
   } catch (err: unknown) {
@@ -585,7 +580,6 @@ type PlayerCardData = {
     level: PlayerLevel | null;
     dominantHand: DominantHand | null;
     backhand: Backhand | null;
-    yearsPlaying: number | null;
     joinedLadderOn: string | null;
     birthDate: string | null;   // null si viewer no tiene permiso
     age: number | null;
@@ -663,7 +657,6 @@ Estructura:
         {p.age != null && <InfoRow icon={Calendar} label="Edad" value={`${p.age} años`} />}
         <InfoRow icon={Hand} label="Mano" value={p.dominantHand === 'diestro' ? 'Diestro' : 'Zurdo'} />
         <InfoRow icon={Activity} label="Revés" value={p.backhand === 'una_mano' ? 'Una mano' : 'Dos manos'} />
-        {p.yearsPlaying != null && <InfoRow icon={Clock} label="Años jugando" value={p.yearsPlaying} />}
         {p.joinedLadderOn && <InfoRow icon={Trophy} label="En la escalerilla desde" value={formatDate(p.joinedLadderOn)} />}
         {p.phone && (
           <a href={whatsappUrl(p.phone)} target="_blank" rel="noopener" className="...">
@@ -765,7 +758,7 @@ Reemplazar tabs M/F actuales con dos botones pill: activo `bg-court text-court-f
 
 1. Aceptar `searchParams: { week?: string }`.
 2. Sin `week`: cargar la semana actual (lógica existente: la más reciente con matches).
-3. Con `week`: cargar esa semana exacta. Filtrar para no-admin: solo `weekStatus IN ('fixture_publicado', 'cerrada')`. Si la semana navegada no califica para ese viewer, redirigir a `/fixture` con mensaje.
+3. Con `week`: cargar esa semana exacta. Filtrar para no-admin: semanas con fixture publicado/cerradas según la lógica actual del código. Si la semana navegada no califica para ese viewer, redirigir a `/fixture` con mensaje.
 4. Calcular `prevWeekId`/`nextWeekId`:
 
 ```ts
@@ -774,7 +767,7 @@ const prev = await db.select({ id: weeks.id })
   .where(and(
     eq(weeks.seasonId, currentWeek.seasonId),
     lt(weeks.startsOn, currentWeek.startsOn),
-    inArray(weeks.status, ['fixture_publicado', 'cerrada']),
+    inArray(weeks.status, ['cerrada']),
   ))
   .orderBy(desc(weeks.startsOn))
   .limit(1);
@@ -784,7 +777,7 @@ const next = await db.select({ id: weeks.id })
   .where(and(
     eq(weeks.seasonId, currentWeek.seasonId),
     gt(weeks.startsOn, currentWeek.startsOn),
-    inArray(weeks.status, ['fixture_publicado', 'cerrada']),
+    inArray(weeks.status, ['cerrada']),
   ))
   .orderBy(asc(weeks.startsOn))
   .limit(1);

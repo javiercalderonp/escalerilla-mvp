@@ -536,18 +536,18 @@ Los agentes pueden instalar versiones incompatibles si no se fijan explícitamen
 | NextAuth (Auth.js) | `^5.0.0` |
 | Tailwind CSS | `^4.0.0` |
 | shadcn/ui | última (copiada al repo) |
-| Zod | `^3.23.0` |
+| Zod | `^4.3.0` |
 | date-fns | `^4.1.0` |
 | date-fns-tz | `^3.2.0` |
-| lucide-react | `^0.453.0` |
-| Vitest | `^2.1.0` |
+| lucide-react | `^1.11.0` |
+| Vitest | `^4.1.0` |
 | Playwright | `^1.48.0` |
-| Biome | `^1.9.0` |
-| pnpm | `^9.0.0` |
+| Biome | `^2.4.0` |
+| npm | lockfile `package-lock.json` |
 
 ### Consecuencias
 
-- Lockfile (`pnpm-lock.yaml`) commiteado.
+- Lockfile (`package-lock.json`) commiteado.
 - Actualizaciones mayores requieren ADR nuevo.
 
 ---
@@ -567,7 +567,7 @@ Usar **Biome** para lint + format. Configuración en `biome.json`.
 
 ### Consecuencias
 
-- Un solo comando: `pnpm biome check --write .`.
+- Un solo comando: `npm run lint:fix`.
 - Integraciones de IDE disponibles (VSCode extension).
 - Si alguna regla no está soportada, se documenta y se busca workaround.
 

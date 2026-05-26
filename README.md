@@ -1,36 +1,93 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Escalerilla MVP
 
-## Getting Started
+Aplicacion Next.js para administrar la escalerilla de tenis del Club La Dehesa: ranking publico, disponibilidad semanal, generacion de fixture, resultados, desafios, congelaciones, campeonatos internos, onboarding de jugadores y correos operativos.
 
-First, run the development server:
+## Stack
+
+- Next.js 16 App Router, React 19 y TypeScript.
+- Tailwind CSS 4 y componentes propios basados en shadcn/ui.
+- Auth.js / NextAuth con Google y credenciales.
+- Postgres en Neon via Drizzle ORM.
+- Vitest para reglas de negocio y validaciones.
+- Vercel para hosting y cron jobs.
+
+## Desarrollo local
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abrir `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Comandos utiles:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run lint
+npm run test
+npm run build
+npm run db:generate
+npm run db:push
+npm run db:seed
+```
 
-## Learn More
+## Variables de entorno
 
-To learn more about Next.js, take a look at the following resources:
+Crear `.env` local con:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+DATABASE_URL=
+AUTH_SECRET=
+AUTH_GOOGLE_ID=
+AUTH_GOOGLE_SECRET=
+ADMIN_EMAILS=
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+EMAILS_ENABLED=false
+EMAIL_FROM=
+EMAIL_TEST_RECIPIENT=
+RESEND_API_KEY=
+MATCH_RESULT_EMAILS_ENABLED=false
+MATCH_RESULT_EMAIL_FROM=
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Notas:
 
-## Deploy on Vercel
+- `ADMIN_EMAILS` acepta correos separados por coma.
+- Si `AUTH_GOOGLE_ID` y `AUTH_GOOGLE_SECRET` estan vacios, el login con Google no se registra y queda disponible el provider de credenciales.
+- No commitear secretos ni archivos `client_secret*.json`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Rutas principales
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `/`: home con ranking, partidos recientes y explicacion para jugadores.
+- `/ranking` y `/ranking/[categoria]`: ranking publico H/M y perfil de jugador.
+- `/fixture`: programacion semanal, navegacion historica e impresion.
+- `/disponibilidad`: declaracion semanal del jugador.
+- `/mi-perfil`: perfil, contadores, zona desafiable y partidos.
+- `/ingresar-resultado`: ingreso de resultado por jugador/admin.
+- `/onboarding`: perfil obligatorio de jugador.
+- `/admin/jugadores`: jugadores y perfil deportivo.
+- `/admin/semanas`: semanas, disponibilidad consolidada y fixture.
+- `/admin/desafios`: registro de desafios.
+- `/admin/congelaciones`: congelaciones justificadas.
+- `/admin/campeonatos`: podios y bonus de campeonatos.
+- `/admin/emails/preview`: preview de templates de correo.
+- `/reglamento`: reglamento publico.
+
+## Documentacion
+
+- [docs/PROJECT_BRIEF.md](docs/PROJECT_BRIEF.md): contexto y objetivo del producto.
+- [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md): historias y reglas del reglamento.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): arquitectura tecnica.
+- [docs/DATA_MODEL.md](docs/DATA_MODEL.md): schema y convenciones de datos.
+- [docs/TASKS.md](docs/TASKS.md): estado del backlog.
+- [docs/ADMIN_GUIDE.md](docs/ADMIN_GUIDE.md): guia operativa del administrador.
+- [docs/USER_FEATURES_PRESENTATION.md](docs/USER_FEATURES_PRESENTATION.md): presentacion de funcionalidades de cara al usuario.
+- [docs/M8_REDESIGN.md](docs/M8_REDESIGN.md): detalle historico del rediseño/perfil enriquecido.
+
+## Cron jobs
+
+`vercel.json` configura:
+
+- `/api/cron/recordatorio-disponibilidad`, lunes 14:00 UTC.
+
+Tambien existe `/api/cron/inactividad` para penalizaciones de inactividad; mantener su programacion alineada con la decision operativa vigente antes de activarlo en Vercel.

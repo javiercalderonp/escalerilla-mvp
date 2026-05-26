@@ -18,25 +18,25 @@
 
 | Capa | Tecnología | Versión mínima |
 |---|---|---|
-| Framework | **Next.js** (App Router, Turbopack) | `^15.0.0` |
-| Lenguaje | TypeScript | `^5.6.0` |
+| Framework | **Next.js** (App Router, Turbopack) | `16.2.x` |
+| Lenguaje | TypeScript | `^5.0.0` |
 | UI | Tailwind CSS + shadcn/ui | Tailwind `^4.0.0` |
-| Íconos | `lucide-react` | `^0.453.0` |
+| Íconos | `lucide-react` | `^1.11.0` |
 | Backend | Route Handlers / Server Actions dentro del mismo Next.js | — |
 | Base de datos | **Postgres** (Neon, provisionado vía Vercel Marketplace) | — |
-| ORM | **Drizzle** (ADR-008) | Drizzle `^0.35`, Kit `^0.28` |
+| ORM | **Drizzle** (ADR-008) | Drizzle `^0.45`, Kit `^0.31` |
 | Auth | **NextAuth (Auth.js)** con proveedor Google (ADR-009) | `^5.0.0` |
-| Validación | Zod | `^3.23.0` |
+| Validación | Zod | `^4.3.0` |
 | Fechas | date-fns + date-fns-tz (`America/Santiago`) | `^4.1.0` / `^3.2.0` |
-| Tests unit | Vitest | `^2.1.0` |
+| Tests unit | Vitest | `^4.1.0` |
 | Tests e2e | Playwright (1 happy path) | `^1.48.0` |
-| Lint + format | **Biome** (reemplaza ESLint + Prettier) | `^1.9.0` |
-| Package manager | pnpm | `^9.0.0` |
+| Lint + format | **Biome** | `^2.4.0` |
+| Package manager | npm | lockfile `package-lock.json` |
 | Hosting | **Vercel** con Fluid Compute (Node.js 24 runtime) | Node `24.x` |
 | Tareas programadas | **Vercel Cron** (para recalcular penalización por inactividad) | — |
 | Env vars | `vercel env` (preview / production) | — |
 
-Ver ADR-023 y ADR-024 para el detalle de versiones y herramientas elegidas.
+Ver `package.json` para las versiones efectivamente instaladas.
 
 **Notas del entorno Vercel**:
 
@@ -92,9 +92,11 @@ Semana operativa de la escalerilla. Una por temporada por semana ISO.
 |---|---|---|
 | id | uuid | pk |
 | season_id | uuid | fk → `seasons.id` |
-| iso_week | int | 1..53 |
-| start_date | date | lunes de la semana |
-| status | enum | `disponibilidad_abierta` \| `disponibilidad_cerrada` \| `fixture_publicado` \| `cerrada` |
+| starts_on | date | lunes de la semana |
+| ends_on | date | domingo de la semana |
+| status | enum | `borrador` \| `abierta` \| `cerrada` |
+| availability_opens_at | timestamptz | nullable |
+| availability_closes_at | timestamptz | nullable |
 
 ### `availability`
 Declaración de disponibilidad de un jugador para una semana.
@@ -228,20 +230,22 @@ Para acciones de admin.
 | Ruta | Acceso | Propósito |
 |---|---|---|
 | `/` | público | Landing + ranking H y M (tabs). |
-| `/fixture` | público | Fixture de la semana actual. |
-| `/login` | público | Google Sign-In. |
+| `/fixture` | público | Fixture publicado, navegación semanal e impresión. |
+| `/login` | público | Google Sign-In / credenciales. |
 | `/disponibilidad` | jugador | Formulario semanal (días + cupo). |
 | `/mi-perfil` | jugador | Mis partidos, mis contadores, mi zona desafiable. |
-| `/ranking/[categoria]` | público | Vista detallada por categoría con historial. |
-| `/admin` | admin | Dashboard con estado semana actual + accesos rápidos. |
+| `/ranking` | público | Entrada al ranking por categoría. |
+| `/ranking/[categoria]` | público | Vista detallada por categoría con historial y perfil de jugador. |
 | `/admin/jugadores` | admin | CRUD de jugadores. |
 | `/admin/semanas` | admin | Abrir/cerrar semana, ver disponibilidad consolidada. |
 | `/admin/semanas/[id]/fixture` | admin | Generar propuesta, editar, publicar, copiar texto para WhatsApp. |
-| `/admin/partidos` | admin | Registrar resultado / editar / marcar W.O. |
-| `/admin/desafios` | admin | Registrar partido tipo desafío (con validación RN-06). |
-| `/admin/congelaciones` | admin | Registrar freeze. |
-| `/admin/campeonatos` | admin | Registrar campeonato + podio + partidos individuales. |
-| `/admin/auditoria` | admin | Ver log. |
+| `/ingresar-resultado` | jugador/admin | Reportar o registrar resultado / W.O. / empate. |
+| `/admin/desafios` | admin | Registrar desafíos y overrides justificados. |
+| `/admin/congelaciones` | admin | Gestionar congelaciones. |
+| `/admin/campeonatos` | admin | Registrar podios y bonus de campeonatos. |
+| `/admin/emails/preview` | admin | Previsualizar templates de correo. |
+| `/onboarding` | jugador | Completar perfil obligatorio y disponibilidad general. |
+| `/reglamento` | público | Reglamento público de la temporada. |
 
 ---
 
@@ -484,12 +488,12 @@ escalerilla-mvp/
 
 Un resumen afirmativo para evitar ambigüedad:
 
-1. Seguir el **orden de milestones** de `TASKS.md` (M0 → M7).
-2. Escribir el **schema Drizzle exacto** de `DATA_MODEL.md` §2. No agregar campos ni tablas.
+1. Seguir el **orden de milestones** de `TASKS.md` y el estado vigente del backlog.
+2. Leer primero el schema ejecutable en `src/lib/db/schema.ts` antes de tocar `DATA_MODEL.md` o generar migraciones.
 3. Implementar las **reglas de negocio** según `BUSINESS_RULES_TESTS.md` y escribir los tests ahí indicados.
 4. Seguir los **wireframes y copy** de `UX_SPEC.md`.
 5. Usar **Server Components por defecto**; agregar `'use client'` solo cuando sea necesario (interacción o hook).
 6. Todas las mutaciones van por **Server Actions** con Zod en la entrada.
 7. Persistir **todo cambio relevante** en `audit_log`.
-8. Al terminar cada milestone, correr `pnpm test` y dejar en verde.
+8. Al terminar cada milestone, correr `npm run test` y dejar en verde.
 9. Preguntar al humano si una ambigüedad no está cubierta por los docs — **no inventar**.

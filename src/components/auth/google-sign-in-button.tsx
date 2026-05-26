@@ -6,7 +6,7 @@ export function GoogleSignInButton() {
       action={async () => {
         "use server";
         await signIn("google", {
-          redirectTo: "/",
+          redirectTo: "/onboarding",
         });
       }}
     >
