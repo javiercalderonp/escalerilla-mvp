@@ -355,6 +355,10 @@ export async function playerReportResultAction(
       if (!sets?.length) return { error: "Faltan los sets del partido" };
 
       const validation = isValidMatchScore(sets, fmt, false);
+      if (!validation.valid) {
+        return { error: validation.reason };
+      }
+
       if (validation.winnerIndex == null) {
         return { error: "No se determinó un ganador claro" };
       }
