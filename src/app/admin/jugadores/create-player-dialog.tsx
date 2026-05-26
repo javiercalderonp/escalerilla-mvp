@@ -84,16 +84,24 @@ export function CreatePlayerDialog() {
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="space-y-2 text-sm text-slate-700 sm:col-span-2">
                 <span className="font-medium">Nombre completo</span>
-                <input
-                  name="fullName"
-                  required
-                  className={inputClass}
-                />
+                <input name="fullName" required className={inputClass} />
               </label>
 
               <label className="space-y-2 text-sm text-slate-700">
                 <span className="font-medium">Email</span>
                 <input name="email" type="email" className={inputClass} />
+              </label>
+
+              <label className="space-y-2 text-sm text-slate-700">
+                <span className="font-medium">Teléfono</span>
+                <input
+                  name="phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="+56912345678"
+                  className={inputClass}
+                />
               </label>
 
               <label className="space-y-2 text-sm text-slate-700">
@@ -141,11 +149,7 @@ export function CreatePlayerDialog() {
 
               <label className="space-y-2 text-sm text-slate-700 sm:col-span-2">
                 <span className="font-medium">Notas</span>
-                <textarea
-                  name="notes"
-                  rows={3}
-                  className={inputClass}
-                />
+                <textarea name="notes" rows={3} className={inputClass} />
               </label>
             </div>
 

@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 
@@ -14,6 +14,7 @@ import {
   matchSets,
   players,
   rankingEvents,
+  weeks,
 } from "@/lib/db/schema";
 import { notifyChallengeCreated } from "@/lib/email/challenge";
 import { notifyManualDrawMatchCreated } from "@/lib/email/match-draw";
@@ -370,9 +371,16 @@ export async function createMatchAction(formData: FormData) {
     throw new Error("Los jugadores deben pertenecer a la misma categoría");
   }
 
+  const [latestWeek] = await dbClient
+    .select({ id: weeks.id })
+    .from(weeks)
+    .orderBy(desc(weeks.startsOn))
+    .limit(1);
+
   const [match] = await dbClient
     .insert(matches)
     .values({
+      weekId: latestWeek?.id ?? null,
       player1Id: parsed.data.player1Id,
       player2Id: parsed.data.player2Id,
       category: player1.gender,
@@ -388,6 +396,7 @@ export async function createMatchAction(formData: FormData) {
     entityId: match.id,
     payload: {
       ...parsed.data,
+      weekId: latestWeek?.id ?? null,
       category: player1.gender,
       type: parsed.data.isChallenge ? "desafio" : "sorteo",
     },
@@ -408,6 +417,9 @@ export async function createMatchAction(formData: FormData) {
   }
 
   revalidatePath("/fixture");
+  if (latestWeek) {
+    revalidatePath(`/admin/semanas/${latestWeek.id}/fixture`);
+  }
 }
 
 export async function deleteMatchAction(formData: FormData) {

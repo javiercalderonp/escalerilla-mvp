@@ -19,12 +19,36 @@ import {
   users,
 } from "@/lib/db/schema";
 import { refreshHistoricalBestRanking } from "@/lib/ranking";
+import { phoneSchema } from "@/lib/validation/phone";
+
+const optionalPhoneSchema = z
+  .string()
+  .trim()
+  .optional()
+  .transform((value, ctx) => {
+    if (!value) {
+      return "";
+    }
+
+    const parsed = phoneSchema.safeParse(value);
+
+    if (!parsed.success) {
+      ctx.addIssue({
+        code: "custom",
+        message: parsed.error.issues[0]?.message ?? "Teléfono inválido",
+      });
+      return z.NEVER;
+    }
+
+    return parsed.data;
+  });
 
 const playerSchema = z.object({
   fullName: z.string().trim().min(3, "Nombre demasiado corto").max(120),
   email: z
     .union([z.string().trim().email("Email inválido"), z.literal("")])
     .optional(),
+  phone: optionalPhoneSchema,
   gender: z.enum(["M", "F"]),
   status: z.enum(["pendiente", "activo", "congelado", "retirado"]),
   level: z
@@ -196,6 +220,7 @@ export async function createPlayerAction(formData: FormData) {
   const parsed = playerSchema.safeParse({
     fullName: formData.get("fullName"),
     email: formData.get("email"),
+    phone: formData.get("phone"),
     gender: formData.get("gender"),
     status: formData.get("status") ?? "activo",
     level: formData.get("level") ?? "",
@@ -210,6 +235,7 @@ export async function createPlayerAction(formData: FormData) {
   const payload = {
     fullName: parsed.data.fullName,
     email: normalizeOptional(parsed.data.email),
+    phone: normalizeOptional(parsed.data.phone),
     gender: parsed.data.gender,
     status: parsed.data.status,
     level:
@@ -341,6 +367,7 @@ export async function updatePlayerAction(formData: FormData) {
   const parsed = playerSchema.safeParse({
     fullName: formData.get("fullName"),
     email: formData.get("email"),
+    phone: formData.get("phone"),
     gender: formData.get("gender"),
     status: formData.get("status"),
     level: formData.get("level") ?? "",
@@ -355,6 +382,7 @@ export async function updatePlayerAction(formData: FormData) {
   const payload = {
     fullName: parsed.data.fullName,
     email: normalizeOptional(parsed.data.email),
+    phone: normalizeOptional(parsed.data.phone),
     gender: parsed.data.gender,
     status: parsed.data.status,
     level:

@@ -371,25 +371,49 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
   const selectedMatches = selectedCategory === "M" ? matchesM : matchesF;
   const matchIds = selectedMatches.map((m) => m.id);
 
-  const buildWeekGroups = (rows: typeof weekMatches) =>
-    rows.reduce<
+  const buildWeekGroups = (rows: typeof weekMatches) => {
+    const latestVisibleWeek = rows.reduce<{
+      startsOn: string;
+      endsOn: string;
+    } | null>((latest, match) => {
+      const startsOn =
+        match.weekStartsOn ??
+        (match.playedOn ? getWeekStart(match.playedOn) : null);
+      const endsOn =
+        match.weekEndsOn ?? (startsOn ? getWeekEnd(startsOn) : null);
+
+      if (!startsOn || !endsOn) return latest;
+      if (!latest || startsOn > latest.startsOn) return { startsOn, endsOn };
+      return latest;
+    }, null);
+
+    return rows.reduce<
       Array<{
         key: string;
         label: string;
         matches: typeof weekMatches;
       }>
     >((groups, match) => {
+      const playedOnWeekStartsOn = match.playedOn
+        ? getWeekStart(match.playedOn)
+        : null;
       const startsOn =
         match.weekStartsOn ??
-        (match.playedOn ? getWeekStart(match.playedOn) : null);
+        playedOnWeekStartsOn ??
+        latestVisibleWeek?.startsOn ??
+        null;
       const endsOn =
-        match.weekEndsOn ?? (startsOn ? getWeekEnd(startsOn) : null);
+        match.weekEndsOn ??
+        (playedOnWeekStartsOn
+          ? getWeekEnd(playedOnWeekStartsOn)
+          : latestVisibleWeek?.endsOn) ??
+        (startsOn ? getWeekEnd(startsOn) : null);
       const week = {
-        key: startsOn ?? "sin-semana",
+        key: startsOn ?? "partidos-recientes",
         label:
           startsOn && endsOn
             ? formatWeekHeading(startsOn)
-            : "Sin semana asignada",
+            : "Partidos recientes",
       };
       const current = groups.at(-1);
 
@@ -401,6 +425,7 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
 
       return groups;
     }, []);
+  };
 
   const [allSets, pointRows] = matchIds.length
     ? await Promise.all([

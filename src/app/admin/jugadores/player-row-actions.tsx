@@ -33,6 +33,7 @@ export type PlayerRowActionData = {
   id: string;
   fullName: string;
   email: string | null;
+  phone: string | null;
   gender: "M" | "F";
   initialPoints: number;
   level: string | null;
@@ -64,6 +65,19 @@ function PlayerFields({ player }: { player: PlayerRowActionData }) {
           name="email"
           type="email"
           defaultValue={player.email ?? ""}
+          className={inputClass}
+        />
+      </label>
+
+      <label className="space-y-2 text-sm text-slate-700">
+        <span className="font-medium">Teléfono</span>
+        <input
+          name="phone"
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
+          placeholder="+56912345678"
+          defaultValue={player.phone ?? ""}
           className={inputClass}
         />
       </label>
