@@ -219,6 +219,7 @@
 
 ## Backlog transversal (no bloquea milestones)
 
+- [ ] 🟡 Confirmación de email con código para cuentas creadas con email/password (no Google)
 - [ ] 🟢 Dashboard admin con métricas: jugadores activos, partidos de la semana, % participación
 - [ ] 🟢 Export a PDF del fixture publicado
 - [ ] 🟢 Notificación por email cuando se publica fixture (requiere decisión)
