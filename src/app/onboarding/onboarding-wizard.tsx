@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState, useTransition } from "react";
 import { submitOnboarding } from "@/app/onboarding/actions";
 import { AvailabilityGrid } from "@/components/availability/availability-grid";
@@ -17,6 +18,8 @@ import {
   onboardingStep1Schema,
   onboardingStep2Schema,
 } from "@/lib/validation/player";
+import iconMan from "../../../icon-man.png";
+import iconWoman from "../../../icon-woman.png";
 
 const phoneCountries = [
   {
@@ -258,7 +261,7 @@ export function OnboardingWizard() {
   }
 
   return (
-    <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-black/5 sm:p-8">
+    <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 sm:rounded-3xl sm:p-8">
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3 text-sm">
           <span className="font-medium text-court">Paso {step} de 3</span>
@@ -273,11 +276,11 @@ export function OnboardingWizard() {
       </div>
 
       {step === 1 ? (
-        <div className="mt-8 space-y-5">
-          <div className="grid gap-4 sm:grid-cols-2">
+        <div className="mt-5 space-y-4 sm:mt-8 sm:space-y-5">
+          <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
             <Field label="Nombre" error={errors.firstName}>
               <input
-                className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:border-court"
+                className="w-full rounded-2xl border border-border px-4 py-2.5 text-sm outline-none focus:border-court sm:py-3"
                 value={values.firstName}
                 onChange={(event) =>
                   updateValue("firstName", formatPersonName(event.target.value))
@@ -286,7 +289,7 @@ export function OnboardingWizard() {
             </Field>
             <Field label="Apellido" error={errors.lastName}>
               <input
-                className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:border-court"
+                className="w-full rounded-2xl border border-border px-4 py-2.5 text-sm outline-none focus:border-court sm:py-3"
                 value={values.lastName}
                 onChange={(event) =>
                   updateValue("lastName", formatPersonName(event.target.value))
@@ -296,28 +299,42 @@ export function OnboardingWizard() {
           </div>
 
           <Field label="Categoría" error={errors.gender}>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
               <ToggleCard
                 active={values.gender === "M"}
+                ariaLabel="Hombres"
                 onClick={() => updateValue("gender", "M")}
               >
-                Hombres
+                <Image
+                  src={iconMan}
+                  alt=""
+                  aria-hidden="true"
+                  className="size-10 object-contain sm:size-11"
+                />
+                <span className="sr-only">Hombres</span>
               </ToggleCard>
               <ToggleCard
                 active={values.gender === "F"}
+                ariaLabel="Mujeres"
                 onClick={() => updateValue("gender", "F")}
               >
-                Mujeres
+                <Image
+                  src={iconWoman}
+                  alt=""
+                  aria-hidden="true"
+                  className="size-10 object-contain sm:size-11"
+                />
+                <span className="sr-only">Mujeres</span>
               </ToggleCard>
             </div>
           </Field>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
             <Field label="Fecha de nacimiento" error={errors.birthDate}>
               <input
                 type="date"
                 max={getMaxBirthDate()}
-                className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:border-court"
+                className="w-full rounded-2xl border border-border px-4 py-2.5 text-sm outline-none focus:border-court sm:py-3"
                 value={values.birthDate}
                 onChange={(event) =>
                   updateValue("birthDate", event.target.value)
@@ -335,7 +352,7 @@ export function OnboardingWizard() {
 
           <Field label="RUT" error={errors.rut}>
             <input
-              className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:border-court"
+              className="w-full rounded-2xl border border-border px-4 py-2.5 text-sm outline-none focus:border-court sm:py-3"
               placeholder="12.345.678-5"
               value={values.rut}
               onChange={(event) => updateValue("rut", event.target.value)}
@@ -460,7 +477,7 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className="block space-y-2 text-sm">
+    <div className="block space-y-1.5 text-sm sm:space-y-2">
       <span className="font-medium text-foreground">{label}</span>
       {children}
       {error ? <span className="text-xs text-rose-600">{error}</span> : null}
@@ -500,7 +517,7 @@ function PhoneInput({
 
   return (
     <div
-      className={`flex min-h-12 w-full overflow-hidden rounded-2xl border bg-background transition focus-within:border-court ${
+      className={`flex min-h-11 w-full overflow-hidden rounded-2xl border bg-background transition focus-within:border-court sm:min-h-12 ${
         invalid ? "border-rose-300" : "border-border"
       }`}
     >
@@ -522,7 +539,7 @@ function PhoneInput({
       </select>
       <input
         aria-label="Número de teléfono"
-        className="min-w-0 flex-1 bg-transparent px-4 py-3 text-sm outline-none placeholder:text-muted-foreground"
+        className="min-w-0 flex-1 bg-transparent px-4 py-2.5 text-sm outline-none placeholder:text-muted-foreground sm:py-3"
         inputMode="tel"
         autoComplete="tel-national"
         placeholder={selectedCountry.placeholder}
@@ -578,18 +595,21 @@ function formatLocalPhoneNumber(
 
 function ToggleCard({
   active,
+  ariaLabel,
   onClick,
   children,
 }: {
   active: boolean;
+  ariaLabel?: string;
   onClick: () => void;
   children: React.ReactNode;
 }) {
   return (
     <button
       type="button"
+      aria-label={ariaLabel}
       onClick={onClick}
-      className={`rounded-2xl border px-4 py-3 text-sm font-medium transition ${
+      className={`flex min-h-11 items-center justify-center rounded-2xl border px-4 py-2.5 text-sm font-medium transition sm:min-h-12 sm:py-3 ${
         active
           ? "border-court bg-court text-court-foreground"
           : "border-border bg-background"

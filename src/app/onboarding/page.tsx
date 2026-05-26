@@ -44,8 +44,8 @@ export default async function OnboardingPage() {
               Tu solicitud quedó pendiente de aprobación
             </h1>
             <p className="mt-3 text-sm leading-6 text-slate-600">
-              Ya guardamos tu perfil. Como no encontramos un registro activo en la
-              escalerilla actual asociado a tu correo o teléfono, un
+              Ya guardamos tu perfil. Como no encontramos un registro activo en
+              la escalerilla actual asociado a tu correo o teléfono, un
               administrador debe revisar y aceptar tu incorporación antes de que
               aparezcas en el ranking.
             </p>
@@ -60,16 +60,16 @@ export default async function OnboardingPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
-      <div className="w-full space-y-6">
-        <section className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-black/5">
+    <div className="mx-auto flex w-full max-w-3xl flex-1 px-4 py-5 sm:px-6 sm:py-10">
+      <div className="w-full space-y-4 sm:space-y-6">
+        <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 sm:rounded-3xl sm:p-8">
           <p className="text-sm font-medium text-court">
             Bienvenido a la escalerilla
           </p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 sm:mt-3 sm:text-3xl">
             Completa tu perfil antes de entrar
           </h1>
-          <p className="mt-3 text-sm leading-6 text-slate-600">
+          <p className="mt-2 text-sm leading-5 text-slate-600 sm:mt-3 sm:leading-6">
             Necesitamos tus datos básicos y tu perfil tenístico para habilitar
             ranking, programación y disponibilidad.
           </p>
