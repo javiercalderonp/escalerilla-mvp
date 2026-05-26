@@ -130,6 +130,7 @@ function PlayerScoreLine({
   playerIndex: 1 | 2;
 }) {
   const isLoser = hasWinner && !isWinner;
+  const initials = getInitials(name);
 
   return (
     <div className="flex items-center gap-2.5">
@@ -146,13 +147,13 @@ function PlayerScoreLine({
 
       {/* Avatar circle */}
       <span
-        className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+        className={`hidden size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold sm:flex ${
           isWinner
             ? "bg-foreground text-background"
             : "bg-muted text-muted-foreground"
         }`}
       >
-        {getInitials(name)}
+        {initials}
       </span>
 
       {/* Name + points */}
@@ -161,8 +162,10 @@ function PlayerScoreLine({
           className={`truncate text-sm leading-tight ${
             isLoser ? "text-muted-foreground" : "font-semibold text-foreground"
           }`}
+          title={name}
         >
-          {name}
+          <span className="sm:hidden">{initials}</span>
+          <span className="hidden sm:inline">{name}</span>
         </p>
         {points !== null && (
           <p

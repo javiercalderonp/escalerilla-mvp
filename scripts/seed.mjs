@@ -7,8 +7,24 @@ if (!databaseUrl) {
 }
 
 const sql = neon(databaseUrl);
+const defaultVisibility = JSON.stringify({
+  phone: 'players',
+  rut: 'admin',
+  birthDate: 'private',
+});
+const joinedLadderOn = '2026-01-01';
 
 const players = [
+  ['Roger Federer', 'escalerillaclubdegolf@gmail.com', 'M', 10000],
+  ['Rafael Nadal', 'rafael.nadal@club.cl', 'M', 9000],
+  ['Marcelo Rios', 'marcelo.rios@club.cl', 'M', 8000],
+  ['Andre Agassi', 'andre.agassi@club.cl', 'M', 7000],
+  ['Nicolas Massu', 'nicolas.massu@club.cl', 'M', 6000],
+  ['Nick Kyrgios', 'nick.kyrgios@club.cl', 'M', 5000],
+  ['Fernando Gonzalez', 'fernando.gonzalez@club.cl', 'M', 4000],
+  ['Björn Borgm', 'bjorn.borgm@club.cl', 'M', 3000],
+  ['Boris Becker', 'boris.becker@club.cl', 'M', 2000],
+  ['Pete Sampras', 'pete.sampras@club.cl', 'M', 1000],
   ['Juan Pérez', 'juan.perez@club.cl', 'M', 420],
   ['Pedro García', 'pedro.garcia@club.cl', 'M', 380],
   ['Diego Rojas', 'diego.rojas@club.cl', 'M', 350],
@@ -23,10 +39,40 @@ const players = [
 await sql`insert into seasons (year, status) values (2026, 'activa') on conflict (year) do nothing`;
 
 for (const [fullName, email, gender, points] of players) {
+  const [firstName, ...lastNameParts] = fullName.split(' ');
+  const lastName = lastNameParts.join(' ');
+
   await sql`
-    insert into players (full_name, email, gender, status, initial_points)
-    values (${fullName}, ${email}, ${gender}, 'activo', 0)
-    on conflict (email) do update set full_name = excluded.full_name, gender = excluded.gender
+    insert into players (
+      full_name,
+      first_name,
+      last_name,
+      email,
+      gender,
+      status,
+      initial_points,
+      joined_ladder_on,
+      visibility
+    )
+    values (
+      ${fullName},
+      ${firstName},
+      ${lastName},
+      ${email},
+      ${gender},
+      'activo',
+      ${points},
+      ${joinedLadderOn},
+      ${defaultVisibility}::jsonb
+    )
+    on conflict (email) do update set
+      full_name = excluded.full_name,
+      first_name = excluded.first_name,
+      last_name = excluded.last_name,
+      gender = excluded.gender,
+      initial_points = excluded.initial_points,
+      joined_ladder_on = excluded.joined_ladder_on,
+      visibility = coalesce(players.visibility, excluded.visibility)
   `;
 
   await sql`
