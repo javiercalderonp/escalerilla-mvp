@@ -36,6 +36,15 @@ function getInitials(fullName: string) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+function getMobilePlayerName(fullName: string) {
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length < 2) return fullName;
+
+  const [firstName] = parts;
+  const lastName = parts[parts.length - 1];
+  return `${firstName[0].toLocaleUpperCase("es-CL")}. ${lastName}`;
+}
+
 function formatDate(dateStr: string) {
   const [year, month, day] = dateStr.split("-");
   return `${day}/${month}/${year}`;
@@ -130,7 +139,7 @@ function PlayerScoreLine({
   playerIndex: 1 | 2;
 }) {
   const isLoser = hasWinner && !isWinner;
-  const initials = getInitials(name);
+  const mobileName = getMobilePlayerName(name);
 
   return (
     <div className="flex items-center gap-2.5">
@@ -153,7 +162,7 @@ function PlayerScoreLine({
             : "bg-muted text-muted-foreground"
         }`}
       >
-        {initials}
+        {getInitials(name)}
       </span>
 
       {/* Name + points */}
@@ -164,7 +173,7 @@ function PlayerScoreLine({
           }`}
           title={name}
         >
-          <span className="sm:hidden">{initials}</span>
+          <span className="sm:hidden">{mobileName}</span>
           <span className="hidden sm:inline">{name}</span>
         </p>
         {points !== null && (
