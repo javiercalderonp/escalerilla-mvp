@@ -66,10 +66,10 @@ export default async function OnboardingPage() {
           <p className="text-sm font-medium text-court">
             Bienvenido a la escalerilla
           </p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 sm:mt-3 sm:text-3xl">
+          <h1 className="mt-1.5 text-xl font-semibold tracking-tight text-slate-950 sm:mt-3 sm:text-3xl">
             Completa tu perfil antes de entrar
           </h1>
-          <p className="mt-2 text-sm leading-5 text-slate-600 sm:mt-3 sm:leading-6">
+          <p className="mt-2 hidden text-sm leading-5 text-slate-600 sm:mt-3 sm:block sm:leading-6">
             Necesitamos tus datos básicos y tu perfil tenístico para habilitar
             ranking, programación y disponibilidad.
           </p>

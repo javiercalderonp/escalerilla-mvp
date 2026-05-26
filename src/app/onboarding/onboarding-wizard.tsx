@@ -263,9 +263,8 @@ export function OnboardingWizard() {
   return (
     <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 sm:rounded-3xl sm:p-8">
       <div className="space-y-4">
-        <div className="flex items-center justify-between gap-3 text-sm">
+        <div className="flex items-center gap-3 text-sm">
           <span className="font-medium text-court">Paso {step} de 3</span>
-          <span className="text-muted-foreground">{progress}%</span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-muted">
           <div
@@ -305,12 +304,14 @@ export function OnboardingWizard() {
                 ariaLabel="Hombres"
                 onClick={() => updateValue("gender", "M")}
               >
-                <Image
-                  src={iconMan}
-                  alt=""
-                  aria-hidden="true"
-                  className="size-10 object-contain sm:size-11"
-                />
+                <span className="flex size-14 items-center justify-center rounded-full bg-court/10 sm:size-16">
+                  <Image
+                    src={iconMan}
+                    alt=""
+                    aria-hidden="true"
+                    className="size-10 object-contain sm:size-11"
+                  />
+                </span>
                 <span className="sr-only">Hombres</span>
               </ToggleCard>
               <ToggleCard
@@ -318,12 +319,14 @@ export function OnboardingWizard() {
                 ariaLabel="Mujeres"
                 onClick={() => updateValue("gender", "F")}
               >
-                <Image
-                  src={iconWoman}
-                  alt=""
-                  aria-hidden="true"
-                  className="size-10 object-contain sm:size-11"
-                />
+                <span className="flex size-14 items-center justify-center rounded-full bg-court/10 sm:size-16">
+                  <Image
+                    src={iconWoman}
+                    alt=""
+                    aria-hidden="true"
+                    className="size-10 object-contain sm:size-11"
+                  />
+                </span>
                 <span className="sr-only">Mujeres</span>
               </ToggleCard>
             </div>
