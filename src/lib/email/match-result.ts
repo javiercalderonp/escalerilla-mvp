@@ -156,18 +156,18 @@ function getSetsWon(details: MatchResultEmailDetails, playerId: string) {
     return details.winnerId === playerId ? "W.O." : "0";
   }
 
-  if (details.status === "empate") {
-    return "E";
+  const setsWon = details.sets.filter((set) => {
+    if (set.gamesP1 === set.gamesP2) return false;
+    const setWinnerId =
+      set.gamesP1 > set.gamesP2 ? details.player1.id : details.player2.id;
+    return setWinnerId === playerId;
+  }).length;
+
+  if (details.status === "empate" && setsWon === 0) {
+    return "1";
   }
 
-  return String(
-    details.sets.filter((set) => {
-      if (set.gamesP1 === set.gamesP2) return false;
-      const setWinnerId =
-        set.gamesP1 > set.gamesP2 ? details.player1.id : details.player2.id;
-      return setWinnerId === playerId;
-    }).length,
-  );
+  return String(setsWon);
 }
 
 function getCompactScore(details: MatchResultEmailDetails) {
@@ -487,7 +487,7 @@ function buildOpponentResultEmail(
                         <td width="33.33%" class="em-col-third" style="padding-left:10px;">
                           <div style="border:1px solid #e5eaf0;border-radius:7px;padding:14px;text-align:center;">
                             <div style="font-size:10px;font-weight:900;color:#5b6675;text-transform:uppercase;">Próximo sorteo</div>
-                            <div style="font-size:13px;font-weight:800;color:#0d1b2a;margin-top:8px;">Domingo</div>
+                            <div style="font-size:13px;font-weight:800;color:#0d1b2a;margin-top:8px;">Lunes</div>
                             <div style="font-size:12px;color:#5b6675;">Se publicará por la noche</div>
                           </div>
                         </td>
@@ -651,7 +651,7 @@ export function buildMatchResultEmail(
     <td width="33.33%" class="em-col-third" style="padding-left:10px;">
       <div style="border:1px solid #e5eaf0;border-radius:7px;padding:14px;text-align:center;">
         <div style="font-size:10px;font-weight:900;color:#5b6675;text-transform:uppercase;">Próximo sorteo</div>
-        <div style="font-size:13px;font-weight:800;color:#0d1b2a;margin-top:8px;">Domingo</div>
+        <div style="font-size:13px;font-weight:800;color:#0d1b2a;margin-top:8px;">Lunes</div>
         <div style="font-size:12px;color:#5b6675;">Se publicará por la noche</div>
       </div>
     </td>

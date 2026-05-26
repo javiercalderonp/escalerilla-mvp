@@ -301,16 +301,24 @@ function PlayerPrintLine({
       </div>
       <div className="flex gap-3 pl-1">
         {sets.length > 0 ? (
-          sets.map((set) => (
-            <span
-              key={set.setNumber}
-              className={`w-4 text-center text-sm tabular-nums ${
-                isLoser ? "text-muted-foreground" : "font-bold text-foreground"
-              }`}
-            >
-              {playerIndex === 1 ? set.gamesP1 : set.gamesP2}
-            </span>
-          ))
+          sets.map((set) => {
+            const playerGames = playerIndex === 1 ? set.gamesP1 : set.gamesP2;
+            const opponentGames = playerIndex === 1 ? set.gamesP2 : set.gamesP1;
+            const wonSet = playerGames > opponentGames;
+
+            return (
+              <span
+                key={set.setNumber}
+                className={`w-4 text-center text-sm tabular-nums ${
+                  wonSet
+                    ? "font-bold text-foreground"
+                    : "font-normal text-muted-foreground"
+                }`}
+              >
+                {playerGames}
+              </span>
+            );
+          })
         ) : (
           <span className="text-sm text-muted-foreground">—</span>
         )}

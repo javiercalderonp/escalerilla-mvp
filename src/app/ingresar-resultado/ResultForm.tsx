@@ -544,6 +544,8 @@ export function ResultForm({
   const [s3p1, setS3p1] = useState("");
   const [s3p2, setS3p2] = useState("");
   const [woWinnerId, setWoWinnerId] = useState("");
+  const [isRetirement, setIsRetirement] = useState(false);
+  const [retirementLoserId, setRetirementLoserId] = useState("");
 
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -588,9 +590,20 @@ export function ResultForm({
   const setsWonP2 = setsForReview.filter(
     (s) => parseInt(s.p2, 10) > parseInt(s.p1, 10),
   ).length;
+  const retirementLoserName =
+    retirementLoserId === displayPlayerId
+      ? displayPlayerName
+      : retirementLoserId === displayOpponentId
+        ? displayOpponentName
+        : null;
 
-  const derivedWinnerName =
-    format === "wo"
+  const derivedWinnerName = isRetirement
+    ? retirementLoserId === displayPlayerId
+      ? displayOpponentName
+      : retirementLoserId === displayOpponentId
+        ? displayPlayerName
+        : null
+    : format === "wo"
       ? woWinnerId === displayPlayerId
         ? displayPlayerName
         : woWinnerId === displayOpponentId
@@ -614,6 +627,8 @@ export function ResultForm({
     setS3p2("");
     setHasSet3(false);
     setWoWinnerId("");
+    setIsRetirement(false);
+    setRetirementLoserId("");
     setError(null);
   }
 
@@ -632,6 +647,8 @@ export function ResultForm({
     setS3p2("");
     setHasSet3(false);
     setWoWinnerId("");
+    setIsRetirement(false);
+    setRetirementLoserId("");
     setError(null);
   }
 
@@ -672,6 +689,38 @@ export function ResultForm({
     return sets;
   }
 
+  function buildOptionalSetsFromForm(): ParsedSet[] | undefined {
+    if (!format || format === "wo") return undefined;
+
+    const candidates = [
+      { setNumber: 1, playerGames: s1p1, opponentGames: s1p2 },
+      ...(format === "set_largo"
+        ? []
+        : [{ setNumber: 2, playerGames: s2p1, opponentGames: s2p2 }]),
+      ...(format === "mr3" && hasSet3
+        ? [{ setNumber: 3, playerGames: s3p1, opponentGames: s3p2 }]
+        : []),
+    ];
+    const sets: ParsedSet[] = [];
+
+    for (const candidate of candidates) {
+      if (candidate.playerGames === "" || candidate.opponentGames === "") {
+        continue;
+      }
+
+      sets.push(
+        buildSetFromDisplayOrder({
+          setNumber: candidate.setNumber,
+          playerGames: parseInt(candidate.playerGames, 10),
+          opponentGames: parseInt(candidate.opponentGames, 10),
+          shouldSwap: shouldSwapScores,
+        }),
+      );
+    }
+
+    return sets.length > 0 ? sets : undefined;
+  }
+
   function validateAndGoToReview() {
     if (matchSelection === null) {
       setError("Selecciona un partido");
@@ -689,7 +738,12 @@ export function ResultForm({
       setError("Indica quién ganó el W.O.");
       return;
     }
-    if (format !== "wo") {
+    if (isRetirement) {
+      if (!retirementLoserId) {
+        setError("Indica qué jugador se retiró");
+        return;
+      }
+    } else if (format !== "wo") {
       if (s1p1 === "" || s1p2 === "") {
         setError("Completa el puntaje del Set 1");
         return;
@@ -741,13 +795,16 @@ export function ResultForm({
       return;
     }
 
-    const sets = buildSetsFromForm();
+    const sets = isRetirement
+      ? buildOptionalSetsFromForm()
+      : buildSetsFromForm();
 
     const base = {
       format,
       playedOn: playedOn || undefined,
       sets,
       woWinnerId: format === "wo" ? woWinnerId : undefined,
+      retirementLoserId: isRetirement ? retirementLoserId : undefined,
     };
 
     const actionInput =
@@ -786,13 +843,15 @@ export function ResultForm({
 
         <div className="w-full rounded-2xl border border-slate-200 bg-white p-5">
           <p className="mb-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400">
-            {derivedWinnerName === displayPlayerName
-              ? `${displayPlayerName} derrotó a ${displayOpponentName}`
-              : derivedWinnerName === displayOpponentName
-                ? `${displayOpponentName} derrotó a ${displayPlayerName}`
-                : format === "empate"
-                  ? `${displayPlayerName} vs ${displayOpponentName}`
-                  : `${displayPlayerName} vs ${displayOpponentName}`}
+            {isRetirement && retirementLoserName
+              ? `${retirementLoserName} se retiró`
+              : derivedWinnerName === displayPlayerName
+                ? `${displayPlayerName} derrotó a ${displayOpponentName}`
+                : derivedWinnerName === displayOpponentName
+                  ? `${displayOpponentName} derrotó a ${displayPlayerName}`
+                  : format === "empate"
+                    ? `${displayPlayerName} vs ${displayOpponentName}`
+                    : `${displayPlayerName} vs ${displayOpponentName}`}
           </p>
 
           {format !== "wo" ? (
@@ -820,6 +879,11 @@ export function ResultForm({
                   </span>
                 ))}
               </div>
+              {isRetirement && retirementLoserName ? (
+                <p className="mt-3 text-center text-sm font-semibold text-rose-600">
+                  Retiro: {retirementLoserName}
+                </p>
+              ) : null}
             </>
           ) : (
             <p className="text-center text-sm font-medium text-slate-600">
@@ -934,8 +998,16 @@ export function ResultForm({
         <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
           <p className="text-sm text-slate-600">
-            El resultado será enviado a <strong>{displayOpponentName}</strong>{" "}
-            para su confirmación.
+            {isRetirement && retirementLoserName ? (
+              <>
+                Se registrará retiro de <strong>{retirementLoserName}</strong>.
+              </>
+            ) : (
+              <>
+                El resultado será enviado a{" "}
+                <strong>{displayOpponentName}</strong> para su confirmación.
+              </>
+            )}
           </p>
         </div>
 
@@ -1211,6 +1283,57 @@ export function ResultForm({
                     max={20}
                     ariaLabel="Set 3 super tie-break marcador rival"
                   />
+                </div>
+              )}
+            </div>
+          )}
+
+          {(format === "mr3" || format === "set_largo") && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-3">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={isRetirement}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setIsRetirement(checked);
+                    if (!checked) setRetirementLoserId("");
+                  }}
+                  className="mt-1 h-4 w-4 rounded border-slate-300 accent-clay"
+                />
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold text-slate-800">
+                    Un jugador se retiró
+                  </span>
+                  <span className="mt-0.5 block text-xs text-slate-500">
+                    Marca esto si el partido no terminó por lesión, abandono u
+                    otro retiro durante el juego.
+                  </span>
+                </span>
+              </label>
+
+              {isRetirement && (
+                <div className="mt-3">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    ¿Quién se retiró?
+                  </p>
+                  <div className="flex gap-3">
+                    <PlayerCard
+                      name={displayPlayerName}
+                      isSelected={retirementLoserId === displayPlayerId}
+                      onClick={() => setRetirementLoserId(displayPlayerId)}
+                    />
+                    <PlayerCard
+                      name={displayOpponentName}
+                      isSelected={retirementLoserId === displayOpponentId}
+                      onClick={() => {
+                        if (displayOpponentId) {
+                          setRetirementLoserId(displayOpponentId);
+                        }
+                      }}
+                      disabled={!displayOpponentId}
+                    />
+                  </div>
                 </div>
               )}
             </div>

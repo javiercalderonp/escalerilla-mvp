@@ -105,6 +105,18 @@ function calculateAge(birthDate: PlayerRow["players"]["birthDate"]) {
   return age;
 }
 
+function formatLastLogin(lastLoginAt: Date | null) {
+  if (!lastLoginAt) {
+    return "Nunca";
+  }
+
+  return new Intl.DateTimeFormat("es-CL", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "America/Santiago",
+  }).format(new Date(lastLoginAt));
+}
+
 type AdminPlayersPageProps = {
   searchParams?: Promise<{
     q?: string;
@@ -283,6 +295,14 @@ export default async function AdminPlayersPage({
                             {getCurrentPoints(row)}
                           </span>
                         </div>
+                        <div className="col-span-2">
+                          <span className="text-xs font-medium text-slate-400">
+                            Último ingreso
+                          </span>{" "}
+                          <span className="tabular-nums">
+                            {formatLastLogin(row.users?.lastLoginAt ?? null)}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   );
@@ -293,15 +313,16 @@ export default async function AdminPlayersPage({
               <div className="hidden rounded-2xl border border-slate-200 md:block">
                 <Table className="table-fixed text-xs sm:text-sm">
                   <colgroup>
-                    <col className="w-[18%]" />
-                    <col className="w-[20%]" />
+                    <col className="w-[16%]" />
+                    <col className="w-[17%]" />
+                    <col className="w-[6%]" />
+                    <col className="w-[9%]" />
+                    <col className="w-[10%]" />
+                    <col className="w-[5%]" />
+                    <col className="w-[5%]" />
                     <col className="w-[8%]" />
-                    <col className="w-[11%]" />
+                    <col className="w-[8%]" />
                     <col className="w-[12%]" />
-                    <col className="w-[6%]" />
-                    <col className="w-[6%]" />
-                    <col className="w-[8%]" />
-                    <col className="w-[7%]" />
                     <col className="w-[4%]" />
                   </colgroup>
                   <TableHeader className="bg-slate-50">
@@ -315,6 +336,7 @@ export default async function AdminPlayersPage({
                       <TableHead className="px-1.5 text-right">Pts.</TableHead>
                       <TableHead className="px-1.5">Estado</TableHead>
                       <TableHead className="px-1.5">Cuenta</TableHead>
+                      <TableHead className="px-1.5">Último ingreso</TableHead>
                       <TableHead className="px-2 text-right">
                         <span className="sr-only">Opciones</span>
                       </TableHead>
@@ -379,6 +401,16 @@ export default async function AdminPlayersPage({
                             ) : (
                               <span className="text-sm text-slate-400">—</span>
                             )}
+                          </TableCell>
+                          <TableCell className="px-1.5 text-slate-600">
+                            <div
+                              className="truncate tabular-nums"
+                              title={formatLastLogin(
+                                row.users?.lastLoginAt ?? null,
+                              )}
+                            >
+                              {formatLastLogin(row.users?.lastLoginAt ?? null)}
+                            </div>
                           </TableCell>
                           <TableCell className="px-2">
                             <PlayerRowActions

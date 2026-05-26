@@ -38,6 +38,7 @@ export type PlayerResultInput =
       playedOn?: string;
       sets?: ParsedSet[];
       woWinnerId?: string;
+      retirementLoserId?: string;
     }
   | {
       kind: "unscheduled";
@@ -47,6 +48,7 @@ export type PlayerResultInput =
       playedOn?: string;
       sets?: ParsedSet[];
       woWinnerId?: string;
+      retirementLoserId?: string;
     };
 
 type MatchRecord = {
@@ -57,6 +59,8 @@ type MatchRecord = {
 };
 
 function validateScoreInput(input: PlayerResultInput) {
+  if (input.retirementLoserId) return null;
+
   if (input.format === "wo") {
     if (!input.woWinnerId) {
       return "Debes indicar el ganador del W.O.";
@@ -156,6 +160,14 @@ export async function playerReportResultAction(
       return { error: "El ganador del W.O. debe ser uno de los jugadores" };
     }
 
+    if (
+      input.retirementLoserId &&
+      input.retirementLoserId !== match.player1Id &&
+      input.retirementLoserId !== match.player2Id
+    ) {
+      return { error: "El jugador retirado debe ser uno de los jugadores" };
+    }
+
     if (input.kind === "unscheduled") {
       const [created] = await db
         .insert(matches)
@@ -176,7 +188,60 @@ export async function playerReportResultAction(
       match = created;
     }
 
-    if (input.format === "wo") {
+    if (input.retirementLoserId) {
+      const loserId = input.retirementLoserId;
+      const winnerId =
+        loserId === match.player1Id ? match.player2Id : match.player1Id;
+
+      await db
+        .update(matches)
+        .set({
+          status: "wo",
+          format: null,
+          winnerId,
+          woLoserId: loserId,
+          playedOn: resultPlayedOn,
+          reportedAt: new Date(),
+          reportedById: actor.id,
+          confirmedAt: new Date(),
+          confirmedById: actor.id,
+        })
+        .where(eq(matches.id, match.id));
+
+      await db.insert(rankingEvents).values([
+        {
+          playerId: winnerId,
+          delta: 60,
+          reason: "wo_win" as const,
+          refType: "match",
+          refId: match.id,
+          note: "Retiro reportado por jugador",
+          registeredById: actor.id,
+        },
+        {
+          playerId: loserId,
+          delta: -20,
+          reason: "wo_loss" as const,
+          refType: "match",
+          refId: match.id,
+          note: "Retiro reportado por jugador",
+          registeredById: actor.id,
+        },
+      ]);
+
+      await db.insert(auditLog).values({
+        actorId: actor.id,
+        action: "match.player_report_retirement",
+        entityType: "match",
+        entityId: match.id,
+        payload: {
+          format: input.format,
+          winnerId,
+          loserId,
+          sets: input.sets ?? [],
+        },
+      });
+    } else if (input.format === "wo") {
       const woWinnerId = input.woWinnerId;
       if (!woWinnerId) return { error: "Debes indicar el ganador del W.O." };
 
