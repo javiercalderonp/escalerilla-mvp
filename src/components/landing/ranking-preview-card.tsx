@@ -12,6 +12,20 @@ type PreviewEntry = Pick<
   "id" | "position" | "fullName" | "points"
 >;
 
+const PREVIEW_ROW_COUNT = 10;
+const PREVIEW_PLACEHOLDER_ROWS = [
+  "preview-placeholder-1",
+  "preview-placeholder-2",
+  "preview-placeholder-3",
+  "preview-placeholder-4",
+  "preview-placeholder-5",
+  "preview-placeholder-6",
+  "preview-placeholder-7",
+  "preview-placeholder-8",
+  "preview-placeholder-9",
+  "preview-placeholder-10",
+];
+
 export function RankingPreviewCard({
   hombres,
   mujeres,
@@ -72,13 +86,13 @@ export function RankingPreviewCard({
       </div>
 
       {/* Player list */}
-      <div className="flex-1 divide-y divide-white/10 overflow-hidden">
+      <div className="flex-1 divide-y divide-white/10 overflow-hidden lg:min-h-[25rem]">
         {entries.map((entry) => {
           const [firstName, ...rest] = entry.fullName.split(" ");
           return (
             <div
               key={entry.id}
-              className="flex items-center gap-2.5 px-4 py-1.5 transition hover:bg-white/5"
+              className="flex h-10 items-center gap-2.5 px-4 transition hover:bg-white/5"
             >
               <span
                 className={`w-5 shrink-0 text-right text-xs tabular-nums ${positionStyle(entry.position)}`}
@@ -100,6 +114,16 @@ export function RankingPreviewCard({
             </div>
           );
         })}
+        {PREVIEW_PLACEHOLDER_ROWS.slice(
+          0,
+          Math.max(0, PREVIEW_ROW_COUNT - entries.length),
+        ).map((rowKey) => (
+          <div
+            key={`${category}-${rowKey}`}
+            aria-hidden="true"
+            className="h-10"
+          />
+        ))}
       </div>
     </div>
   );
