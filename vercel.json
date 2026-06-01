@@ -2,7 +2,11 @@
   "crons": [
     {
       "path": "/api/cron/recordatorio-disponibilidad",
-      "schedule": "0 14 * * 1"
+      "schedule": "0 17,18 * * 1"
+    },
+    {
+      "path": "/api/cron/eliminar-partidos-pendientes",
+      "schedule": "0 6 * * *"
     }
   ]
 }

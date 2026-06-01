@@ -1,8 +1,8 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 
 import { getTodayInSantiago } from "@/lib/date";
 import { db } from "@/lib/db";
-import { availability, players, weeks } from "@/lib/db/schema";
+import { availability, players, users, weeks } from "@/lib/db/schema";
 import {
   makeEmailDedupeKey,
   markEmailEventFailed,
@@ -416,7 +416,13 @@ async function loadReminderTargets() {
       wantsToPlayNextWeek: players.wantsToPlayNextWeek,
     })
     .from(players)
-    .where(eq(players.status, "activo"));
+    .innerJoin(users, eq(users.playerId, players.id))
+    .where(
+      and(
+        eq(players.status, "activo"),
+        inArray(users.role, ["admin", "player"]),
+      ),
+    );
 
   const playersWithWeekAvailability = targetWeek
     ? await dbClient

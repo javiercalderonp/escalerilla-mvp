@@ -74,8 +74,8 @@ export function buildMatchmakingPlayers(
 /**
  * Greedy pairing algorithm sorted by internal matchmakingScore (highest first).
  * matchmakingScore does not replace the public ranking; it only makes draw pairings more balanced.
- * Respects maxMatches per player, blocks pairs that played within 30 days (caller's responsibility
- * to populate recentOpponents), and never proposes the same pair twice.
+ * Respects maxMatches per player, blocks pairs supplied by the caller (recent or still pending),
+ * and never proposes the same pair twice.
  */
 export function proposeFixture(
   players: ProposalPlayer[],

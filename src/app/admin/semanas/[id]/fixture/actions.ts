@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, gt, gte, or, sql } from "drizzle-orm";
+import { and, eq, gt, gte, isNull, ne, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -19,6 +19,7 @@ import { notifyFixturePublished } from "@/lib/email/match-draw";
 import {
   fetchPairHistorySummaries,
   getPairHistoryForPlayers,
+  getPairKey,
   type PairHistoryForPlayers,
 } from "@/lib/fixture/head-to-head";
 import { buildMatchmakingPlayers, proposeFixture } from "@/lib/fixture/propose";
@@ -50,6 +51,28 @@ export type SerializedPair = {
   isChallenge?: boolean;
   history?: PairHistoryForPlayers;
 };
+
+function addBlockedOpponent(
+  opponentsByPlayer: Map<string, Set<string>>,
+  player1Id: string,
+  player2Id: string,
+) {
+  if (!opponentsByPlayer.has(player1Id)) {
+    opponentsByPlayer.set(player1Id, new Set());
+  }
+  if (!opponentsByPlayer.has(player2Id)) {
+    opponentsByPlayer.set(player2Id, new Set());
+  }
+  opponentsByPlayer.get(player1Id)?.add(player2Id);
+  opponentsByPlayer.get(player2Id)?.add(player1Id);
+}
+
+function pendingMatchesOutsideWeek(weekId: string) {
+  return and(
+    eq(matches.status, "pendiente"),
+    or(isNull(matches.weekId), ne(matches.weekId, weekId)),
+  );
+}
 
 export async function generateProposalAction(
   weekId: string,
@@ -94,6 +117,14 @@ export async function generateProposalAction(
       ),
     );
 
+  const pendingMatchRows = await dbClient
+    .select({
+      player1Id: matches.player1Id,
+      player2Id: matches.player2Id,
+    })
+    .from(matches)
+    .where(pendingMatchesOutsideWeek(weekId));
+
   const confirmedMatchRows = await dbClient
     .select({
       player1Id: matches.player1Id,
@@ -105,12 +136,10 @@ export async function generateProposalAction(
 
   const recentOpponents = new Map<string, Set<string>>();
   for (const m of recentMatchRows) {
-    if (!recentOpponents.has(m.player1Id))
-      recentOpponents.set(m.player1Id, new Set());
-    if (!recentOpponents.has(m.player2Id))
-      recentOpponents.set(m.player2Id, new Set());
-    recentOpponents.get(m.player1Id)?.add(m.player2Id);
-    recentOpponents.get(m.player2Id)?.add(m.player1Id);
+    addBlockedOpponent(recentOpponents, m.player1Id, m.player2Id);
+  }
+  for (const m of pendingMatchRows) {
+    addBlockedOpponent(recentOpponents, m.player1Id, m.player2Id);
   }
 
   const proposalPlayers = buildMatchmakingPlayers(
@@ -183,6 +212,18 @@ export async function publishFixtureAction(
   const availableById = new Map(
     availablePlayers.map((player) => [player.id, player]),
   );
+  const pendingMatchRows = await dbClient
+    .select({
+      player1Id: matches.player1Id,
+      player2Id: matches.player2Id,
+    })
+    .from(matches)
+    .where(pendingMatchesOutsideWeek(weekId));
+  const pendingPairKeys = new Set(
+    pendingMatchRows.map((match) =>
+      getPairKey(match.player1Id, match.player2Id),
+    ),
+  );
   const [rankingM, rankingF] = await Promise.all([
     getRanking("hombres"),
     getRanking("mujeres"),
@@ -209,6 +250,12 @@ export async function publishFixtureAction(
 
     if (p1.gender !== pair.category || p2.gender !== pair.category) {
       throw new Error("La categoría del partido no coincide con sus jugadores");
+    }
+
+    if (pendingPairKeys.has(getPairKey(pair.player1Id, pair.player2Id))) {
+      throw new Error(
+        `${p1.fullName} y ${p2.fullName} ya tienen un partido pendiente sin resultado`,
+      );
     }
 
     const pairKey = `${pair.category}:${[pair.player1Id, pair.player2Id]

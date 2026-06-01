@@ -89,6 +89,7 @@ Notas:
 
 `vercel.json` configura:
 
-- `/api/cron/recordatorio-disponibilidad`, lunes 14:00 UTC.
+- `/api/cron/recordatorio-disponibilidad`, lunes 14:00 `America/Santiago` (17:00 o 18:00 UTC según horario de verano).
+- `/api/cron/eliminar-partidos-pendientes`, diariamente 06:00 UTC. Elimina partidos pendientes sin resultado creados hace 21 dias o mas.
 
 Tambien existe `/api/cron/inactividad` para penalizaciones de inactividad; mantener su programacion alineada con la decision operativa vigente antes de activarlo en Vercel.

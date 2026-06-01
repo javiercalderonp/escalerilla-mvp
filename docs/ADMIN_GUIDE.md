@@ -102,9 +102,10 @@ Antes de activar production, validar remitente, dominio y destinatarios de prueb
 
 ## 8. Cron jobs
 
-`vercel.json` programa actualmente el recordatorio de disponibilidad:
+`vercel.json` programa actualmente:
 
-- `/api/cron/recordatorio-disponibilidad`, lunes 14:00 UTC.
+- `/api/cron/recordatorio-disponibilidad`, lunes 14:00 `America/Santiago` (17:00 o 18:00 UTC según horario de verano).
+- `/api/cron/eliminar-partidos-pendientes`, diariamente 06:00 UTC. Elimina partidos pendientes sin resultado creados hace 21 dias o mas.
 
 Existe `/api/cron/inactividad`, pero su ejecucion programada debe activarse solo cuando el Comité confirme la politica exacta de penalizaciones automaticas.
 

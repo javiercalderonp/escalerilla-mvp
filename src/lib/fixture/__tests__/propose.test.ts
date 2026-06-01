@@ -97,6 +97,22 @@ describe("proposeFixture", () => {
 
     expect(pairKeys).toEqual(["A:B", "C:D"]);
   });
+
+  it("does not propose a pair blocked by an unresolved previous match", () => {
+    const pairs = proposeFixture(
+      [player("A", 300, 1), player("B", 200, 1), player("C", 100, 1)],
+      new Map([
+        ["A", new Set(["B"])],
+        ["B", new Set(["A"])],
+      ]),
+    );
+
+    const pairKeys = pairs.map((pair) =>
+      [pair.player1.id, pair.player2.id].sort().join(":"),
+    );
+
+    expect(pairKeys).not.toContain("A:B");
+  });
 });
 
 describe("buildMatchmakingPlayers", () => {

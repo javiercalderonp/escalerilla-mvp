@@ -312,13 +312,13 @@ export default async function AdminPlayersPage({
 
               {/* Desktop table */}
               <div className="hidden rounded-2xl border border-slate-200 md:block">
-                <Table className="table-fixed text-xs sm:text-sm">
+                <Table className="min-w-[1080px] table-fixed text-xs sm:text-sm">
                   <colgroup>
-                    <col className="w-[16%]" />
-                    <col className="w-[17%]" />
+                    <col className="w-[15%]" />
+                    <col className="w-[15%]" />
                     <col className="w-[6%]" />
                     <col className="w-[9%]" />
-                    <col className="w-[10%]" />
+                    <col className="w-[13%]" />
                     <col className="w-[5%]" />
                     <col className="w-[5%]" />
                     <col className="w-[8%]" />
@@ -371,13 +371,8 @@ export default async function AdminPlayersPage({
                               {levelBadge(player.level)}
                             </div>
                           </TableCell>
-                          <TableCell className="px-1.5 text-slate-600">
-                            <div
-                              className="truncate"
-                              title={player.phone ?? "—"}
-                            >
-                              {player.phone ?? "—"}
-                            </div>
+                          <TableCell className="px-1.5 whitespace-nowrap text-slate-600">
+                            {player.phone ?? "—"}
                           </TableCell>
                           <TableCell className="px-1.5 text-right tabular-nums text-slate-700">
                             {age === null ? "—" : age}
