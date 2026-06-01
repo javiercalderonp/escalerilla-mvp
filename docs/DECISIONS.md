@@ -237,11 +237,17 @@ En MVP los admins son pocos (1-3 personas). Una tabla dedicada sería premature 
 
 ### Decisión
 
-La lista de emails admin vive en la variable de entorno `ADMIN_EMAILS` (separada por coma). Cuando un usuario se loguea con un email de esa lista, se le asigna `role='admin'` en `users`.
+La lista inicial de emails admin vive en la variable de entorno `ADMIN_EMAILS`
+(separada por coma). Cuando un usuario se loguea con un email de esa lista, se
+le asigna `role='admin'` en `users`. Un admin también puede promover otras
+cuentas desde `/admin/jugadores`; esas promociones persisten en `users.role`.
 
 ### Consecuencias
 
-- Cambiar un admin requiere redeploy / `vercel env` y re-login.
+- Los admins configurados en `ADMIN_EMAILS` requieren redeploy / `vercel env` y
+  re-login para cambiar.
+- Los admins promovidos desde `/admin/jugadores` se pueden gestionar sin
+  redeploy.
 - Si en v2 crece el número de admins o queremos UI para gestionarlos, se migra a tabla `admin_users` con acción correspondiente en `/admin`. Ver ADR siguiente cuando ocurra.
 
 ---

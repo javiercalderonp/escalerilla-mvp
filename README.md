@@ -52,7 +52,8 @@ MATCH_RESULT_EMAIL_FROM=
 
 Notas:
 
-- `ADMIN_EMAILS` acepta correos separados por coma.
+- `ADMIN_EMAILS` acepta correos separados por coma y define los admins
+  iniciales; un admin también puede promover cuentas desde `/admin/jugadores`.
 - Si `AUTH_GOOGLE_ID` y `AUTH_GOOGLE_SECRET` estan vacios, el login con Google no se registra y queda disponible el provider de credenciales.
 - No commitear secretos ni archivos `client_secret*.json`.
 

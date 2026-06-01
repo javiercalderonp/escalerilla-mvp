@@ -18,6 +18,7 @@ import {
   rankingEvents,
   users,
 } from "@/lib/db/schema";
+import { isAdminEmail } from "@/lib/env";
 import { refreshHistoricalBestRanking } from "@/lib/ranking";
 import { phoneSchema } from "@/lib/validation/phone";
 
@@ -473,6 +474,22 @@ export async function setUserRoleAction(formData: FormData) {
 
   const userId = z.string().uuid().parse(formData.get("userId"));
   const role = z.enum(["admin", "player"]).parse(formData.get("role"));
+
+  const [targetUser] = await dbClient
+    .select({ email: users.email })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (!targetUser) {
+    throw new Error("Usuario no encontrado");
+  }
+
+  if (role !== "admin" && isAdminEmail(targetUser.email)) {
+    throw new Error(
+      "Este admin está configurado en ADMIN_EMAILS y no se puede degradar desde la aplicación",
+    );
+  }
 
   await dbClient.update(users).set({ role }).where(eq(users.id, userId));
 

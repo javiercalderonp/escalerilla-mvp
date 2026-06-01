@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
 import { ensureAppUser } from "@/lib/auth/ensure-app-user";
+import { resolveUserRole } from "@/lib/auth/role";
 import { db } from "@/lib/db";
 import { DEFAULT_VISIBILITY, players, users } from "@/lib/db/schema";
 import { notifyWelcomeEmail } from "@/lib/email/welcome";
@@ -187,7 +188,11 @@ export async function submitOnboarding(input: unknown) {
           .update(users)
           .set({
             playerId: existingPlayer.id,
-            role: isAdminEmail(email) ? "admin" : "player",
+            role: resolveUserRole({
+              isConfiguredAdmin: isAdminEmail(email),
+              currentRole: user.role,
+              hasLinkedPlayer: true,
+            }),
           })
           .where(eq(users.id, user.id));
         onboardedPlayerId = existingPlayer.id;
@@ -227,7 +232,11 @@ export async function submitOnboarding(input: unknown) {
           .update(users)
           .set({
             playerId: created.id,
-            role: isAdminEmail(email) ? "admin" : "player",
+            role: resolveUserRole({
+              isConfiguredAdmin: isAdminEmail(email),
+              currentRole: user.role,
+              hasLinkedPlayer: true,
+            }),
           })
           .where(eq(users.id, user.id));
         onboardedPlayerId = created.id;
@@ -274,7 +283,13 @@ export async function submitOnboarding(input: unknown) {
 
       await db
         .update(users)
-        .set({ role: isAdminEmail(email) ? "admin" : "player" })
+        .set({
+          role: resolveUserRole({
+            isConfiguredAdmin: isAdminEmail(email),
+            currentRole: user.role,
+            hasLinkedPlayer: true,
+          }),
+        })
         .where(eq(users.id, user.id));
       onboardedPlayerId = user.playerId;
       requiresAdminApproval = currentPlayer?.status === "pendiente";

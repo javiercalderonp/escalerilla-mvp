@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 
+import { resolveUserRole } from "@/lib/auth/role";
 import { db } from "@/lib/db";
 import { players, users } from "@/lib/db/schema";
 import { isAdminEmail } from "@/lib/env";
@@ -42,11 +43,11 @@ export async function ensureAppUser(sessionUser: SessionUserLike) {
     .where(eq(users.email, email))
     .limit(1);
 
-  const desiredRole = isAdminEmail(email)
-    ? "admin"
-    : linkedPlayer
-      ? "player"
-      : "guest";
+  const desiredRole = resolveUserRole({
+    isConfiguredAdmin: isAdminEmail(email),
+    currentRole: existingUser?.role,
+    hasLinkedPlayer: Boolean(linkedPlayer),
+  });
 
   if (!existingUser) {
     const [created] = await db
