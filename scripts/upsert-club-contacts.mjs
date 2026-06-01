@@ -31,7 +31,7 @@ const rows = [
   ["David", "Geni", "Hombres", "+56977287894", "dgenir@gmail.com"],
   ["Jose Luis", "Halcartegaray Vergara", "Hombres", "+56994198791", "joseluis.hver@gmail.com"],
   ["Diego", "Hempel Souper", "Hombres", "+56992755500", "djhempel@uc.cl"],
-  ["Felipe", "Hinzpeter", "Hombres", "+56977080169", "Hinzpeterfelipe@gnail.com"],
+  ["Felipe", "Hinzpeter", "Hombres", "+56977080169", "Hinzpeterfelipe@gmail.com"],
   ["Boris", "Kraizel", "Hombres", "+56998182993", "bkraizel@gmail.com"],
   ["Christian", "Lichtin", "Hombres", "+56996397805", "calichti1@gmail.com"],
   ["Jorge", "Lira Mayo", "Hombres", "+56985882280", "jorgeliram@gmail.com"],

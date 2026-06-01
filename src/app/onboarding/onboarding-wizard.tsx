@@ -76,21 +76,61 @@ const levelOptions = [
     value: "principiante",
     label: "Principiante",
     description: "Estoy empezando o juego muy poco.",
+    accentClass: "text-[#3f9d2f]",
+    illustration: {
+      auraClass: "bg-[#eff8e9]",
+      racketClass: "border-[#4d7045]",
+      stringsClass: "border-[#b9d6ad]",
+      handleClass: "bg-[#23272b]",
+      angleClass: "-rotate-[32deg]",
+      ballClass: "right-7 bottom-10",
+      motion: "none",
+    },
   },
   {
     value: "intermedio_bajo",
     label: "Intermedio bajo",
     description: "Mantengo peloteos y compito de forma recreativa.",
+    accentClass: "text-[#f28a12]",
+    illustration: {
+      auraClass: "bg-[#fff5dc]",
+      racketClass: "border-[#f0a21d]",
+      stringsClass: "border-[#f4c870]",
+      handleClass: "bg-[#20242a]",
+      angleClass: "rotate-[26deg]",
+      ballClass: "right-5 top-11",
+      motion: "bounce",
+    },
   },
   {
     value: "intermedio_alto",
     label: "Intermedio alto",
     description: "Juego seguido y sostengo ritmo de partido.",
+    accentClass: "text-[#1d65c9]",
+    illustration: {
+      auraClass: "bg-[#eff5ff]",
+      racketClass: "border-[#1b60b9]",
+      stringsClass: "border-[#92b9ef]",
+      handleClass: "bg-[#20242a]",
+      angleClass: "rotate-[38deg]",
+      ballClass: "right-7 bottom-8",
+      motion: "speed",
+    },
   },
   {
     value: "avanzado",
     label: "Avanzado",
     description: "Compito con regularidad y tengo buen nivel táctico.",
+    accentClass: "text-[#5a2cba]",
+    illustration: {
+      auraClass: "bg-[#f4efff]",
+      racketClass: "border-[#6136bc]",
+      stringsClass: "border-[#baa4ed]",
+      handleClass: "bg-[#20242a]",
+      angleClass: "rotate-[36deg]",
+      ballClass: "right-7 bottom-9",
+      motion: "speed",
+    },
   },
 ] as const;
 
@@ -373,20 +413,26 @@ export function OnboardingWizard() {
       ) : step === 2 ? (
         <div className="mt-8 space-y-6">
           <Field label="Nivel" error={errors.level}>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-4 sm:gap-5">
               {levelOptions.map((option) => (
                 <button
                   key={option.value}
                   type="button"
                   onClick={() => updateValue("level", option.value)}
-                  className={`rounded-2xl border px-4 py-4 text-left transition ${
+                  aria-pressed={values.level === option.value}
+                  className={`min-h-[236px] rounded-[18px] border bg-white px-3 py-4 text-center shadow-[0_8px_20px_rgba(15,23,42,0.04)] transition sm:min-h-[258px] sm:px-5 sm:py-5 ${
                     values.level === option.value
-                      ? "border-court bg-court/5"
-                      : "border-border hover:border-court/40"
+                      ? "border-court ring-2 ring-court/10"
+                      : "border-[#e2e5ea] hover:border-court/40"
                   }`}
                 >
-                  <p className="font-medium text-foreground">{option.label}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
+                  <LevelIllustration option={option} />
+                  <p
+                    className={`mt-3 text-base font-bold leading-tight ${option.accentClass}`}
+                  >
+                    {option.label}
+                  </p>
+                  <p className="mx-auto mt-2 max-w-[10rem] text-sm font-medium leading-6 text-[#687181]">
                     {option.description}
                   </p>
                 </button>
@@ -470,6 +516,52 @@ export function OnboardingWizard() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function LevelIllustration({
+  option,
+}: {
+  option: (typeof levelOptions)[number];
+}) {
+  const { illustration } = option;
+
+  return (
+    <div className="relative mx-auto h-28 w-28 text-current sm:h-32 sm:w-32">
+      <div
+        className={`absolute inset-0 rounded-full ${illustration.auraClass}`}
+      />
+      {illustration.motion === "speed" ? (
+        <div className="absolute top-8 left-1 flex rotate-[-28deg] flex-col gap-2">
+          <span className="block h-0.5 w-8 rounded-full bg-current opacity-25" />
+          <span className="block h-0.5 w-12 rounded-full bg-current opacity-25" />
+          <span className="block h-0.5 w-7 rounded-full bg-current opacity-25" />
+        </div>
+      ) : null}
+      {illustration.motion === "bounce" ? (
+        <div className="absolute right-7 bottom-6 h-9 w-12 border-[#45556b] border-b-2 border-dashed opacity-80 [border-radius:0_0_50%_50%]" />
+      ) : null}
+      <div
+        className={`absolute top-9 left-8 h-20 w-9 origin-bottom ${illustration.angleClass}`}
+      >
+        <span
+          className={`absolute top-0 left-0 h-14 w-9 rounded-[999px] border-[3px] bg-white/45 ${illustration.racketClass}`}
+        >
+          <span
+            className={`absolute inset-1 rounded-[999px] border bg-[linear-gradient(90deg,transparent_45%,currentColor_46%,currentColor_54%,transparent_55%),linear-gradient(0deg,transparent_45%,currentColor_46%,currentColor_54%,transparent_55%)] bg-[length:9px_9px] opacity-45 ${illustration.stringsClass}`}
+          />
+        </span>
+        <span
+          className={`absolute top-[49px] left-[13px] h-12 w-3 rounded-full ${illustration.handleClass}`}
+        />
+      </div>
+      <span
+        className={`absolute ${illustration.ballClass} flex size-7 items-center justify-center rounded-full bg-[radial-gradient(circle_at_30%_25%,#e9ff67_0_16%,#b9dd20_46%,#72a911_100%)] shadow-sm`}
+        aria-hidden="true"
+      >
+        <span className="h-6 w-3 rounded-full border-white/80 border-l-2" />
+      </span>
     </div>
   );
 }
