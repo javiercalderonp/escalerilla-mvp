@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Eraser, Save } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { AvailabilityGrid } from "@/components/availability/availability-grid";
 import {
@@ -14,6 +14,7 @@ import { upsertAvailabilityAction } from "./actions";
 
 type AvailabilityFormProps = {
   existing: { slots: AvailabilitySlots } | null;
+  showSavedNotification?: boolean;
 };
 
 function buildInitialAvailability(
@@ -27,10 +28,26 @@ function buildInitialAvailability(
   }, {} as AvailabilitySlots);
 }
 
-export function AvailabilityForm({ existing }: AvailabilityFormProps) {
+export function AvailabilityForm({
+  existing,
+  showSavedNotification = false,
+}: AvailabilityFormProps) {
   const [availability, setAvailability] = useState<AvailabilitySlots>(() =>
     buildInitialAvailability(existing),
   );
+  const [isSavedNotificationVisible, setIsSavedNotificationVisible] = useState(
+    showSavedNotification,
+  );
+
+  useEffect(() => {
+    if (!isSavedNotificationVisible) return;
+
+    const timeout = window.setTimeout(() => {
+      setIsSavedNotificationVisible(false);
+    }, 3000);
+
+    return () => window.clearTimeout(timeout);
+  }, [isSavedNotificationVisible]);
 
   function clearSelection() {
     setAvailability(
@@ -45,6 +62,17 @@ export function AvailabilityForm({ existing }: AvailabilityFormProps) {
 
   return (
     <form action={upsertAvailabilityAction} className="space-y-6">
+      {isSavedNotificationVisible ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-20 right-4 z-50 flex items-center gap-2.5 rounded-xl bg-slate-950 px-4 py-3 text-sm font-medium text-white shadow-lg sm:bottom-6 sm:right-6"
+        >
+          <Check className="size-4 text-emerald-400" aria-hidden="true" />
+          Horarios actualizados correctamente
+        </div>
+      ) : null}
+
       {AVAILABILITY_DAYS.map(({ key }) => (
         <input
           key={key}

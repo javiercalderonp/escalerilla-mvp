@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, inArray, or } from "drizzle-orm";
+import { and, desc, eq, inArray, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -61,6 +61,24 @@ export async function createWeekAction(formData: FormData) {
     throw new Error("No hay temporada activa");
   }
 
+  const carriedAvailability = await dbClient
+    .select({
+      playerId: availability.playerId,
+      maxMatches: availability.maxMatches,
+    })
+    .from(availability)
+    .innerJoin(weeks, eq(availability.weekId, weeks.id))
+    .innerJoin(players, eq(availability.playerId, players.id))
+    .where(
+      and(
+        eq(weeks.seasonId, season.id),
+        eq(weeks.status, "borrador"),
+        eq(weeks.startsOn, startsOn),
+        eq(weeks.endsOn, endsOn),
+        eq(players.status, "activo"),
+      ),
+    );
+
   const staleDraftWeeks = await dbClient
     .delete(weeks)
     .where(and(eq(weeks.seasonId, season.id), eq(weeks.status, "borrador")))
@@ -98,17 +116,34 @@ export async function createWeekAction(formData: FormData) {
       ),
     );
 
-  if (playersToSchedule.length > 0) {
+  const availabilityByPlayerId = new Map(
+    carriedAvailability.map((player) => [player.playerId, player.maxMatches]),
+  );
+
+  for (const player of playersToSchedule) {
+    if (!availabilityByPlayerId.has(player.id)) {
+      availabilityByPlayerId.set(
+        player.id,
+        player.wantsMultipleMatches ? 2 : 1,
+      );
+    }
+  }
+
+  if (availabilityByPlayerId.size > 0) {
     const now = new Date();
 
     await dbClient.insert(availability).values(
-      playersToSchedule.map((player) => ({
+      [...availabilityByPlayerId].map(([playerId, maxMatches]) => ({
         weekId: week.id,
-        playerId: player.id,
-        maxMatches: player.wantsMultipleMatches ? 2 : 1,
+        playerId,
+        maxMatches,
         updatedAt: now,
       })),
     );
+  }
+
+  if (playersToSchedule.length > 0) {
+    const now = new Date();
 
     const oneTimePlayerIds = playersToSchedule
       .filter((player) => !player.alwaysAvailable)
@@ -136,6 +171,7 @@ export async function createWeekAction(formData: FormData) {
       endsOn,
       deletedDraftWeekIds: staleDraftWeeks.map((draft) => draft.id),
       seededPlayerIds: playersToSchedule.map((player) => player.id),
+      carriedPlayerIds: carriedAvailability.map((player) => player.playerId),
     },
   });
 
@@ -236,7 +272,10 @@ export async function addPlayersToWeekAvailabilityAction(args: {
   weekId: string;
   playerIds: string[];
   maxMatches?: number;
-}) {
+}): Promise<
+  | { success: true }
+  | { success: false; error: string; redirectTo: string }
+> {
   const { actorId, dbClient } = await requireAdminActor();
 
   const weekId = z.string().uuid().parse(args.weekId);
@@ -247,6 +286,30 @@ export async function addPlayersToWeekAvailabilityAction(args: {
     .min(1)
     .max(3)
     .parse(args.maxMatches ?? 1);
+
+  const [week] = await dbClient
+    .select({ id: weeks.id })
+    .from(weeks)
+    .where(eq(weeks.id, weekId))
+    .limit(1);
+
+  if (!week) {
+    const [replacementWeek] = await dbClient
+      .select({ id: weeks.id })
+      .from(weeks)
+      .where(inArray(weeks.status, ["borrador", "abierta"]))
+      .orderBy(desc(weeks.startsOn))
+      .limit(1);
+
+    return {
+      success: false,
+      error:
+        "Esta programación fue reemplazada desde otra sesión. Te llevamos a la programación vigente.",
+      redirectTo: replacementWeek
+        ? `/admin/semanas/${replacementWeek.id}/fixture?agregarJugadores=1`
+        : "/fixture",
+    };
+  }
 
   const activePlayers = await dbClient
     .select({ id: players.id })
@@ -291,6 +354,8 @@ export async function addPlayersToWeekAvailabilityAction(args: {
 
   revalidatePath(`/admin/semanas/${weekId}`);
   revalidatePath(`/admin/semanas/${weekId}/fixture`);
+
+  return { success: true };
 }
 
 export async function updateWeekPlayerMaxMatchesAction(args: {

@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, Plus, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ export function AddPlayersDialog({
   defaultOpen = false,
   triggerLabel,
 }: AddPlayersDialogProps) {
+  const router = useRouter();
   const [open, setOpen] = useState(defaultOpen);
   const [query, setQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -85,11 +87,16 @@ export function AddPlayersDialog({
     setError(null);
     startTransition(async () => {
       try {
-        await addPlayersToWeekAvailabilityAction({
+        const result = await addPlayersToWeekAvailabilityAction({
           weekId,
           playerIds: [...selectedIds],
           maxMatches: 1,
         });
+        if (!result.success) {
+          setError(result.error);
+          router.replace(result.redirectTo);
+          return;
+        }
         handleOpenChange(false);
         setShowSuccessToast(true);
       } catch (err) {

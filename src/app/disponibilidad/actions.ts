@@ -88,7 +88,7 @@ export async function upsertAvailabilityAction(formData: FormData) {
     })
     .where(eq(players.id, player.id));
 
-  redirect("/disponibilidad");
+  redirect("/disponibilidad?actualizada=1");
 }
 
 export async function setNextWeekAvailabilityAction(

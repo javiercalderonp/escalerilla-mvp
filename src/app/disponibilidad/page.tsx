@@ -9,7 +9,12 @@ import { db } from "@/lib/db";
 import { players } from "@/lib/db/schema";
 import { AvailabilityForm } from "./availability-form";
 
-export default async function DisponibilidadPage() {
+export default async function DisponibilidadPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ actualizada?: string }>;
+}) {
+  const { actualizada } = await searchParams;
   const session = await auth();
   if (!session?.user) redirect("/login");
 
@@ -103,7 +108,10 @@ export default async function DisponibilidadPage() {
         </div>
 
         <div className="mt-5 sm:mt-8">
-          <AvailabilityForm existing={existing} />
+          <AvailabilityForm
+            existing={existing}
+            showSavedNotification={actualizada === "1"}
+          />
         </div>
       </section>
     </main>
