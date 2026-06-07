@@ -19,5 +19,6 @@ Migraciones relevantes posteriores:
 - `0004_player_general_availability.sql`, `0005_player_wants_next_week.sql`, `0006_player_availability_preferences.sql`: disponibilidad general y preferencias.
 - `0007_email_events.sql`: eventos/dedupe de emails.
 - `0008_drop_years_playing.sql`: elimina `years_playing` del perfil obligatorio.
+- `0009_matches_distinct_players.sql`: impide guardar un partido de un jugador contra sí mismo.
 
 Antes de ejecutar `npm run db:push` o SQL manual en production, confirmar que el ambiente apunta a la base correcta y revisar que no haya `DROP` inesperados.

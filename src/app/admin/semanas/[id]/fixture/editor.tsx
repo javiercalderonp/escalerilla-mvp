@@ -459,30 +459,37 @@ function CategoryEditor({
   function swapPlayerSlots(source: PlayerSlot, target: PlayerSlot) {
     if (getSlotKey(source) === getSlotKey(target)) return;
 
-    setPairs((prev) => {
-      const sourcePair = prev[source.pairIndex];
-      const targetPair = prev[target.pairIndex];
-      if (!sourcePair || !targetPair) return prev;
+    const sourcePair = pairs[source.pairIndex];
+    const targetPair = pairs[target.pairIndex];
+    if (!sourcePair || !targetPair) return;
 
-      const sourcePlayer = {
-        id: getSlotPlayerId(sourcePair, source.field),
-        fullName: getSlotPlayerName(sourcePair, source.field),
-      };
-      const targetPlayer = {
-        id: getSlotPlayerId(targetPair, target.field),
-        fullName: getSlotPlayerName(targetPair, target.field),
-      };
+    const sourcePlayer = {
+      id: getSlotPlayerId(sourcePair, source.field),
+      fullName: getSlotPlayerName(sourcePair, source.field),
+    };
+    const targetPlayer = {
+      id: getSlotPlayerId(targetPair, target.field),
+      fullName: getSlotPlayerName(targetPair, target.field),
+    };
 
-      const next = prev.map((pair) => ({ ...pair }));
-      assignSlotPlayer(next[source.pairIndex], source.field, targetPlayer);
-      assignSlotPlayer(next[target.pairIndex], target.field, sourcePlayer);
-      refreshPair(next[source.pairIndex]);
-      if (source.pairIndex !== target.pairIndex) {
-        refreshPair(next[target.pairIndex]);
-      }
+    const next = pairs.map((pair) => ({ ...pair }));
+    assignSlotPlayer(next[source.pairIndex], source.field, targetPlayer);
+    assignSlotPlayer(next[target.pairIndex], target.field, sourcePlayer);
 
-      return next;
-    });
+    if (
+      next[source.pairIndex].p1Id === next[source.pairIndex].p2Id ||
+      next[target.pairIndex].p1Id === next[target.pairIndex].p2Id
+    ) {
+      setError("Un partido no puede tener el mismo jugador dos veces");
+      return;
+    }
+
+    setError(null);
+    refreshPair(next[source.pairIndex]);
+    if (source.pairIndex !== target.pairIndex) {
+      refreshPair(next[target.pairIndex]);
+    }
+    setPairs(next);
   }
 
   function handlePlayerDragStart(event: React.DragEvent, source: PlayerSlot) {

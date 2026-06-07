@@ -20,12 +20,7 @@ import { getRanking } from "@/lib/ranking";
 import type { SerializedPair } from "./actions";
 import { FixtureEditor } from "./editor";
 
-function formatDate(dateStr: string) {
-  const [year, month, day] = dateStr.split("-");
-  return `${day}/${month}/${year}`;
-}
-
-function formatWeekStartLabel(dateStr: string) {
+function formatWeekStartLabel(dateStr: string, includeYear = true) {
   const [year, month, day] = dateStr.split("-");
   const monthNames: Record<string, string> = {
     "01": "enero",
@@ -44,7 +39,8 @@ function formatWeekStartLabel(dateStr: string) {
 
   if (!year || !month || !day) return dateStr;
 
-  return `${Number(day)} de ${monthNames[month] ?? month} de ${year}`;
+  const label = `${Number(day)} de ${monthNames[month] ?? month}`;
+  return includeYear ? `${label} de ${year}` : label;
 }
 
 type PlayerRecentResult = "W" | "L" | "E";
@@ -373,7 +369,7 @@ export default async function FixturePage({
           ),
         }));
 
-  const weekLabel = `${formatDate(week.startsOn)}–${formatDate(week.endsOn)}`;
+  const weekLabel = formatWeekStartLabel(week.startsOn, false);
   const weekStartLabel = formatWeekStartLabel(week.startsOn);
   const hasPublishedMatches = existingMatchRows.length > 0;
 

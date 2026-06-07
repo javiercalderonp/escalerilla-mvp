@@ -1,5 +1,7 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   date,
   index,
   integer,
@@ -257,6 +259,10 @@ export const matches = pgTable(
     player1Idx: index("matches_player1_idx").on(table.player1Id),
     player2Idx: index("matches_player2_idx").on(table.player2Id),
     playedOnIdx: index("matches_played_on_idx").on(table.playedOn),
+    distinctPlayersCheck: check(
+      "matches_distinct_players_check",
+      sql`${table.player1Id} <> ${table.player2Id}`,
+    ),
   }),
 );
 

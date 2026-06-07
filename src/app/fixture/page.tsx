@@ -369,7 +369,14 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
       sql`players as players_p2`,
       sql`${matches.player2Id} = players_p2.id`,
     )
-    .where(matchVisibilityCondition)
+    .where(
+      and(
+        matchVisibilityCondition,
+        eq(matches.category, selectedCategory),
+        eq(players.gender, selectedCategory),
+        sql`players_p2.gender = ${selectedCategory}`,
+      ),
+    )
     .orderBy(
       matches.category,
       desc(sql`coalesce(${matches.playedOn}, ${weeks.startsOn})`),
@@ -378,9 +385,7 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
       players.fullName,
     );
 
-  const matchesM = weekMatches.filter((m) => m.category === "M");
-  const matchesF = weekMatches.filter((m) => m.category === "F");
-  const selectedMatches = selectedCategory === "M" ? matchesM : matchesF;
+  const selectedMatches = weekMatches;
   const matchIds = selectedMatches.map((m) => m.id);
 
   const buildWeekGroups = (rows: typeof weekMatches) => {
@@ -388,37 +393,43 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
       startsOn: string;
       endsOn: string;
     } | null>((latest, match) => {
-      const startsOn =
-        match.weekStartsOn ??
-        (match.playedOn ? getWeekStart(match.playedOn) : null);
+      const playedOnWeekStartsOn = match.playedOn
+        ? getWeekStart(match.playedOn)
+        : null;
+      const startsOn = playedOnWeekStartsOn ?? match.weekStartsOn ?? null;
       const endsOn =
-        match.weekEndsOn ?? (startsOn ? getWeekEnd(startsOn) : null);
+        (playedOnWeekStartsOn ? getWeekEnd(playedOnWeekStartsOn) : null) ??
+        match.weekEndsOn ??
+        (startsOn ? getWeekEnd(startsOn) : null);
 
       if (!startsOn || !endsOn) return latest;
       if (!latest || startsOn > latest.startsOn) return { startsOn, endsOn };
       return latest;
     }, null);
 
-    return rows.reduce<
-      Array<{
+    const groupsByWeek = new Map<
+      string,
+      {
         key: string;
         label: string;
         matches: typeof weekMatches;
-      }>
-    >((groups, match) => {
+      }
+    >();
+
+    for (const match of rows) {
       const playedOnWeekStartsOn = match.playedOn
         ? getWeekStart(match.playedOn)
         : null;
       const startsOn =
-        match.weekStartsOn ??
         playedOnWeekStartsOn ??
+        match.weekStartsOn ??
         latestVisibleWeek?.startsOn ??
         null;
       const endsOn =
-        match.weekEndsOn ??
         (playedOnWeekStartsOn
           ? getWeekEnd(playedOnWeekStartsOn)
-          : latestVisibleWeek?.endsOn) ??
+          : match.weekEndsOn) ??
+        latestVisibleWeek?.endsOn ??
         (startsOn ? getWeekEnd(startsOn) : null);
       const week = {
         key: startsOn ?? "partidos-recientes",
@@ -427,16 +438,16 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
             ? formatWeekHeading(startsOn)
             : "Partidos recientes",
       };
-      const current = groups.at(-1);
+      const group = groupsByWeek.get(week.key);
 
-      if (current?.key === week.key) {
-        current.matches.push(match);
+      if (group) {
+        group.matches.push(match);
       } else {
-        groups.push({ ...week, matches: [match] });
+        groupsByWeek.set(week.key, { ...week, matches: [match] });
       }
+    }
 
-      return groups;
-    }, []);
+    return Array.from(groupsByWeek.values());
   };
 
   const [allSets, pointRows] = matchIds.length

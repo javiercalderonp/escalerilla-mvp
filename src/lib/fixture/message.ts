@@ -9,7 +9,7 @@ export function buildFixtureMessage(
   matchesF: FixtureMatchEntry[],
 ): string {
   const lines: string[] = [
-    "🎾 *Escalerilla Club La Dehesa*",
+    "🎾 *Escalerilla Club De Golf La Dehesa*",
     "",
     `*Fixture — semana ${weekLabel}*`,
     "",
