@@ -205,7 +205,8 @@ a {
 
   header,
   footer,
-  .ranking-screen-only {
+  .ranking-screen-only,
+  .export-no-print {
     display: none;
   }
 

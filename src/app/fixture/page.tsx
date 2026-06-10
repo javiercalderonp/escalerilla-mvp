@@ -3,6 +3,7 @@ import { Check } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { AdminMatchesCreateMenu } from "@/app/fixture/create-menu";
+import { ExportDialog } from "@/app/fixture/export-dialog";
 import { FixtureAdminActions } from "@/app/fixture/fixture-admin-actions";
 import { PrintFixtureDialog } from "@/app/fixture/print-fixture-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -685,7 +686,8 @@ export default async function FixturePage({ searchParams }: FixturePageProps) {
                 {selectedCategoryLabel}
               </h2>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <ExportDialog />
               {isAdmin && currentWeek ? (
                 <PrintFixtureDialog weekId={currentWeek.id} />
               ) : null}

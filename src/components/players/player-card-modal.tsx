@@ -89,7 +89,7 @@ export function PlayerCardModal({
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="bottom-0 top-auto !flex max-h-[calc(100dvh-1rem)] translate-x-[-50%] translate-y-0 flex-col gap-0 overflow-hidden rounded-t-2xl p-0 sm:bottom-auto sm:top-1/2 sm:max-h-[calc(100dvh-2rem)] sm:max-w-xl sm:-translate-y-1/2 sm:rounded-2xl"
+        className="bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] top-auto !flex h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] translate-x-[-50%] translate-y-0 flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:bottom-auto sm:top-1/2 sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:max-w-xl sm:-translate-y-1/2"
       >
         {/* ── Hero header ── */}
         <div
@@ -109,7 +109,7 @@ export function PlayerCardModal({
             }}
           />
 
-          <DialogClose className="absolute right-3 top-3 z-10 rounded-full p-2 text-white/50 transition hover:bg-white/15 hover:text-white">
+          <DialogClose className="absolute right-3 top-3 z-10 inline-flex size-11 items-center justify-center rounded-full text-white/50 transition hover:bg-white/15 hover:text-white">
             <XIcon className="size-5" />
             <span className="sr-only">Cerrar</span>
           </DialogClose>
@@ -315,9 +315,9 @@ export function PlayerCardModal({
           {/* PERFORMANCE tab – dark theme */}
           <TabsPanel
             value="performance"
-            className="min-h-0 flex-1 overflow-y-auto bg-[#080e2a] sm:rounded-b-2xl"
+            className="min-h-0 flex-1 overflow-y-auto bg-[#080e2a] p-5"
           >
-            <div className="space-y-4 p-5">
+            <div className="space-y-4">
               {/* 5 stat cards with icons */}
               <div className="grid grid-cols-5 gap-2">
                 <DarkStat
