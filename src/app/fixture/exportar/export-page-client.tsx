@@ -4,27 +4,7 @@ import { toPng } from "html-to-image";
 import { Download, Printer, Share2 } from "lucide-react";
 import Image from "next/image";
 import { useRef, useState } from "react";
-
-type ExportMatch = {
-  id: string;
-  category: "M" | "F";
-  player1Name: string;
-  player2Name: string;
-  player1Id: string;
-  player2Id: string;
-  winnerId: string | null;
-  status: string;
-  type: "sorteo" | "desafio" | "campeonato";
-  playedOn: string | null;
-  sets: { setNumber: number; gamesP1: number; gamesP2: number }[];
-};
-
-type DayGroup = {
-  key: string;
-  label: string;
-  matchesM: ExportMatch[];
-  matchesF: ExportMatch[];
-};
+import type { DayGroup, ExportMatch } from "@/app/fixture/exportar/page";
 
 type Props = {
   type: "proximos" | "resultados";
@@ -35,26 +15,189 @@ type Props = {
   generatedAt: string;
 };
 
+const NAVY = "#0d1b2a";
+const NAVY_HEADER = "#111d2e";
+const GREEN = "#3d8b57";
+const MUTED = "#776f66";
+const BORDER = "#ded6ca";
+const CARD_BG = "#ffffff";
+const PAGE_BG = "#f6f2ea";
+
+function getInitials(fullName: string) {
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function formatPoints(pts: number) {
+  if (pts > 0) return `+${pts} pts`;
+  if (pts < 0) return `${pts} pts`;
+  return "0 pts";
+}
+
+function formatShortDate(dateStr: string | null) {
+  if (!dateStr) return null;
+  const [year, month, day] = dateStr.split("-");
+  return `${day}/${month}/${year}`;
+}
+
 function getTypeLabel(type: ExportMatch["type"]) {
   if (type === "desafio") return "Desafío";
   if (type === "campeonato") return "Campeonato";
-  return "Sorteo";
+  return null;
 }
 
-function formatScore(match: ExportMatch) {
-  if (match.status === "wo") {
-    const loser =
-      match.winnerId === match.player1Id
-        ? match.player2Name
-        : match.player1Name;
-    return `W.O. (${loser})`;
-  }
-  if (match.status === "empate") return "Empate";
-  if (match.sets.length === 0) return null;
+function PlayerRow({
+  name,
+  rankingPosition,
+  points,
+  isWinner,
+  hasWinner,
+  sets,
+  playerIndex,
+  showScore,
+}: {
+  name: string;
+  rankingPosition: number | null;
+  points: number | null;
+  isWinner: boolean;
+  hasWinner: boolean;
+  sets: ExportMatch["sets"];
+  playerIndex: 1 | 2;
+  showScore: boolean;
+}) {
+  const isLoser = hasWinner && !isWinner;
+  const initials = getInitials(name);
 
-  return match.sets
-    .map((set) => `${set.gamesP1}-${set.gamesP2}`)
-    .join(" ");
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "10px 14px",
+      }}
+    >
+      {/* Status dot */}
+      <div
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: "50%",
+          flexShrink: 0,
+          background: isWinner ? NAVY : "transparent",
+          border: isWinner ? "none" : `2px solid ${BORDER}`,
+        }}
+      />
+
+      {/* Ranking */}
+      <span
+        style={{
+          width: 32,
+          flexShrink: 0,
+          fontSize: 11,
+          fontWeight: 600,
+          color: MUTED,
+          textAlign: "center",
+        }}
+      >
+        {rankingPosition ? `#${rankingPosition}` : "—"}
+      </span>
+
+      {/* Avatar */}
+      <div
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: "50%",
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 11,
+          fontWeight: 700,
+          background: isWinner ? NAVY : "#ede5d8",
+          color: isWinner ? "#ffffff" : MUTED,
+        }}
+      >
+        {initials}
+      </div>
+
+      {/* Name + points */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p
+          style={{
+            margin: 0,
+            fontSize: 13,
+            fontWeight: isLoser ? 400 : 600,
+            color: isLoser ? MUTED : NAVY,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            lineHeight: 1.3,
+          }}
+        >
+          {name}
+        </p>
+        {points !== null && (
+          <p
+            style={{
+              margin: 0,
+              fontSize: 11,
+              fontWeight: 500,
+              color:
+                points > 0 ? GREEN : points < 0 ? "#c0392b" : MUTED,
+              lineHeight: 1.2,
+            }}
+          >
+            {formatPoints(points)}
+          </p>
+        )}
+      </div>
+
+      {/* Winner check */}
+      {isWinner ? (
+        <span style={{ fontSize: 12, color: GREEN, fontWeight: 700, flexShrink: 0, marginRight: 4 }}>
+          ✓
+        </span>
+      ) : hasWinner ? (
+        <span style={{ width: 20, flexShrink: 0 }} />
+      ) : null}
+
+      {/* Set scores */}
+      {showScore && (
+        <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
+          {sets.length > 0 ? (
+            sets.map((set) => {
+              const playerGames =
+                playerIndex === 1 ? set.gamesP1 : set.gamesP2;
+              const opponentGames =
+                playerIndex === 1 ? set.gamesP2 : set.gamesP1;
+              const wonSet = playerGames > opponentGames;
+
+              return (
+                <span
+                  key={set.setNumber}
+                  style={{
+                    width: 16,
+                    textAlign: "center",
+                    fontSize: 13,
+                    fontWeight: wonSet ? 700 : 400,
+                    color: wonSet ? NAVY : MUTED,
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  {playerGames}
+                </span>
+              );
+            })
+          ) : (
+            <span style={{ fontSize: 13, color: MUTED }}>—</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function MatchCard({
@@ -64,77 +207,68 @@ function MatchCard({
   match: ExportMatch;
   showScore: boolean;
 }) {
-  const score = showScore ? formatScore(match) : null;
-  const p1Won = match.winnerId === match.player1Id;
-  const p2Won = match.winnerId === match.player2Id;
+  const hasWinner = match.winnerId !== null;
+  const dateLabel =
+    match.playedOn ? formatShortDate(match.playedOn) : null;
+  const typeLabel = getTypeLabel(match.type);
 
   return (
     <div
       style={{
-        borderRadius: 12,
-        border: "1px solid #ded6ca",
+        borderRadius: 14,
         overflow: "hidden",
-        background: "#ffffff",
+        border: `1px solid ${BORDER}`,
+        background: CARD_BG,
+        boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
       }}
     >
-      {/* Card header */}
+      {/* Dark header */}
       <div
         style={{
-          background: "#0d1b2a",
-          padding: "6px 12px",
+          background: NAVY_HEADER,
+          padding: "8px 14px",
           display: "flex",
-          justifyContent: "space-between",
           alignItems: "center",
+          gap: 6,
         }}
       >
-        <span
-          style={{
-            fontSize: 10,
-            fontWeight: 600,
-            color: match.type === "desafio" ? "#b04d15" : "rgba(255,255,255,0.5)",
-          }}
-        >
-          {getTypeLabel(match.type)}
+        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "rgba(255,255,255,0.25)", flexShrink: 0 }} />
+        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.75)", fontWeight: 500, flex: 1 }}>
+          {dateLabel ?? (match.weekStartsOn ? `Semana ${formatShortDate(match.weekStartsOn)}` : "")}
+          {typeLabel ? (
+            <span style={{ marginLeft: 8, color: match.type === "desafio" ? "#d96a2b" : "rgba(255,255,255,0.5)" }}>
+              · {typeLabel}
+            </span>
+          ) : null}
         </span>
-        {score ? (
-          <span style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>
-            {score}
-          </span>
-        ) : null}
       </div>
 
-      {/* Players */}
-      <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span
-            style={{
-              fontSize: 13,
-              fontWeight: showScore ? (p1Won ? 700 : 400) : 600,
-              color: showScore && !p1Won && match.winnerId ? "#776f66" : "#0d1b2a",
-            }}
-          >
-            {match.player1Name}
-          </span>
-          {showScore && p1Won && (
-            <span style={{ fontSize: 10, color: "#4a8c5e", fontWeight: 700 }}>✓</span>
-          )}
-        </div>
-        <div style={{ height: 1, background: "#ded6ca" }} />
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span
-            style={{
-              fontSize: 13,
-              fontWeight: showScore ? (p2Won ? 700 : 400) : 600,
-              color: showScore && !p2Won && match.winnerId ? "#776f66" : "#0d1b2a",
-            }}
-          >
-            {match.player2Name}
-          </span>
-          {showScore && p2Won && (
-            <span style={{ fontSize: 10, color: "#4a8c5e", fontWeight: 700 }}>✓</span>
-          )}
-        </div>
-      </div>
+      {/* Player 1 */}
+      <PlayerRow
+        name={match.player1Name}
+        rankingPosition={match.player1RankingPosition}
+        points={match.player1Points}
+        isWinner={match.winnerId === match.player1Id}
+        hasWinner={hasWinner}
+        sets={match.sets}
+        playerIndex={1}
+        showScore={showScore}
+      />
+
+      {/* Divider */}
+      <div style={{ height: 1, background: BORDER, margin: "0 14px" }} />
+
+      {/* Player 2 */}
+      <PlayerRow
+        name={match.player2Name}
+        rankingPosition={match.player2RankingPosition}
+        points={match.player2Points}
+        isWinner={match.winnerId === match.player2Id}
+        hasWinner={hasWinner}
+        sets={match.sets}
+        playerIndex={2}
+        showScore={showScore}
+      />
     </div>
   );
 }
@@ -151,22 +285,30 @@ function CategorySection({
   if (matches.length === 0) return null;
 
   return (
-    <div style={{ marginBottom: 8 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+    <div style={{ marginBottom: 4 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          marginBottom: 10,
+        }}
+      >
         <span
           style={{
             fontSize: 10,
             fontWeight: 700,
             textTransform: "uppercase",
             letterSpacing: "0.1em",
-            color: "#776f66",
+            color: MUTED,
+            flexShrink: 0,
           }}
         >
           {label}
         </span>
-        <div style={{ flex: 1, height: 1, background: "#ded6ca" }} />
+        <div style={{ flex: 1, height: 1, background: BORDER }} />
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {matches.map((match) => (
           <MatchCard key={match.id} match={match} showScore={showScore} />
         ))}
@@ -187,15 +329,20 @@ export function ExportPageClient({
   const [isCapturing, setIsCapturing] = useState(false);
   const showScore = type === "resultados";
 
+  async function captureImage() {
+    if (!contentRef.current) return null;
+    return toPng(contentRef.current, {
+      cacheBust: true,
+      pixelRatio: 2,
+      backgroundColor: PAGE_BG,
+    });
+  }
+
   async function handleDownloadPng() {
-    if (!contentRef.current) return;
     setIsCapturing(true);
     try {
-      const dataUrl = await toPng(contentRef.current, {
-        cacheBust: true,
-        pixelRatio: 2,
-        backgroundColor: "#f6f2ea",
-      });
+      const dataUrl = await captureImage();
+      if (!dataUrl) return;
       const link = document.createElement("a");
       link.download = `escalerilla-${type}-${new Date().toISOString().slice(0, 10)}.png`;
       link.href = dataUrl;
@@ -208,14 +355,10 @@ export function ExportPageClient({
   }
 
   async function handleShare() {
-    if (!contentRef.current) return;
     setIsCapturing(true);
     try {
-      const dataUrl = await toPng(contentRef.current, {
-        cacheBust: true,
-        pixelRatio: 2,
-        backgroundColor: "#f6f2ea",
-      });
+      const dataUrl = await captureImage();
+      if (!dataUrl) return;
       const blob = await fetch(dataUrl).then((r) => r.blob());
       const file = new File(
         [blob],
@@ -245,7 +388,7 @@ export function ExportPageClient({
 
   return (
     <main className="min-h-screen bg-background text-foreground print:bg-white">
-      {/* Action bar — hidden when printing */}
+      {/* Action bar */}
       <div className="export-no-print sticky top-0 z-20 flex items-center justify-between border-b border-border bg-card px-4 py-3 shadow-sm print:hidden">
         <div>
           <p className="text-sm font-semibold text-foreground">{title}</p>
@@ -286,63 +429,73 @@ export function ExportPageClient({
         <div
           ref={contentRef}
           style={{
-            width: 600,
+            width: 580,
             maxWidth: "100%",
-            fontFamily: "system-ui, -apple-system, sans-serif",
-            background: "#f6f2ea",
+            fontFamily:
+              "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
+            background: PAGE_BG,
             borderRadius: 20,
             overflow: "hidden",
-            padding: 0,
           }}
         >
           {/* Header */}
           <div
             style={{
-              background: "linear-gradient(140deg, #0b1d4f 0%, #1640a0 55%, #0d2460 100%)",
-              padding: "28px 24px 24px",
+              background:
+                "linear-gradient(140deg, #0b1d4f 0%, #1640a0 55%, #0d2460 100%)",
+              padding: "24px 22px 22px",
               position: "relative",
               overflow: "hidden",
             }}
           >
-            {/* Grid overlay */}
+            {/* Subtle grid overlay */}
             <div
+              aria-hidden="true"
               style={{
                 position: "absolute",
                 inset: 0,
-                opacity: 0.07,
+                opacity: 0.06,
                 backgroundImage:
                   "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)",
                 backgroundSize: "40px 40px",
               }}
             />
-            <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
+            <div
+              style={{
+                position: "relative",
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+                marginBottom: 16,
+              }}
+            >
               <Image
                 src="/logo.png"
-                alt="Escalerilla La Dehesa"
-                width={52}
-                height={52}
-                style={{ borderRadius: 10, flexShrink: 0 }}
+                alt="Logo"
+                width={48}
+                height={48}
                 unoptimized
+                style={{ borderRadius: 10, flexShrink: 0 }}
               />
               <div>
                 <p
                   style={{
+                    margin: 0,
                     fontSize: 10,
                     fontWeight: 700,
                     letterSpacing: "0.12em",
                     textTransform: "uppercase",
                     color: "rgba(147,197,253,0.8)",
-                    margin: 0,
                   }}
                 >
                   Escalerilla · Club La Dehesa
                 </p>
                 <h1
                   style={{
-                    fontSize: 22,
+                    margin: "3px 0 0",
+                    fontSize: 20,
                     fontWeight: 800,
                     color: "#ffffff",
-                    margin: "4px 0 0",
                     lineHeight: 1.2,
                   }}
                 >
@@ -353,28 +506,48 @@ export function ExportPageClient({
             <div
               style={{
                 background: "rgba(255,255,255,0.1)",
-                borderRadius: 10,
-                padding: "8px 14px",
+                borderRadius: 8,
+                padding: "7px 12px",
                 display: "inline-block",
               }}
             >
-              <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.85)", fontWeight: 500 }}>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 12,
+                  color: "rgba(255,255,255,0.85)",
+                  fontWeight: 500,
+                }}
+              >
                 {subtitle}
               </p>
-              <p style={{ margin: "2px 0 0", fontSize: 11, color: "rgba(255,255,255,0.55)" }}>
+              <p
+                style={{
+                  margin: "2px 0 0",
+                  fontSize: 10,
+                  color: "rgba(255,255,255,0.5)",
+                }}
+              >
                 {totalMatches} {totalMatches === 1 ? "partido" : "partidos"}
               </p>
             </div>
           </div>
 
-          {/* Content */}
-          <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 20 }}>
+          {/* Body */}
+          <div
+            style={{
+              padding: 16,
+              display: "flex",
+              flexDirection: "column",
+              gap: 20,
+            }}
+          >
             {groups.length === 0 ? (
               <div
                 style={{
                   padding: "40px 20px",
                   textAlign: "center",
-                  color: "#776f66",
+                  color: MUTED,
                   fontSize: 14,
                 }}
               >
@@ -385,20 +558,21 @@ export function ExportPageClient({
             ) : (
               groups.map((group) => (
                 <div key={group.key}>
-                  {/* Day/week heading */}
+                  {/* Group heading */}
                   <div
                     style={{
                       display: "flex",
                       alignItems: "center",
                       gap: 10,
-                      marginBottom: 12,
+                      marginBottom: 10,
                     }}
                   >
                     <div
                       style={{
-                        background: "#0d1b2a",
-                        borderRadius: 8,
+                        background: NAVY,
+                        borderRadius: 6,
                         padding: "4px 10px",
+                        flexShrink: 0,
                       }}
                     >
                       <span
@@ -407,25 +581,35 @@ export function ExportPageClient({
                           fontWeight: 700,
                           color: "#ffffff",
                           textTransform: "uppercase",
-                          letterSpacing: "0.08em",
+                          letterSpacing: "0.07em",
                         }}
                       >
                         {group.label}
                       </span>
                     </div>
-                    <div style={{ flex: 1, height: 1, background: "#ded6ca" }} />
+                    <div
+                      style={{ flex: 1, height: 1, background: BORDER }}
+                    />
                   </div>
 
-                  <CategorySection
-                    label="Hombres"
-                    matches={group.matchesM}
-                    showScore={showScore}
-                  />
-                  <CategorySection
-                    label="Mujeres"
-                    matches={group.matchesF}
-                    showScore={showScore}
-                  />
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 16,
+                    }}
+                  >
+                    <CategorySection
+                      label="Hombres"
+                      matches={group.matchesM}
+                      showScore={showScore}
+                    />
+                    <CategorySection
+                      label="Mujeres"
+                      matches={group.matchesF}
+                      showScore={showScore}
+                    />
+                  </div>
                 </div>
               ))
             )}
@@ -434,17 +618,21 @@ export function ExportPageClient({
           {/* Footer */}
           <div
             style={{
-              borderTop: "1px solid #ded6ca",
-              padding: "12px 20px",
+              borderTop: `1px solid ${BORDER}`,
+              padding: "10px 16px",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
             }}
           >
-            <span style={{ fontSize: 10, color: "#776f66", fontWeight: 600 }}>
+            <span
+              style={{ fontSize: 10, color: MUTED, fontWeight: 600 }}
+            >
               escalerilla.cl
             </span>
-            <span style={{ fontSize: 10, color: "#776f66" }}>{generatedAt}</span>
+            <span style={{ fontSize: 10, color: MUTED }}>
+              {generatedAt}
+            </span>
           </div>
         </div>
       </div>
