@@ -399,18 +399,34 @@ export function ExportPageClient({
 
   async function captureImage() {
     if (!contentRef.current) return null;
-    const { scrollWidth, scrollHeight } = contentRef.current;
-    return toPng(contentRef.current, {
-      cacheBust: true,
-      pixelRatio: 2,
-      backgroundColor: PAGE_BG,
-      width: scrollWidth,
-      height: scrollHeight,
-      style: {
-        width: `${exportWidth}px`,
-        maxWidth: "none",
-      },
-    });
+
+    const clone = contentRef.current.cloneNode(true) as HTMLDivElement;
+    clone.style.position = "fixed";
+    clone.style.left = "-10000px";
+    clone.style.top = "0";
+    clone.style.width = `${exportWidth}px`;
+    clone.style.maxWidth = "none";
+    clone.style.setProperty("-webkit-text-size-adjust", "100%");
+    clone.style.setProperty("text-size-adjust", "100%");
+    clone.style.pointerEvents = "none";
+    clone.style.zIndex = "-1";
+    document.body.appendChild(clone);
+
+    try {
+      return await toPng(clone, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: PAGE_BG,
+        width: exportWidth,
+        height: clone.scrollHeight,
+        style: {
+          width: `${exportWidth}px`,
+          maxWidth: "none",
+        },
+      });
+    } finally {
+      clone.remove();
+    }
   }
 
   async function handleDownloadPng() {
@@ -506,6 +522,8 @@ export function ExportPageClient({
           style={{
             width: exportWidth,
             maxWidth: "none",
+            WebkitTextSizeAdjust: "100%",
+            textSizeAdjust: "100%",
             fontFamily:
               "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
             background: PAGE_BG,

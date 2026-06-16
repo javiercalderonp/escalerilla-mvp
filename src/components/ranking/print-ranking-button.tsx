@@ -38,19 +38,35 @@ export function PrintRankingButton({
     const node = document.querySelector<HTMLElement>("[data-ranking-export]");
     if (!node) return null;
 
-    const { scrollWidth, scrollHeight } = node;
+    const clone = node.cloneNode(true) as HTMLElement;
+    const width = node.scrollWidth;
+    clone.style.position = "fixed";
+    clone.style.left = "-10000px";
+    clone.style.top = "0";
+    clone.style.width = `${width}px`;
+    clone.style.maxWidth = "none";
+    clone.style.setProperty("-webkit-text-size-adjust", "100%");
+    clone.style.setProperty("text-size-adjust", "100%");
+    clone.style.pointerEvents = "none";
+    clone.style.zIndex = "-1";
+    document.body.appendChild(clone);
+
     const { toPng } = await import("html-to-image");
-    return toPng(node, {
-      cacheBust: true,
-      pixelRatio: 2,
-      backgroundColor: "#ffffff",
-      width: scrollWidth,
-      height: scrollHeight,
-      style: {
-        width: `${scrollWidth}px`,
-        maxWidth: "none",
-      },
-    });
+    try {
+      return await toPng(clone, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: "#ffffff",
+        width,
+        height: clone.scrollHeight,
+        style: {
+          width: `${width}px`,
+          maxWidth: "none",
+        },
+      });
+    } finally {
+      clone.remove();
+    }
   }
 
   async function downloadPng() {

@@ -197,6 +197,8 @@ a {
   background: #ffffff;
   color: #0d1b2a;
   font-family: var(--font-geist-sans), Arial, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   pointer-events: none;
 }
 
