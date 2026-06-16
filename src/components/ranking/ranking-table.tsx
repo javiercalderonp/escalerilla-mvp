@@ -1,13 +1,8 @@
-import { TrendingDownIcon, TrendingUpIcon } from "lucide-react";
 import Link from "next/link";
 
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import {
-  formatDelta,
-  type RankingCategory,
-  type RankingEntry,
-} from "@/lib/ranking";
+import { type RankingCategory, type RankingEntry } from "@/lib/ranking";
 
 type RankingTableProps = {
   category: RankingCategory;
@@ -117,15 +112,13 @@ export function RankingTable({ category, entries }: RankingTableProps) {
 
       {/* ─── Desktop table (hidden below md) ─── */}
       <div className="hidden md:block">
-        <div className="grid grid-cols-[56px_minmax(0,1fr)_72px_56px_56px_56px] gap-2 border-b border-border bg-muted/40 px-6 py-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground lg:grid-cols-[56px_minmax(0,1fr)_92px_72px_72px_72px_72px_120px]">
+        <div className="grid grid-cols-[56px_minmax(0,1fr)_72px_56px_56px_56px] gap-2 border-b border-border bg-muted/40 px-6 py-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground lg:grid-cols-[56px_minmax(0,1fr)_92px_72px_72px_72px]">
           <span>#</span>
           <span>Jugador</span>
           <span className="text-right">Pts</span>
           <span className="text-center">PJ</span>
           <span className="text-center">PG</span>
           <span className="text-center">PP</span>
-          <span className="hidden text-center lg:block">Mejor</span>
-          <span className="hidden lg:block">Δ semana</span>
         </div>
 
         <div className="divide-y divide-border/60">
@@ -137,7 +130,7 @@ export function RankingTable({ category, entries }: RankingTableProps) {
                 key={entry.id}
                 href={`/ranking/${category}?player=${entry.id}`}
                 scroll={false}
-                className={`grid h-12 grid-cols-[56px_minmax(0,1fr)_72px_56px_56px_56px] items-center gap-2 px-6 py-3 transition hover:bg-muted/40 lg:grid-cols-[56px_minmax(0,1fr)_92px_72px_72px_72px_72px_120px] ${getBorderTone(entry.position)} ${entry.position <= 3 ? "bg-muted/20" : ""}`}
+                className={`grid h-12 grid-cols-[56px_minmax(0,1fr)_72px_56px_56px_56px] items-center gap-2 px-6 py-3 transition hover:bg-muted/40 lg:grid-cols-[56px_minmax(0,1fr)_92px_72px_72px_72px] ${getBorderTone(entry.position)} ${entry.position <= 3 ? "bg-muted/20" : ""}`}
               >
                 <span
                   className={`text-sm tabular-nums ${getPositionColor(entry.position)}`}
@@ -177,30 +170,6 @@ export function RankingTable({ category, entries }: RankingTableProps) {
                 </span>
                 <span className="text-center text-sm font-semibold text-destructive tabular-nums">
                   {entry.matchesLost}
-                </span>
-                <span className="hidden text-center text-sm text-muted-foreground tabular-nums lg:block">
-                  {entry.bestRankingPosition != null
-                    ? `#${entry.bestRankingPosition}`
-                    : "—"}
-                </span>
-                <span className="hidden items-center gap-1 text-sm font-semibold tabular-nums lg:inline-flex">
-                  {entry.weeklyDelta > 0 ? (
-                    <>
-                      <TrendingUpIcon className="size-4 text-grass" />
-                      <span className="text-grass">
-                        {formatDelta(entry.weeklyDelta)}
-                      </span>
-                    </>
-                  ) : entry.weeklyDelta < 0 ? (
-                    <>
-                      <TrendingDownIcon className="size-4 text-destructive" />
-                      <span className="text-destructive">
-                        {formatDelta(entry.weeklyDelta)}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
-                  )}
                 </span>
               </Link>
             );

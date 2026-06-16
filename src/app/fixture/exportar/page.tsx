@@ -1,9 +1,15 @@
 import { and, asc, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { ExportPageClient } from "@/app/fixture/exportar/export-page-client";
-import { db } from "@/lib/db";
-import { matches, matchSets, players, rankingEvents, weeks } from "@/lib/db/schema";
 import { getTodayInSantiago } from "@/lib/date";
+import { db } from "@/lib/db";
+import {
+  matches,
+  matchSets,
+  players,
+  rankingEvents,
+  weeks,
+} from "@/lib/db/schema";
 import { getRanking } from "@/lib/ranking";
 
 // How many recent weeks with pending matches to include in the "próximos" export
@@ -40,6 +46,7 @@ export type ExportMatch = MatchRow & {
 export type DayGroup = {
   key: string;
   label: string;
+  matches: ExportMatch[];
   matchesM: ExportMatch[];
   matchesF: ExportMatch[];
 };
@@ -48,17 +55,6 @@ function addDays(dateStr: string, days: number) {
   const date = new Date(`${dateStr}T00:00:00Z`);
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
-}
-
-function formatDayLabel(dateStr: string) {
-  const [year, month, day] = dateStr.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return new Intl.DateTimeFormat("es-CL", {
-    timeZone: "UTC",
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  }).format(date);
 }
 
 function formatShortDate(dateStr: string) {
@@ -90,6 +86,17 @@ function formatDateRange(from: string, to: string) {
   return `${fromFmt} – ${toFmt}`;
 }
 
+function formatWeekLabel(startsOn: string) {
+  const [year, month, day] = startsOn.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  const formatted = new Intl.DateTimeFormat("es-CL", {
+    timeZone: "UTC",
+    day: "numeric",
+    month: "long",
+  }).format(date);
+  return `Semana ${formatted}`;
+}
+
 function formatGeneratedAt() {
   return new Intl.DateTimeFormat("es-CL", {
     timeZone: "America/Santiago",
@@ -101,7 +108,10 @@ function formatGeneratedAt() {
   }).format(new Date());
 }
 
-async function getUpcomingMatches(): Promise<{ rows: MatchRow[]; weekDateRange: string | null }> {
+async function getUpcomingMatches(): Promise<{
+  rows: MatchRow[];
+  weekDateRange: string | null;
+}> {
   if (!db) return { rows: [], weekDateRange: null };
 
   // Find the N most recent weeks that still have pending matches
@@ -153,17 +163,17 @@ async function getUpcomingMatches(): Promise<{ rows: MatchRow[]; weekDateRange: 
       sql`${matches.player2Id} = players_p2.id`,
     )
     .where(
-      and(
-        inArray(matches.weekId, weekIds),
-        eq(matches.status, "pendiente"),
-      ),
+      and(inArray(matches.weekId, weekIds), eq(matches.status, "pendiente")),
     )
     .orderBy(asc(weeks.startsOn), matches.category, asc(players.fullName));
 
   return { rows: rows as MatchRow[], weekDateRange };
 }
 
-async function getRecentResults(todayMinus8: string, today: string): Promise<MatchRow[]> {
+async function getRecentResults(
+  todayMinus8: string,
+  today: string,
+): Promise<MatchRow[]> {
   if (!db) return [];
 
   const rows = await db
@@ -250,9 +260,16 @@ function buildGroupsForUpcoming(rows: ExportMatch[]): DayGroup[] {
       const label = match.weekStartsOn
         ? `Semana ${formatWeekShortDate(match.weekStartsOn)}`
         : "Próximas semanas";
-      groupsByWeek.set(key, { key, label, matchesM: [], matchesF: [] });
+      groupsByWeek.set(key, {
+        key,
+        label,
+        matches: [],
+        matchesM: [],
+        matchesF: [],
+      });
     }
     const group = groupsByWeek.get(key)!;
+    group.matches.push(match);
     if (match.category === "M") group.matchesM.push(match);
     else group.matchesF.push(match);
   }
@@ -261,22 +278,15 @@ function buildGroupsForUpcoming(rows: ExportMatch[]): DayGroup[] {
 }
 
 function buildGroupsForResults(rows: ExportMatch[]): DayGroup[] {
-  const groupsByDay = new Map<string, DayGroup>();
-
-  for (const match of rows) {
-    const key = match.playedOn ?? "sin-fecha";
-    if (!groupsByDay.has(key)) {
-      const label = match.playedOn
-        ? formatDayLabel(match.playedOn)
-        : "Sin fecha";
-      groupsByDay.set(key, { key, label, matchesM: [], matchesF: [] });
-    }
-    const group = groupsByDay.get(key)!;
-    if (match.category === "M") group.matchesM.push(match);
-    else group.matchesF.push(match);
-  }
-
-  return Array.from(groupsByDay.values());
+  return [
+    {
+      key: "resultados",
+      label: "Resultados",
+      matches: rows,
+      matchesM: rows.filter((match) => match.category === "M"),
+      matchesF: rows.filter((match) => match.category === "F"),
+    },
+  ];
 }
 
 export default async function ExportPage({ searchParams }: ExportPageProps) {
@@ -301,8 +311,8 @@ export default async function ExportPage({ searchParams }: ExportPageProps) {
     dateRange = weekDateRange ?? "";
   } else {
     rawMatches = await getRecentResults(todayMinus8, today);
-    subtitle = formatDateRange(todayMinus8, today);
-    dateRange = `${todayMinus8} → ${today}`;
+    subtitle = formatWeekLabel(todayMinus8);
+    dateRange = subtitle;
   }
 
   const matchIds = rawMatches.map((m) => m.id);

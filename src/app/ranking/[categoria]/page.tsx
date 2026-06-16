@@ -42,56 +42,57 @@ function PrintableRanking({
   entries: RankingEntry[];
   printedAt: string;
 }) {
+  const splitIndex = Math.ceil(entries.length / 2);
+  const columns = [entries.slice(0, splitIndex), entries.slice(splitIndex)];
+
   return (
-    <section className="ranking-print-only">
-      <div className="ranking-print-hero">
-        <div>
-          <p>Escalerilla Tenis · Club La Dehesa</p>
-          <h1>Ranking {categoryLabel}</h1>
-          <span>
-            {entries.length} jugadores · Actualizado {printedAt}
-          </span>
+    <section className="ranking-print-only" aria-hidden="true">
+      <div className="ranking-print-sheet" data-ranking-export>
+        <div className="ranking-print-hero">
+          <div>
+            <p>Escalerilla Tenis · Club La Dehesa</p>
+            <h1>Ranking {categoryLabel}</h1>
+            <span>
+              {entries.length} jugadores · Actualizado {printedAt}
+            </span>
+          </div>
+        </div>
+
+        <div className="ranking-print-columns">
+          {columns.map((columnEntries, columnIndex) => (
+            <table
+              className="ranking-print-table"
+              key={`ranking-column-${columnIndex}`}
+            >
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Jugador</th>
+                  <th>Pts</th>
+                  <th>PJ</th>
+                  <th>PG</th>
+                  <th>PP</th>
+                </tr>
+              </thead>
+              <tbody>
+                {columnEntries.map((entry) => (
+                  <tr
+                    key={entry.id}
+                    className={entry.position <= 3 ? "is-top" : ""}
+                  >
+                    <td>{entry.position}</td>
+                    <td>{entry.fullName}</td>
+                    <td>{entry.points}</td>
+                    <td>{entry.matchesPlayed}</td>
+                    <td>{entry.matchesWon}</td>
+                    <td>{entry.matchesLost}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ))}
         </div>
       </div>
-
-      <table className="ranking-print-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Jugador</th>
-            <th>Pts</th>
-            <th>PJ</th>
-            <th>PG</th>
-            <th>PP</th>
-            <th>Mejor</th>
-            <th>Δ semana</th>
-            <th>Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          {entries.map((entry) => (
-            <tr key={entry.id} className={entry.position <= 3 ? "is-top" : ""}>
-              <td>{entry.position}</td>
-              <td>{entry.fullName}</td>
-              <td>{entry.points}</td>
-              <td>{entry.matchesPlayed}</td>
-              <td>{entry.matchesWon}</td>
-              <td>{entry.matchesLost}</td>
-              <td>
-                {entry.bestRankingPosition != null
-                  ? `#${entry.bestRankingPosition}`
-                  : "-"}
-              </td>
-              <td>
-                {entry.weeklyDelta > 0
-                  ? `+${entry.weeklyDelta}`
-                  : entry.weeklyDelta || "-"}
-              </td>
-              <td>{entry.status === "activo" ? "-" : entry.status}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </section>
   );
 }

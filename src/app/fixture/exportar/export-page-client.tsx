@@ -357,6 +357,31 @@ function CategorySection({
   );
 }
 
+function MatchGrid({
+  matches,
+  showScore,
+  columns = 1,
+}: {
+  matches: ExportMatch[];
+  showScore: boolean;
+  columns?: 1 | 2;
+}) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns:
+          columns === 2 ? "repeat(2, minmax(0, 1fr))" : "1fr",
+        gap: 8,
+      }}
+    >
+      {matches.map((match) => (
+        <MatchCard key={match.id} match={match} showScore={showScore} />
+      ))}
+    </div>
+  );
+}
+
 export function ExportPageClient({
   type,
   title,
@@ -424,10 +449,10 @@ export function ExportPageClient({
     }
   }
 
-  const totalMatches = groups.reduce(
-    (acc, g) => acc + g.matchesM.length + g.matchesF.length,
-    0,
-  );
+  const totalMatches = groups.reduce((acc, group) => {
+    if (isResultsExport) return acc + group.matches.length;
+    return acc + group.matchesM.length + group.matchesF.length;
+  }, 0);
 
   return (
     <main className="min-h-screen bg-background text-foreground print:bg-white">
@@ -601,58 +626,70 @@ export function ExportPageClient({
             ) : (
               groups.map((group) => (
                 <div key={group.key}>
-                  {/* Group heading */}
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      marginBottom: 10,
-                    }}
-                  >
-                    <div
-                      style={{
-                        background: NAVY,
-                        borderRadius: 6,
-                        padding: "4px 10px",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <span
+                  {isResultsExport ? (
+                    <MatchGrid
+                      matches={group.matches}
+                      showScore={showScore}
+                      columns={matchColumns}
+                    />
+                  ) : (
+                    <>
+                      {/* Group heading */}
+                      <div
                         style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: "#ffffff",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.07em",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          marginBottom: 10,
                         }}
                       >
-                        {group.label}
-                      </span>
-                    </div>
-                    <div style={{ flex: 1, height: 1, background: BORDER }} />
-                  </div>
+                        <div
+                          style={{
+                            background: NAVY,
+                            borderRadius: 6,
+                            padding: "4px 10px",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: "#ffffff",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.07em",
+                            }}
+                          >
+                            {group.label}
+                          </span>
+                        </div>
+                        <div
+                          style={{ flex: 1, height: 1, background: BORDER }}
+                        />
+                      </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 16,
-                    }}
-                  >
-                    <CategorySection
-                      label="Hombres"
-                      matches={group.matchesM}
-                      showScore={showScore}
-                      columns={matchColumns}
-                    />
-                    <CategorySection
-                      label="Mujeres"
-                      matches={group.matchesF}
-                      showScore={showScore}
-                      columns={matchColumns}
-                    />
-                  </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 16,
+                        }}
+                      >
+                        <CategorySection
+                          label="Hombres"
+                          matches={group.matchesM}
+                          showScore={showScore}
+                          columns={matchColumns}
+                        />
+                        <CategorySection
+                          label="Mujeres"
+                          matches={group.matchesF}
+                          showScore={showScore}
+                          columns={matchColumns}
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
               ))
             )}
