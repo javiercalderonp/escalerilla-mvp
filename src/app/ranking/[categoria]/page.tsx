@@ -26,22 +26,12 @@ type RankingCategoryPageProps = {
   }>;
 };
 
-function formatPrintedAt(date: Date) {
-  return new Intl.DateTimeFormat("es-CL", {
-    dateStyle: "long",
-    timeStyle: "short",
-    timeZone: "America/Santiago",
-  }).format(date);
-}
-
 function PrintableRanking({
   categoryLabel,
   entries,
-  printedAt,
 }: {
   categoryLabel: string;
   entries: RankingEntry[];
-  printedAt: string;
 }) {
   const splitIndex = Math.ceil(entries.length / 2);
   const columns = [
@@ -63,16 +53,12 @@ function PrintableRanking({
             />
             <div>
               <p>Club de Golf La Dehesa</p>
-              <strong>
-                <span>Escalerilla</span> Tenis
-              </strong>
+              <strong>Escalerilla Tenis</strong>
             </div>
           </div>
           <div className="ranking-print-title">
             <h1>Ranking {categoryLabel}</h1>
-            <span>
-              {entries.length} jugadores · Actualizado {printedAt}
-            </span>
+            <span>{entries.length} jugadores</span>
           </div>
         </div>
 
@@ -127,7 +113,6 @@ export default async function RankingCategoryPage({
   const entries = await getRanking(categoria);
   const categoryLabel = rankingCategoryLabels[categoria];
   const isAdmin = session?.user?.role === "admin";
-  const printedAt = formatPrintedAt(new Date());
   const selectedPlayerId = query?.player;
   const viewer = await getViewerContext(session?.user?.email);
 
@@ -142,11 +127,7 @@ export default async function RankingCategoryPage({
 
   return (
     <>
-      <PrintableRanking
-        categoryLabel={categoryLabel}
-        entries={entries}
-        printedAt={printedAt}
-      />
+      <PrintableRanking categoryLabel={categoryLabel} entries={entries} />
 
       <div className="ranking-screen-only mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">
         {/* ── Hero header — hidden on mobile ── */}
@@ -177,7 +158,7 @@ export default async function RankingCategoryPage({
                 Ranking {categoryLabel}
               </h1>
               <p className="mt-1 text-sm text-white/50 sm:mt-2">
-                {entries.length} jugadores · Actualizado en tiempo real
+                {entries.length} jugadores
               </p>
             </div>
 
