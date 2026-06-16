@@ -145,8 +145,7 @@ function PlayerRow({
               margin: 0,
               fontSize: 11,
               fontWeight: 500,
-              color:
-                points > 0 ? GREEN : points < 0 ? "#c0392b" : MUTED,
+              color: points > 0 ? GREEN : points < 0 ? "#c0392b" : MUTED,
               lineHeight: 1.2,
             }}
           >
@@ -157,7 +156,15 @@ function PlayerRow({
 
       {/* Winner check */}
       {isWinner ? (
-        <span style={{ fontSize: 12, color: GREEN, fontWeight: 700, flexShrink: 0, marginRight: 4 }}>
+        <span
+          style={{
+            fontSize: 12,
+            color: GREEN,
+            fontWeight: 700,
+            flexShrink: 0,
+            marginRight: 4,
+          }}
+        >
           ✓
         </span>
       ) : hasWinner ? (
@@ -169,8 +176,7 @@ function PlayerRow({
         <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
           {sets.length > 0 ? (
             sets.map((set) => {
-              const playerGames =
-                playerIndex === 1 ? set.gamesP1 : set.gamesP2;
+              const playerGames = playerIndex === 1 ? set.gamesP1 : set.gamesP2;
               const opponentGames =
                 playerIndex === 1 ? set.gamesP2 : set.gamesP1;
               const wonSet = playerGames > opponentGames;
@@ -208,8 +214,7 @@ function MatchCard({
   showScore: boolean;
 }) {
   const hasWinner = match.winnerId !== null;
-  const dateLabel =
-    match.playedOn ? formatShortDate(match.playedOn) : null;
+  const dateLabel = match.playedOn ? formatShortDate(match.playedOn) : null;
   const typeLabel = getTypeLabel(match.type);
 
   return (
@@ -232,11 +237,37 @@ function MatchCard({
           gap: 6,
         }}
       >
-        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "rgba(255,255,255,0.25)", flexShrink: 0 }} />
-        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.75)", fontWeight: 500, flex: 1 }}>
-          {dateLabel ?? (match.weekStartsOn ? `Semana ${formatShortDate(match.weekStartsOn)}` : "")}
+        <span
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: "50%",
+            background: "rgba(255,255,255,0.25)",
+            flexShrink: 0,
+          }}
+        />
+        <span
+          style={{
+            fontSize: 11,
+            color: "rgba(255,255,255,0.75)",
+            fontWeight: 500,
+            flex: 1,
+          }}
+        >
+          {dateLabel ??
+            (match.weekStartsOn
+              ? `Semana ${formatShortDate(match.weekStartsOn)}`
+              : "")}
           {typeLabel ? (
-            <span style={{ marginLeft: 8, color: match.type === "desafio" ? "#d96a2b" : "rgba(255,255,255,0.5)" }}>
+            <span
+              style={{
+                marginLeft: 8,
+                color:
+                  match.type === "desafio"
+                    ? "#d96a2b"
+                    : "rgba(255,255,255,0.5)",
+              }}
+            >
               · {typeLabel}
             </span>
           ) : null}
@@ -277,10 +308,12 @@ function CategorySection({
   label,
   matches,
   showScore,
+  columns = 1,
 }: {
   label: string;
   matches: ExportMatch[];
   showScore: boolean;
+  columns?: 1 | 2;
 }) {
   if (matches.length === 0) return null;
 
@@ -308,7 +341,14 @@ function CategorySection({
         </span>
         <div style={{ flex: 1, height: 1, background: BORDER }} />
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns:
+            columns === 2 ? "repeat(2, minmax(0, 1fr))" : "1fr",
+          gap: 8,
+        }}
+      >
         {matches.map((match) => (
           <MatchCard key={match.id} match={match} showScore={showScore} />
         ))}
@@ -328,6 +368,9 @@ export function ExportPageClient({
   const contentRef = useRef<HTMLDivElement>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const showScore = type === "resultados";
+  const isResultsExport = type === "resultados";
+  const exportWidth = isResultsExport ? 960 : 580;
+  const matchColumns = isResultsExport ? 2 : 1;
 
   async function captureImage() {
     if (!contentRef.current) return null;
@@ -425,12 +468,12 @@ export function ExportPageClient({
       </div>
 
       {/* Exportable content */}
-      <div className="flex justify-center px-4 py-6 print:px-0 print:py-0">
+      <div className="flex justify-center overflow-x-auto px-4 py-6 print:px-0 print:py-0">
         <div
           ref={contentRef}
           style={{
-            width: 580,
-            maxWidth: "100%",
+            width: exportWidth,
+            maxWidth: isResultsExport ? "none" : "100%",
             fontFamily:
               "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
             background: PAGE_BG,
@@ -587,9 +630,7 @@ export function ExportPageClient({
                         {group.label}
                       </span>
                     </div>
-                    <div
-                      style={{ flex: 1, height: 1, background: BORDER }}
-                    />
+                    <div style={{ flex: 1, height: 1, background: BORDER }} />
                   </div>
 
                   <div
@@ -603,11 +644,13 @@ export function ExportPageClient({
                       label="Hombres"
                       matches={group.matchesM}
                       showScore={showScore}
+                      columns={matchColumns}
                     />
                     <CategorySection
                       label="Mujeres"
                       matches={group.matchesF}
                       showScore={showScore}
+                      columns={matchColumns}
                     />
                   </div>
                 </div>
@@ -625,14 +668,10 @@ export function ExportPageClient({
               alignItems: "center",
             }}
           >
-            <span
-              style={{ fontSize: 10, color: MUTED, fontWeight: 600 }}
-            >
+            <span style={{ fontSize: 10, color: MUTED, fontWeight: 600 }}>
               escalerilla.cl
             </span>
-            <span style={{ fontSize: 10, color: MUTED }}>
-              {generatedAt}
-            </span>
+            <span style={{ fontSize: 10, color: MUTED }}>{generatedAt}</span>
           </div>
         </div>
       </div>
