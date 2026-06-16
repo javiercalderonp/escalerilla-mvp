@@ -509,82 +509,88 @@ export function ExportPageClient({
           {/* Header */}
           <div
             style={{
-              background:
-                "linear-gradient(140deg, #0b1d4f 0%, #1640a0 55%, #0d2460 100%)",
-              padding: "24px 22px 22px",
+              minHeight: 176,
+              backgroundColor: "#07182a",
+              backgroundImage:
+                "linear-gradient(90deg, rgba(7,24,42,0.94) 0%, rgba(7,24,42,0.82) 38%, rgba(7,24,42,0.34) 72%, rgba(7,24,42,0.08) 100%), url('/imagen-mail.png')",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              padding: "28px 40px 24px",
               position: "relative",
               overflow: "hidden",
             }}
           >
-            {/* Subtle grid overlay */}
-            <div
-              aria-hidden="true"
-              style={{
-                position: "absolute",
-                inset: 0,
-                opacity: 0.06,
-                backgroundImage:
-                  "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)",
-                backgroundSize: "40px 40px",
-              }}
-            />
             <div
               style={{
                 position: "relative",
                 display: "flex",
                 alignItems: "center",
-                gap: 14,
-                marginBottom: 16,
+                gap: 22,
+                marginBottom: 22,
               }}
             >
               <Image
                 src="/logo.png"
-                alt="Logo"
-                width={48}
-                height={48}
+                alt="Club de Golf La Dehesa"
+                width={70}
+                height={70}
                 unoptimized
-                style={{ borderRadius: 10, flexShrink: 0 }}
+                style={{ borderRadius: 4, flexShrink: 0 }}
               />
               <div>
                 <p
                   style={{
                     margin: 0,
-                    fontSize: 10,
-                    fontWeight: 700,
-                    letterSpacing: "0.12em",
-                    textTransform: "uppercase",
-                    color: "rgba(147,197,253,0.8)",
-                  }}
-                >
-                  Escalerilla · Club La Dehesa
-                </p>
-                <h1
-                  style={{
-                    margin: "3px 0 0",
-                    fontSize: 20,
-                    fontWeight: 800,
+                    fontSize: 24,
+                    fontWeight: 900,
                     color: "#ffffff",
-                    lineHeight: 1.2,
+                    lineHeight: 1.1,
+                    textTransform: "uppercase",
                   }}
                 >
-                  {title}
-                </h1>
+                  Club de Golf La Dehesa
+                </p>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 16,
+                    fontWeight: 800,
+                    color: "#ff7a1a",
+                    lineHeight: 1.4,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Escalerilla Tenis
+                </p>
               </div>
             </div>
             <div
               style={{
+                position: "relative",
                 background: "rgba(255,255,255,0.1)",
                 borderRadius: 8,
-                padding: "7px 12px",
+                padding: "8px 14px",
                 display: "inline-block",
               }}
             >
               <p
                 style={{
-                  margin: 0,
+                  margin: "0 0 2px",
                   fontSize: 12,
-                  color: "rgba(255,255,255,0.85)",
-                  fontWeight: 500,
+                  color: "rgba(255,255,255,0.62)",
+                  fontWeight: 800,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                }}
+              >
+                {title}
+              </p>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 14,
+                  color: "#ffffff",
+                  fontWeight: 800,
                 }}
               >
                 {subtitle}

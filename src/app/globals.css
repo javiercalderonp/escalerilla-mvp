@@ -209,35 +209,92 @@ a {
 
 .ranking-print-hero {
   break-inside: avoid;
+  display: flex;
+  min-height: 150px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
   margin-bottom: 16px;
   overflow: hidden;
   border-radius: 16px;
-  background: linear-gradient(140deg, #0b1d4f 0%, #1640a0 55%, #0d2460 100%);
+  background-color: #07182a;
+  background-image: linear-gradient(
+      90deg,
+      rgba(7, 24, 42, 0.94) 0%,
+      rgba(7, 24, 42, 0.84) 38%,
+      rgba(7, 24, 42, 0.36) 72%,
+      rgba(7, 24, 42, 0.1) 100%
+    ),
+    url("/imagen-mail.png");
+  background-position: center;
+  background-size: cover;
   color: #ffffff;
-  padding: 18px 22px;
+  padding: 24px 34px;
 }
 
-.ranking-print-hero p {
-  margin: 0 0 6px;
-  color: #93c5fd;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+.ranking-print-brand {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 20px;
+}
+
+.ranking-print-brand img {
+  display: block;
+  width: 74px;
+  height: 74px;
+  border-radius: 4px;
+}
+
+.ranking-print-brand p {
+  margin: 0;
+  color: #ffffff;
+  font-size: 27px;
+  font-weight: 900;
+  line-height: 1.05;
+  text-transform: uppercase;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+}
+
+.ranking-print-brand strong {
+  display: block;
+  margin-top: 6px;
+  color: #ff7a1a;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.1;
   text-transform: uppercase;
 }
 
-.ranking-print-hero h1 {
-  margin: 0;
-  font-size: 25px;
-  font-weight: 800;
-  letter-spacing: 0;
+.ranking-print-brand strong span {
+  display: inline-block;
+  margin-right: 8px;
+  background: #f4dea6;
+  color: #07182a;
+  padding: 1px 4px;
 }
 
-.ranking-print-hero span {
+.ranking-print-title {
+  flex: 0 0 auto;
+  max-width: 320px;
+  text-align: right;
+}
+
+.ranking-print-title h1 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.ranking-print-title span {
   display: block;
-  margin-top: 7px;
-  color: rgba(255, 255, 255, 0.72);
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.78);
   font-size: 12px;
+  font-weight: 700;
 }
 
 .ranking-print-columns {
@@ -331,23 +388,47 @@ a {
   }
 
   .ranking-print-hero {
+    min-height: 96px;
+    gap: 14px;
     margin-bottom: 10px;
     border-radius: 12px;
-    padding: 13px 16px;
+    padding: 14px 18px;
   }
 
-  .ranking-print-hero p {
-    margin-bottom: 4px;
-    font-size: 8px;
+  .ranking-print-brand {
+    gap: 12px;
   }
 
-  .ranking-print-hero h1 {
-    font-size: 20px;
+  .ranking-print-brand img {
+    width: 48px;
+    height: 48px;
   }
 
-  .ranking-print-hero span {
+  .ranking-print-brand p {
+    font-size: 17px;
+  }
+
+  .ranking-print-brand strong {
     margin-top: 4px;
-    font-size: 9px;
+    font-size: 12px;
+  }
+
+  .ranking-print-brand strong span {
+    margin-right: 5px;
+    padding: 1px 3px;
+  }
+
+  .ranking-print-title {
+    max-width: 210px;
+  }
+
+  .ranking-print-title h1 {
+    font-size: 19px;
+  }
+
+  .ranking-print-title span {
+    margin-top: 4px;
+    font-size: 8px;
   }
 
   .ranking-print-columns {

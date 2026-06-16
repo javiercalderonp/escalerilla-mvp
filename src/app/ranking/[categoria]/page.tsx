@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -52,8 +53,22 @@ function PrintableRanking({
     <section className="ranking-print-only" aria-hidden="true">
       <div className="ranking-print-sheet" data-ranking-export>
         <div className="ranking-print-hero">
-          <div>
-            <p>Escalerilla Tenis · Club La Dehesa</p>
+          <div className="ranking-print-brand">
+            <Image
+              src="/logo.png"
+              alt="Club de Golf La Dehesa"
+              width={74}
+              height={74}
+              unoptimized
+            />
+            <div>
+              <p>Club de Golf La Dehesa</p>
+              <strong>
+                <span>Escalerilla</span> Tenis
+              </strong>
+            </div>
+          </div>
+          <div className="ranking-print-title">
             <h1>Ranking {categoryLabel}</h1>
             <span>
               {entries.length} jugadores · Actualizado {printedAt}
