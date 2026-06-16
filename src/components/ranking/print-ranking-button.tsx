@@ -6,6 +6,7 @@ import {
   PrinterIcon,
   Share2Icon,
 } from "lucide-react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -27,21 +28,77 @@ export function PrintRankingButton({
   categoryLabel,
   className,
 }: PrintRankingButtonProps) {
-  async function downloadPng() {
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  function getPngFileName() {
+    return `ranking-${categoryLabel.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.png`;
+  }
+
+  async function capturePngDataUrl() {
     const node = document.querySelector<HTMLElement>("[data-ranking-export]");
-    if (!node) return;
+    if (!node) return null;
 
     const { toPng } = await import("html-to-image");
-    const dataUrl = await toPng(node, {
+    return toPng(node, {
       cacheBust: true,
       pixelRatio: 2,
       backgroundColor: "#ffffff",
     });
+  }
 
-    const link = document.createElement("a");
-    link.download = `ranking-${categoryLabel.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.png`;
-    link.href = dataUrl;
-    link.click();
+  async function downloadPng() {
+    setIsGenerating(true);
+    try {
+      const dataUrl = await capturePngDataUrl();
+      if (!dataUrl) return;
+
+      const link = document.createElement("a");
+      link.download = getPngFileName();
+      link.href = dataUrl;
+      link.click();
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  async function sharePng() {
+    setIsGenerating(true);
+    try {
+      const dataUrl = await capturePngDataUrl();
+      if (!dataUrl) return;
+
+      const blob = await fetch(dataUrl).then((response) => response.blob());
+      const file = new File([blob], getPngFileName(), { type: "image/png" });
+      const title = `Ranking ${categoryLabel}`;
+
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title,
+        });
+        return;
+      }
+
+      if (navigator.share) {
+        await navigator.share({
+          title,
+          text: "Ranking de la Escalerilla Tenis",
+          url: window.location.href,
+        });
+        return;
+      }
+
+      const link = document.createElement("a");
+      link.download = getPngFileName();
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      if (!(error instanceof Error) || error.name !== "AbortError") {
+        console.error("Error compartiendo ranking:", error);
+      }
+    } finally {
+      setIsGenerating(false);
+    }
   }
 
   function printRanking() {
@@ -71,15 +128,38 @@ export function PrintRankingButton({
         <DialogHeader>
           <DialogTitle>Exportar ranking</DialogTitle>
           <DialogDescription>
-            Descarga el ranking en PNG, guárdalo como PDF o imprímelo.
+            Comparte el ranking como imagen, descárgalo en PNG o guárdalo como
+            PDF.
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-2">
           <button
             type="button"
-            className="flex items-start gap-3 rounded-lg border border-border bg-card p-4 text-left transition hover:border-court/40 hover:bg-muted"
+            className="flex items-start gap-3 rounded-lg border border-border bg-card p-4 text-left transition hover:border-court/40 hover:bg-muted disabled:cursor-wait disabled:opacity-60"
+            onClick={sharePng}
+            disabled={isGenerating}
+          >
+            <Share2Icon
+              className="mt-0.5 size-4 text-court"
+              aria-hidden="true"
+            />
+            <span>
+              <span className="block text-sm font-semibold text-foreground">
+                Compartir imagen
+              </span>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                Abre WhatsApp, AirDrop o la opción de guardar en Fotos si tu
+                celular lo permite.
+              </span>
+            </span>
+          </button>
+
+          <button
+            type="button"
+            className="flex items-start gap-3 rounded-lg border border-border bg-card p-4 text-left transition hover:border-court/40 hover:bg-muted disabled:cursor-wait disabled:opacity-60"
             onClick={downloadPng}
+            disabled={isGenerating}
           >
             <DownloadIcon
               className="mt-0.5 size-4 text-court"
