@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { type RankingCategory, type RankingEntry } from "@/lib/ranking";
+import type { RankingCategory, RankingEntry } from "@/lib/ranking";
 
 type RankingTableProps = {
   category: RankingCategory;

@@ -1,6 +1,11 @@
 "use client";
 
-import { DownloadIcon, FileTextIcon, PrinterIcon, Share2Icon } from "lucide-react";
+import {
+  DownloadIcon,
+  FileTextIcon,
+  PrinterIcon,
+  Share2Icon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -76,7 +81,10 @@ export function PrintRankingButton({
             className="flex items-start gap-3 rounded-lg border border-border bg-card p-4 text-left transition hover:border-court/40 hover:bg-muted"
             onClick={downloadPng}
           >
-            <DownloadIcon className="mt-0.5 size-4 text-court" aria-hidden="true" />
+            <DownloadIcon
+              className="mt-0.5 size-4 text-court"
+              aria-hidden="true"
+            />
             <span>
               <span className="block text-sm font-semibold text-foreground">
                 PNG
@@ -92,7 +100,10 @@ export function PrintRankingButton({
             className="flex items-start gap-3 rounded-lg border border-border bg-card p-4 text-left transition hover:border-court/40 hover:bg-muted"
             onClick={printRanking}
           >
-            <FileTextIcon className="mt-0.5 size-4 text-court" aria-hidden="true" />
+            <FileTextIcon
+              className="mt-0.5 size-4 text-court"
+              aria-hidden="true"
+            />
             <span>
               <span className="block text-sm font-semibold text-foreground">
                 PDF
@@ -108,7 +119,10 @@ export function PrintRankingButton({
             className="flex items-start gap-3 rounded-lg border border-border bg-card p-4 text-left transition hover:border-court/40 hover:bg-muted"
             onClick={printRanking}
           >
-            <PrinterIcon className="mt-0.5 size-4 text-court" aria-hidden="true" />
+            <PrinterIcon
+              className="mt-0.5 size-4 text-court"
+              aria-hidden="true"
+            />
             <span>
               <span className="block text-sm font-semibold text-foreground">
                 Imprimir

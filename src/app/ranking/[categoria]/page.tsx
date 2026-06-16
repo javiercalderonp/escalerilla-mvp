@@ -43,7 +43,10 @@ function PrintableRanking({
   printedAt: string;
 }) {
   const splitIndex = Math.ceil(entries.length / 2);
-  const columns = [entries.slice(0, splitIndex), entries.slice(splitIndex)];
+  const columns = [
+    { id: "left", entries: entries.slice(0, splitIndex) },
+    { id: "right", entries: entries.slice(splitIndex) },
+  ];
 
   return (
     <section className="ranking-print-only" aria-hidden="true">
@@ -59,11 +62,8 @@ function PrintableRanking({
         </div>
 
         <div className="ranking-print-columns">
-          {columns.map((columnEntries, columnIndex) => (
-            <table
-              className="ranking-print-table"
-              key={`ranking-column-${columnIndex}`}
-            >
+          {columns.map((column) => (
+            <table className="ranking-print-table" key={column.id}>
               <thead>
                 <tr>
                   <th>#</th>
@@ -75,7 +75,7 @@ function PrintableRanking({
                 </tr>
               </thead>
               <tbody>
-                {columnEntries.map((entry) => (
+                {column.entries.map((entry) => (
                   <tr
                     key={entry.id}
                     className={entry.position <= 3 ? "is-top" : ""}
