@@ -38,11 +38,18 @@ export function PrintRankingButton({
     const node = document.querySelector<HTMLElement>("[data-ranking-export]");
     if (!node) return null;
 
+    const { scrollWidth, scrollHeight } = node;
     const { toPng } = await import("html-to-image");
     return toPng(node, {
       cacheBust: true,
       pixelRatio: 2,
       backgroundColor: "#ffffff",
+      width: scrollWidth,
+      height: scrollHeight,
+      style: {
+        width: `${scrollWidth}px`,
+        maxWidth: "none",
+      },
     });
   }
 

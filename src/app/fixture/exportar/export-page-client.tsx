@@ -399,10 +399,17 @@ export function ExportPageClient({
 
   async function captureImage() {
     if (!contentRef.current) return null;
+    const { scrollWidth, scrollHeight } = contentRef.current;
     return toPng(contentRef.current, {
       cacheBust: true,
       pixelRatio: 2,
       backgroundColor: PAGE_BG,
+      width: scrollWidth,
+      height: scrollHeight,
+      style: {
+        width: `${exportWidth}px`,
+        maxWidth: "none",
+      },
     });
   }
 
@@ -498,7 +505,7 @@ export function ExportPageClient({
           ref={contentRef}
           style={{
             width: exportWidth,
-            maxWidth: isResultsExport ? "none" : "100%",
+            maxWidth: "none",
             fontFamily:
               "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
             background: PAGE_BG,
