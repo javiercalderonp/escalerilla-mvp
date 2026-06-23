@@ -38,21 +38,38 @@ export function PrintRankingButton({
     const node = document.querySelector<HTMLElement>("[data-ranking-export]");
     if (!node) return null;
 
+    await document.fonts?.ready;
+
     const clone = node.cloneNode(true) as HTMLElement;
-    const width = node.scrollWidth;
-    clone.style.position = "fixed";
-    clone.style.left = "-10000px";
-    clone.style.top = "0";
+    const width = Math.ceil(
+      node.getBoundingClientRect().width || node.scrollWidth,
+    );
+    const wrapper = document.createElement("div");
+    wrapper.setAttribute("aria-hidden", "true");
+    wrapper.style.position = "fixed";
+    wrapper.style.left = "0";
+    wrapper.style.top = "0";
+    wrapper.style.width = `${width}px`;
+    wrapper.style.background = "#ffffff";
+    wrapper.style.pointerEvents = "none";
+    wrapper.style.zIndex = "2147483647";
+    wrapper.style.setProperty("-webkit-text-size-adjust", "100%");
+    wrapper.style.setProperty("text-size-adjust", "100%");
+
     clone.style.width = `${width}px`;
     clone.style.maxWidth = "none";
-    clone.style.setProperty("-webkit-text-size-adjust", "100%");
-    clone.style.setProperty("text-size-adjust", "100%");
-    clone.style.pointerEvents = "none";
-    clone.style.zIndex = "-1";
-    document.body.appendChild(clone);
+    clone.style.position = "static";
+    clone.style.transform = "none";
+    clone.style.opacity = "1";
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
 
     const { toPng } = await import("html-to-image");
     try {
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      });
+
       return await toPng(clone, {
         cacheBust: true,
         pixelRatio: 2,
@@ -65,7 +82,7 @@ export function PrintRankingButton({
         },
       });
     } finally {
-      clone.remove();
+      wrapper.remove();
     }
   }
 

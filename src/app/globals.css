@@ -303,7 +303,7 @@ a {
   overflow: hidden;
   border: 1px solid #ded6ca;
   border-radius: 12px;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .ranking-print-table thead {
@@ -317,13 +317,13 @@ a {
 .ranking-print-table th,
 .ranking-print-table td {
   border-bottom: 1px solid #ded6ca;
-  padding: 6.5px 8px;
+  padding: 7px 8px;
   text-align: left;
 }
 
 .ranking-print-table th {
   color: #ffffff;
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -359,7 +359,9 @@ a {
   header,
   footer,
   .ranking-screen-only,
-  .export-no-print {
+  .export-no-print,
+  [data-slot="dialog-overlay"],
+  [data-slot="dialog-content"] {
     display: none;
   }
 
@@ -369,8 +371,10 @@ a {
 
   .ranking-print-only {
     position: static;
+    display: block;
     width: auto;
     color: #0d1b2a;
+    pointer-events: auto;
   }
 
   .ranking-print-sheet {
@@ -429,15 +433,15 @@ a {
   }
 
   .ranking-print-table {
-    font-size: 9px;
+    font-size: 10px;
   }
 
   .ranking-print-table th,
   .ranking-print-table td {
-    padding: 4px 5px;
+    padding: 4.5px 5px;
   }
 
   .ranking-print-table th {
-    font-size: 7.8px;
+    font-size: 8.4px;
   }
 }

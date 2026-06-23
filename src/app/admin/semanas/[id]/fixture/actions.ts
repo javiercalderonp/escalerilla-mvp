@@ -135,11 +135,12 @@ export async function generateProposalAction(
     .where(eq(matches.status, "confirmado"));
 
   const recentOpponents = new Map<string, Set<string>>();
+  const pendingOpponents = new Map<string, Set<string>>();
   for (const m of recentMatchRows) {
     addBlockedOpponent(recentOpponents, m.player1Id, m.player2Id);
   }
   for (const m of pendingMatchRows) {
-    addBlockedOpponent(recentOpponents, m.player1Id, m.player2Id);
+    addBlockedOpponent(pendingOpponents, m.player1Id, m.player2Id);
   }
 
   const proposalPlayers = buildMatchmakingPlayers(
@@ -152,7 +153,11 @@ export async function generateProposalAction(
     confirmedMatchRows,
   );
 
-  const proposal = proposeFixture(proposalPlayers, recentOpponents);
+  const proposal = proposeFixture(
+    proposalPlayers,
+    pendingOpponents,
+    recentOpponents,
+  );
   const historiesByPair = await fetchPairHistorySummaries(
     dbClient,
     proposalPlayers.map((player) => player.id),

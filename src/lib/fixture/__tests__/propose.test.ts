@@ -113,6 +113,71 @@ describe("proposeFixture", () => {
 
     expect(pairKeys).not.toContain("A:B");
   });
+
+  it("uses a recently played opponent when needed to avoid leaving players out", () => {
+    const pairs = proposeFixture(
+      [player("A", 300, 1), player("B", 200, 1)],
+      new Map(),
+      new Map([
+        ["A", new Set(["B"])],
+        ["B", new Set(["A"])],
+      ]),
+    );
+
+    expect(pairs).toHaveLength(1);
+    expect(usageByPlayer(pairs)).toEqual(
+      new Map([
+        ["A", 1],
+        ["B", 1],
+      ]),
+    );
+  });
+
+  it("prioritizes covering every player over the closest local pairing", () => {
+    const pairs = proposeFixture(
+      [
+        player("A", 1000, 1, 1),
+        player("B", 990, 1, 0.99),
+        player("C", 980, 1, 0.98),
+        player("D", 970, 1, 0.97),
+      ],
+      new Map([
+        ["A", new Set(["B"])],
+        ["B", new Set(["A"])],
+      ]),
+    );
+
+    const pairKeys = pairs.map((pair) =>
+      [pair.player1.id, pair.player2.id].sort().join(":"),
+    );
+
+    expect(pairs).toHaveLength(2);
+    expect(usageByPlayer(pairs)).toEqual(
+      new Map([
+        ["A", 1],
+        ["B", 1],
+        ["C", 1],
+        ["D", 1],
+      ]),
+    );
+    expect(pairKeys).not.toContain("A:B");
+  });
+
+  it("covers an odd player count when one player has an extra match slot", () => {
+    const pairs = proposeFixture(
+      [player("A", 300, 2), player("B", 200, 1), player("C", 100, 1)],
+      new Map(),
+    );
+
+    expect(pairs).toHaveLength(2);
+    expect(usageByPlayer(pairs)).toEqual(
+      new Map([
+        ["A", 2],
+        ["B", 1],
+        ["C", 1],
+      ]),
+    );
+  });
 });
 
 describe("buildMatchmakingPlayers", () => {

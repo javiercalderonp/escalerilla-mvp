@@ -75,7 +75,7 @@ function PlayerRow({
         display: "flex",
         alignItems: "center",
         gap: 8,
-        padding: "10px 14px",
+        padding: "12px 14px",
       }}
     >
       {/* Status dot */}
@@ -95,7 +95,7 @@ function PlayerRow({
         style={{
           width: 32,
           flexShrink: 0,
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: 600,
           color: MUTED,
           textAlign: "center",
@@ -114,7 +114,7 @@ function PlayerRow({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: 700,
           background: isWinner ? NAVY : "#ede5d8",
           color: isWinner ? "#ffffff" : MUTED,
@@ -128,7 +128,7 @@ function PlayerRow({
         <p
           style={{
             margin: 0,
-            fontSize: 13,
+            fontSize: 15,
             fontWeight: isLoser ? 400 : 600,
             color: isLoser ? MUTED : NAVY,
             whiteSpace: "nowrap",
@@ -143,7 +143,7 @@ function PlayerRow({
           <p
             style={{
               margin: 0,
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 500,
               color: points > 0 ? GREEN : points < 0 ? "#c0392b" : MUTED,
               lineHeight: 1.2,
@@ -158,7 +158,7 @@ function PlayerRow({
       {isWinner ? (
         <span
           style={{
-            fontSize: 12,
+            fontSize: 14,
             color: GREEN,
             fontWeight: 700,
             flexShrink: 0,
@@ -187,7 +187,7 @@ function PlayerRow({
                   style={{
                     width: 16,
                     textAlign: "center",
-                    fontSize: 13,
+                    fontSize: 15,
                     fontWeight: wonSet ? 700 : 400,
                     color: wonSet ? NAVY : MUTED,
                     fontVariantNumeric: "tabular-nums",
@@ -198,7 +198,7 @@ function PlayerRow({
               );
             })
           ) : (
-            <span style={{ fontSize: 13, color: MUTED }}>—</span>
+            <span style={{ fontSize: 15, color: MUTED }}>—</span>
           )}
         </div>
       )}
@@ -231,7 +231,7 @@ function MatchCard({
       <div
         style={{
           background: NAVY_HEADER,
-          padding: "8px 14px",
+          padding: "9px 14px",
           display: "flex",
           alignItems: "center",
           gap: 6,
@@ -248,7 +248,7 @@ function MatchCard({
         />
         <span
           style={{
-            fontSize: 11,
+            fontSize: 12,
             color: "rgba(255,255,255,0.75)",
             fontWeight: 500,
             flex: 1,
@@ -402,17 +402,21 @@ export function ExportPageClient({
 
     const clone = contentRef.current.cloneNode(true) as HTMLDivElement;
     clone.style.position = "fixed";
-    clone.style.left = "-10000px";
+    clone.style.left = "0";
     clone.style.top = "0";
     clone.style.width = `${exportWidth}px`;
     clone.style.maxWidth = "none";
     clone.style.setProperty("-webkit-text-size-adjust", "100%");
     clone.style.setProperty("text-size-adjust", "100%");
     clone.style.pointerEvents = "none";
-    clone.style.zIndex = "-1";
+    clone.style.zIndex = "2147483647";
     document.body.appendChild(clone);
 
     try {
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      });
+
       return await toPng(clone, {
         cacheBust: true,
         pixelRatio: 2,
@@ -595,39 +599,48 @@ export function ExportPageClient({
                 background: "rgba(255,255,255,0.1)",
                 borderRadius: 8,
                 padding: "8px 14px",
-                display: "inline-block",
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: 18,
+                width: "100%",
               }}
             >
-              <p
-                style={{
-                  margin: "0 0 2px",
-                  fontSize: 12,
-                  color: "rgba(255,255,255,0.62)",
-                  fontWeight: 800,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                }}
-              >
-                {title}
-              </p>
+              <div>
+                <p
+                  style={{
+                    margin: "0 0 2px",
+                    fontSize: 12,
+                    color: "rgba(255,255,255,0.62)",
+                    fontWeight: 800,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {title}
+                </p>
+                <p
+                  style={{
+                    margin: "2px 0 0",
+                    fontSize: 10,
+                    color: "rgba(255,255,255,0.5)",
+                  }}
+                >
+                  {totalMatches} {totalMatches === 1 ? "partido" : "partidos"}
+                </p>
+              </div>
               <p
                 style={{
                   margin: 0,
+                  maxWidth: "55%",
                   fontSize: 14,
                   color: "#ffffff",
                   fontWeight: 800,
+                  textAlign: "right",
+                  lineHeight: 1.25,
                 }}
               >
                 {subtitle}
-              </p>
-              <p
-                style={{
-                  margin: "2px 0 0",
-                  fontSize: 10,
-                  color: "rgba(255,255,255,0.5)",
-                }}
-              >
-                {totalMatches} {totalMatches === 1 ? "partido" : "partidos"}
               </p>
             </div>
           </div>
