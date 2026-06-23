@@ -585,21 +585,56 @@ export function ExportPageClient({
                   Escalerilla Tenis
                 </p>
               </div>
+              {isResultsExport ? (
+                <div
+                  style={{
+                    marginLeft: "auto",
+                    background: "rgba(255,255,255,0.1)",
+                    borderRadius: 8,
+                    padding: "8px 14px",
+                    textAlign: "right",
+                  }}
+                >
+                  <p
+                    style={{
+                      margin: "0 0 2px",
+                      fontSize: 14,
+                      color: "#ffffff",
+                      fontWeight: 900,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {title}
+                  </p>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: 14,
+                      color: "#ffffff",
+                      fontWeight: 800,
+                      lineHeight: 1.25,
+                    }}
+                  >
+                    {subtitle}
+                  </p>
+                </div>
+              ) : null}
             </div>
-            <div
-              style={{
-                position: "relative",
-                background: "rgba(255,255,255,0.1)",
-                borderRadius: 8,
-                padding: "8px 14px",
-                display: "flex",
-                alignItems: "flex-start",
-                justifyContent: isResultsExport ? "flex-end" : "space-between",
-                gap: 18,
-                width: "100%",
-              }}
-            >
-              {!isResultsExport ? (
+            {!isResultsExport ? (
+              <div
+                style={{
+                  position: "relative",
+                  background: "rgba(255,255,255,0.1)",
+                  borderRadius: 8,
+                  padding: "8px 14px",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  gap: 18,
+                  width: "100%",
+                }}
+              >
                 <p
                   style={{
                     margin: "0 0 2px",
@@ -612,40 +647,26 @@ export function ExportPageClient({
                 >
                   {title}
                 </p>
-              ) : null}
-              <div
-                style={{
-                  maxWidth: isResultsExport ? "100%" : "55%",
-                  textAlign: "right",
-                }}
-              >
-                {isResultsExport ? (
-                  <p
-                    style={{
-                      margin: "0 0 2px",
-                      fontSize: 12,
-                      color: "rgba(255,255,255,0.62)",
-                      fontWeight: 800,
-                      letterSpacing: "0.08em",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    {title}
-                  </p>
-                ) : null}
-                <p
+                <div
                   style={{
-                    margin: 0,
-                    fontSize: 14,
-                    color: "#ffffff",
-                    fontWeight: 800,
-                    lineHeight: 1.25,
+                    maxWidth: "55%",
+                    textAlign: "right",
                   }}
                 >
-                  {subtitle}
-                </p>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: 14,
+                      color: "#ffffff",
+                      fontWeight: 800,
+                      lineHeight: 1.25,
+                    }}
+                  >
+                    {subtitle}
+                  </p>
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
 
           {/* Body */}
