@@ -12,7 +12,6 @@ type Props = {
   subtitle: string;
   dateRange: string;
   groups: DayGroup[];
-  generatedAt: string;
 };
 
 const NAVY = "#0d1b2a";
@@ -388,7 +387,6 @@ export function ExportPageClient({
   subtitle,
   dateRange,
   groups,
-  generatedAt,
 }: Props) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [isCapturing, setIsCapturing] = useState(false);
@@ -475,11 +473,6 @@ export function ExportPageClient({
       setIsCapturing(false);
     }
   }
-
-  const totalMatches = groups.reduce((acc, group) => {
-    if (isResultsExport) return acc + group.matches.length;
-    return acc + group.matchesM.length + group.matchesF.length;
-  }, 0);
 
   return (
     <main className="min-h-screen bg-background text-foreground print:bg-white">
@@ -601,12 +594,12 @@ export function ExportPageClient({
                 padding: "8px 14px",
                 display: "flex",
                 alignItems: "flex-start",
-                justifyContent: "space-between",
+                justifyContent: isResultsExport ? "flex-end" : "space-between",
                 gap: 18,
                 width: "100%",
               }}
             >
-              <div>
+              {!isResultsExport ? (
                 <p
                   style={{
                     margin: "0 0 2px",
@@ -619,29 +612,39 @@ export function ExportPageClient({
                 >
                   {title}
                 </p>
-                <p
-                  style={{
-                    margin: "2px 0 0",
-                    fontSize: 10,
-                    color: "rgba(255,255,255,0.5)",
-                  }}
-                >
-                  {totalMatches} {totalMatches === 1 ? "partido" : "partidos"}
-                </p>
-              </div>
-              <p
+              ) : null}
+              <div
                 style={{
-                  margin: 0,
-                  maxWidth: "55%",
-                  fontSize: 14,
-                  color: "#ffffff",
-                  fontWeight: 800,
+                  maxWidth: isResultsExport ? "100%" : "55%",
                   textAlign: "right",
-                  lineHeight: 1.25,
                 }}
               >
-                {subtitle}
-              </p>
+                {isResultsExport ? (
+                  <p
+                    style={{
+                      margin: "0 0 2px",
+                      fontSize: 12,
+                      color: "rgba(255,255,255,0.62)",
+                      fontWeight: 800,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {title}
+                  </p>
+                ) : null}
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 14,
+                    color: "#ffffff",
+                    fontWeight: 800,
+                    lineHeight: 1.25,
+                  }}
+                >
+                  {subtitle}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -737,22 +740,6 @@ export function ExportPageClient({
                 </div>
               ))
             )}
-          </div>
-
-          {/* Footer */}
-          <div
-            style={{
-              borderTop: `1px solid ${BORDER}`,
-              padding: "10px 16px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <span style={{ fontSize: 10, color: MUTED, fontWeight: 600 }}>
-              escalerilla.cl
-            </span>
-            <span style={{ fontSize: 10, color: MUTED }}>{generatedAt}</span>
           </div>
         </div>
       </div>

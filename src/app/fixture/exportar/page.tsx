@@ -97,17 +97,6 @@ function formatWeekLabel(startsOn: string) {
   return `Semana ${formatted}`;
 }
 
-function formatGeneratedAt() {
-  return new Intl.DateTimeFormat("es-CL", {
-    timeZone: "America/Santiago",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date());
-}
-
 async function getUpcomingMatches(): Promise<{
   rows: MatchRow[];
   weekDateRange: string | null;
@@ -370,7 +359,6 @@ export default async function ExportPage({ searchParams }: ExportPageProps) {
       subtitle={subtitle}
       dateRange={dateRange}
       groups={groups}
-      generatedAt={formatGeneratedAt()}
     />
   );
 }
