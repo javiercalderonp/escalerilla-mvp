@@ -531,13 +531,17 @@ export function ExportPageClient({
           {/* Header */}
           <div
             style={{
-              minHeight: 176,
+              minHeight: 150,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 28,
               backgroundColor: "#07182a",
               backgroundImage:
                 "linear-gradient(90deg, rgba(7,24,42,0.94) 0%, rgba(7,24,42,0.82) 38%, rgba(7,24,42,0.34) 72%, rgba(7,24,42,0.08) 100%), url('/imagen-mail.png')",
               backgroundSize: "cover",
               backgroundPosition: "center",
-              padding: "28px 40px 24px",
+              padding: "24px 34px",
               position: "relative",
               overflow: "hidden",
             }}
@@ -547,15 +551,15 @@ export function ExportPageClient({
                 position: "relative",
                 display: "flex",
                 alignItems: "center",
-                gap: 22,
-                marginBottom: 22,
+                gap: 20,
+                minWidth: 0,
               }}
             >
               <Image
                 src="/logo.png"
                 alt="Club de Golf La Dehesa"
-                width={70}
-                height={70}
+                width={74}
+                height={74}
                 unoptimized
                 style={{ borderRadius: 4, flexShrink: 0 }}
               />
@@ -563,110 +567,67 @@ export function ExportPageClient({
                 <p
                   style={{
                     margin: 0,
-                    fontSize: 24,
+                    fontSize: 27,
                     fontWeight: 900,
                     color: "#ffffff",
-                    lineHeight: 1.1,
+                    lineHeight: 1.05,
                     textTransform: "uppercase",
+                    textShadow: "0 2px 10px rgba(0,0,0,0.28)",
                   }}
                 >
                   Club de Golf La Dehesa
                 </p>
                 <p
                   style={{
-                    margin: 0,
-                    fontSize: 16,
-                    fontWeight: 800,
+                    margin: "6px 0 0",
+                    fontSize: 18,
+                    fontWeight: 900,
                     color: "#ff7a1a",
-                    lineHeight: 1.4,
+                    lineHeight: 1.1,
                     textTransform: "uppercase",
                   }}
                 >
                   Escalerilla Tenis
                 </p>
               </div>
-              {isResultsExport ? (
-                <div
-                  style={{
-                    marginLeft: "auto",
-                    background: "rgba(255,255,255,0.1)",
-                    borderRadius: 8,
-                    padding: "8px 14px",
-                    textAlign: "right",
-                  }}
-                >
-                  <p
-                    style={{
-                      margin: "0 0 2px",
-                      fontSize: 14,
-                      color: "#ffffff",
-                      fontWeight: 900,
-                      letterSpacing: "0.08em",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    {title}
-                  </p>
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: 14,
-                      color: "#ffffff",
-                      fontWeight: 800,
-                      lineHeight: 1.25,
-                    }}
-                  >
-                    {subtitle}
-                  </p>
-                </div>
-              ) : null}
             </div>
-            {!isResultsExport ? (
-              <div
+            <div
+              style={{
+                position: "relative",
+                flex: "0 0 auto",
+                maxWidth: 320,
+                background: "rgba(255,255,255,0.1)",
+                borderRadius: 8,
+                padding: "8px 14px",
+                textAlign: "right",
+              }}
+            >
+              <h1
                 style={{
-                  position: "relative",
-                  background: "rgba(255,255,255,0.1)",
-                  borderRadius: 8,
-                  padding: "8px 14px",
-                  display: "flex",
-                  alignItems: "flex-start",
-                  justifyContent: "space-between",
-                  gap: 18,
-                  width: "100%",
+                  margin: 0,
+                  color: "#ffffff",
+                  fontSize: 28,
+                  fontWeight: 900,
+                  letterSpacing: 0,
+                  lineHeight: 1.1,
+                  textShadow: "0 2px 10px rgba(0,0,0,0.3)",
                 }}
               >
-                <p
-                  style={{
-                    margin: "0 0 2px",
-                    fontSize: 12,
-                    color: "rgba(255,255,255,0.62)",
-                    fontWeight: 800,
-                    letterSpacing: "0.08em",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {title}
-                </p>
-                <div
-                  style={{
-                    maxWidth: "55%",
-                    textAlign: "right",
-                  }}
-                >
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: 14,
-                      color: "#ffffff",
-                      fontWeight: 800,
-                      lineHeight: 1.25,
-                    }}
-                  >
-                    {subtitle}
-                  </p>
-                </div>
-              </div>
-            ) : null}
+                {title}
+              </h1>
+              <span
+                style={{
+                  display: "block",
+                  marginTop: 8,
+                  color: "rgba(255,255,255,0.78)",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  lineHeight: 1.25,
+                }}
+              >
+                {subtitle}
+              </span>
+            </div>
           </div>
 
           {/* Body */}
